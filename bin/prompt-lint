@@ -57,10 +57,10 @@ def find_templates():
             dns[:] = []
             continue
         if ".claude" in dns:
-            claude = os.path.join(dp, ".claude")
-            name = os.path.relpath(dp, ROOT)
-            found.append((name, claude))
             dns.remove(".claude")
+            # 範本庫根目錄自己的 .claude 是「在庫上工作」用的設定，不是範本
+            if os.path.abspath(dp) != ROOT:
+                found.append((os.path.relpath(dp, ROOT), os.path.join(dp, ".claude")))
     return sorted(found)
 
 
