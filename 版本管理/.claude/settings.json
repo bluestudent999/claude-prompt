@@ -1,0 +1,88 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(mvn compile:*)",
+      "Bash(mvn test-compile:*)",
+      "Bash(mvn dependency:tree:*)",
+      "Bash(mvn dependency:analyze:*)",
+      "Bash(mvn versions:*)",
+      "Bash(mvn help:effective-pom:*)",
+      "Bash(mvn org.openrewrite.maven:rewrite-maven-plugin:*)",
+      "Bash(./mvnw:*)",
+      "Bash(java -version:*)",
+      "Bash(javac -version:*)",
+      "Bash(git status:*)",
+      "Bash(git diff:*)",
+      "Bash(git log:*)",
+      "Bash(git branch:*)"
+    ]
+  },
+  "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "echo '=== Memory ===' && cat \"$HOME/.claude/projects/$(echo $CLAUDE_PROJECT_DIR | tr '/' '-')/memory/MEMORY.md\" 2>/dev/null || echo 'No memory'"
+          },
+          {
+            "type": "command",
+            "command": "bash \"$CLAUDE_PROJECT_DIR/.claude/hooks/check-oq-pending-session.sh\" 2>/dev/null || true"
+          }
+        ]
+      }
+    ],
+    "PreToolUse": [
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash \"$CLAUDE_PROJECT_DIR/.claude/skills/strategic-compact/suggest-compact.sh\" 2>/dev/null || true",
+            "async": true
+          },
+          {
+            "type": "command",
+            "command": "bash \"$CLAUDE_PROJECT_DIR/.claude/hooks/block-new-javax-import.sh\""
+          }
+        ]
+      },
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash \"$CLAUDE_PROJECT_DIR/.claude/hooks/check-oq-on-commit.sh\""
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Write|Edit",
+        "hooks": []
+      }
+    ]
+  },
+  "autoMode": {
+    "allow": [
+      "讀取專案內任何檔案",
+      "搜尋程式碼（Grep、Glob）",
+      "執行 mvn compile / mvn test-compile / mvn dependency:tree / mvn versions:display-dependency-updates",
+      "執行 OpenRewrite dryRun（org.openrewrite.maven:rewrite-maven-plugin:dryRun）",
+      "執行 git status、git diff、git log、git branch",
+      "建立和編輯 .claude/ 目錄下的設定檔"
+    ],
+    "soft_deny": [
+      "刪除檔案或目錄",
+      "執行 git push、git reset --hard、git rebase",
+      "用 -Dmaven.test.skip=true 跳過測試後提交（升級期回歸測試是唯一安全網）",
+      "執行 OpenRewrite run（實際改檔）前未先跑 dryRun 審查 diff",
+      "在升級分支外（master / developing）直接改 pom.xml 版本號",
+      "執行 rm -rf"
+    ]
+  },
+
+  "_comment_jakarta_block": "block-new-javax-import.sh 預設停用（exit 0），進入 Boot 3 階段後將 hooks/block-new-javax-import.sh 內的 GUARD_ENABLED 改為 1 啟用，攔截新增非 Java SE 的 javax.* import。",
+  "_comment_mcp": "查第三方庫相容版本用 Context7 MCP（compat-researcher agent）。MCP server 設定放 repo 根目錄 .mcp.json；敏感 env（如私服 token）放 settings.local.json 的 env 區段，由 .mcp.json 以 ${VAR} 插值引用。"
+}

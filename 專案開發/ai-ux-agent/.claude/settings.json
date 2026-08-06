@@ -1,0 +1,79 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(python:*)",
+      "Bash(python3:*)",
+      "Bash(pytest:*)",
+      "Bash(ruff:*)",
+      "Bash(mypy:*)",
+      "Bash(uv:*)",
+      "Bash(pip:*)",
+      "Bash(playwright:*)",
+      "Bash(git status:*)",
+      "Bash(git diff:*)",
+      "Bash(git log:*)",
+      "Bash(gh pr:*)"
+    ]
+  },
+  "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "echo '=== Session Memory ===' && cat \"$CLAUDE_PROJECT_DIR/plan/MEMORY.md\" 2>/dev/null || echo 'No active memory'"
+          },
+          {
+            "type": "command",
+            "command": "bash \"$CLAUDE_PROJECT_DIR/.claude/hooks/check-oq-pending-session.sh\" 2>/dev/null || true"
+          }
+        ]
+      }
+    ],
+    "PreToolUse": [
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash \"$CLAUDE_PROJECT_DIR/.claude/skills/strategic-compact/suggest-compact.sh\" 2>/dev/null || true",
+            "async": true
+          }
+        ]
+      },
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash \"$CLAUDE_PROJECT_DIR/.claude/hooks/check-oq-on-commit.sh\""
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "command -v ruff >/dev/null 2>&1 && ruff check . 2>/dev/null || true"
+          }
+        ]
+      }
+    ]
+  },
+  "autoMode": {
+    "allow": [
+      "讀取專案內任何檔案",
+      "搜尋程式碼（Grep、Glob）",
+      "執行 pytest / ruff check / mypy",
+      "執行 git status、git diff、git log"
+    ],
+    "soft_deny": [
+      "刪除觀察/推理/報告核心管線目錄",
+      "對真實目標站執行未經授權的大量請求或壓測",
+      "執行 git push --force、git reset --hard HEAD~1"
+    ]
+  }
+}

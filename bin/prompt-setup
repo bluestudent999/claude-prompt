@@ -1,0 +1,181 @@
+#!/usr/bin/env bash
+#
+# prompt-setup — 一鍵在「當前路徑」安裝對應的 .claude 範本
+#
+#   用法：
+#     prompt-setup <分類> [子項] [選項]
+#
+#   範例：
+#     prompt-setup 專案開發 agent-UX     # 安裝 專案開發/agent-UX/.claude 到 ./
+#     prompt-setup 專案開發 java
+#     prompt-setup 專案維護
+#     prompt-setup 版本管理
+#     prompt-setup 專案企劃
+#
+#   行為：
+#     1. 把 <範本庫>/<分類>/[子項]/.claude 整包複製到目前目錄的 ./.claude
+#     2. 若該 .claude 內含 CLAUDE.md → 搬到目前目錄根目錄 ./CLAUDE.md
+#     3. 若有 settings.local.json.example 且尚無 settings.local.json → 產生一份供填金鑰
+#
+#   選項：
+#     -d, --dir <path>   指定目標目錄（預設：目前工作目錄 $PWD）
+#     -f, --force        乾淨取代：清除原有 .claude 與舊的根 CLAUDE.md 再重貼
+#                        （預設會保留已填金鑰的 settings.local.json）
+#         --reset-local  搭配 --force：連 settings.local.json 一起清掉（不保留）
+#     -n, --dry-run      只顯示會做什麼，不實際寫入
+#         --with-local   一併複製範本庫內的 settings.local.json（預設略過，避免帶入本機私有設定）
+#     -l, --list         列出所有可用範本
+#     -h, --help         顯示說明
+
+set -euo pipefail
+
+# ---- 定位範本庫根目錄（本腳本位於 <範本庫>/bin/ 之下）----------------------
+resolve_self() {
+  local src="${BASH_SOURCE[0]}"
+  while [ -h "$src" ]; do
+    local dir; dir="$(cd -P "$(dirname "$src")" && pwd)"
+    src="$(readlink "$src")"
+    [[ "$src" != /* ]] && src="$dir/$src"
+  done
+  cd -P "$(dirname "$src")" && pwd
+}
+BIN_DIR="$(resolve_self)"
+TEMPLATES_ROOT="$(cd "$BIN_DIR/.." && pwd)"
+
+# ---- 樣式 -------------------------------------------------------------------
+if [ -t 1 ]; then
+  BOLD=$'\033[1m'; DIM=$'\033[2m'; RED=$'\033[31m'; GRN=$'\033[32m'; YLW=$'\033[33m'; CYN=$'\033[36m'; RST=$'\033[0m'
+else
+  BOLD=''; DIM=''; RED=''; GRN=''; YLW=''; CYN=''; RST=''
+fi
+info()  { printf '%s\n' "$*"; }
+ok()    { printf '%s✓%s %s\n' "$GRN" "$RST" "$*"; }
+warn()  { printf '%s!%s %s\n' "$YLW" "$RST" "$*" >&2; }
+die()   { printf '%s✗ %s%s\n' "$RED" "$*" "$RST" >&2; exit 1; }
+
+# ---- 列出可用範本（掃描含 .claude 的目錄，深度 1~2）------------------------
+list_templates() {
+  info "${BOLD}可用範本${RST}（範本庫：$DIM$TEMPLATES_ROOT$RST）"
+  local found=0
+  while IFS= read -r d; do
+    local rel="${d#"$TEMPLATES_ROOT"/}"; rel="${rel%/.claude}"
+    local has_md="無 CLAUDE.md（用 README.md）"
+    [ -f "$d/CLAUDE.md" ] && has_md="含 CLAUDE.md"
+    printf '  %sprompt-setup %s%s   %s%s%s\n' "$CYN" "${rel//\// }" "$RST" "$DIM" "$has_md" "$RST"
+    found=1
+  done < <(find "$TEMPLATES_ROOT" -maxdepth 3 -type d -name .claude \
+             -not -path "*/node_modules/*" 2>/dev/null | sort)
+  [ "$found" = 1 ] || warn "找不到任何 .claude 範本"
+}
+
+SELF="$BIN_DIR/$(basename "${BASH_SOURCE[0]}")"
+usage() { awk 'NR>1{ if($0 ~ /^#/){ sub(/^# ?/,""); print } else exit }' "$SELF"; }
+
+# ---- 解析參數 ---------------------------------------------------------------
+FORCE=0; DRY=0; WITH_LOCAL=0; RESET_LOCAL=0; TARGET="$PWD"
+POS=()
+while [ $# -gt 0 ]; do
+  case "$1" in
+    -h|--help)     usage; exit 0 ;;
+    -l|--list)     list_templates; exit 0 ;;
+    -f|--force)    FORCE=1 ;;
+    --reset-local) RESET_LOCAL=1 ;;
+    -n|--dry-run)  DRY=1 ;;
+    --with-local)  WITH_LOCAL=1 ;;
+    -d|--dir)      shift; [ $# -gt 0 ] || die "-d/--dir 需要一個路徑參數"; TARGET="$1" ;;
+    --)            shift; while [ $# -gt 0 ]; do POS+=("$1"); shift; done; break ;;
+    -*)            die "未知選項：$1（用 -h 看說明）" ;;
+    *)             POS+=("$1") ;;
+  esac
+  shift
+done
+
+[ ${#POS[@]} -eq 0 ] && { list_templates; echo; die "請指定要安裝的範本，例如：prompt-setup 專案開發 agent-UX"; }
+
+# ---- 組出來源路徑：把位置參數用 / 串起來再接 .claude -----------------------
+REL_PATH="$(IFS=/; echo "${POS[*]}")"
+SRC="$TEMPLATES_ROOT/$REL_PATH/.claude"
+
+[ -d "$SRC" ] || { echo; warn "找不到範本：$REL_PATH/.claude"; echo; list_templates; exit 1; }
+
+# ---- 安全檢查 ---------------------------------------------------------------
+[ -d "$TARGET" ] || die "目標目錄不存在：$TARGET"
+TARGET="$(cd "$TARGET" && pwd)"
+
+# 禁止部署到範本庫自己身上（避免覆蓋範本）
+case "$TARGET/" in
+  "$TEMPLATES_ROOT"/*) die "目標位於範本庫內（$TARGET），拒絕在範本庫上部署。請 cd 到真正的專案目錄再執行。" ;;
+esac
+
+DEST_CLAUDE="$TARGET/.claude"
+DEST_MD="$TARGET/CLAUDE.md"
+SRC_HAS_MD=0; [ -f "$SRC/CLAUDE.md" ] && SRC_HAS_MD=1
+
+# 覆蓋防護：目標已有 .claude / CLAUDE.md → 須明確 --force 做乾淨取代
+EXISTED=0
+if [ -e "$DEST_CLAUDE" ] || { [ "$SRC_HAS_MD" = 1 ] && [ -e "$DEST_MD" ]; }; then
+  EXISTED=1
+  [ "$FORCE" = 1 ] || die "目標已存在 .claude / CLAUDE.md。要「清除原有再重貼」請加 --force（或先手動備份）。"
+fi
+
+# ---- 摘要 -------------------------------------------------------------------
+info "${BOLD}prompt-setup${RST}"
+info "  範本    ： $CYN$REL_PATH$RST"
+info "  來源    ： $DIM$SRC$RST"
+info "  目標    ： $BOLD$TARGET$RST"
+[ "$SRC_HAS_MD" = 1 ] && info "  CLAUDE.md： 搬到 $DEST_MD" || info "  CLAUDE.md： 此範本無（改看 .claude/README.md）"
+if [ "$FORCE" = 1 ] && [ "$EXISTED" = 1 ]; then
+  if [ "$RESET_LOCAL" = 1 ]; then
+    warn "  --force --reset-local：清除原有 .claude（含 settings.local.json）再重貼"
+  else
+    warn "  --force：清除原有 .claude 再重貼（保留既有 settings.local.json）"
+  fi
+fi
+echo
+
+run() { if [ "$DRY" = 1 ]; then info "  ${DIM}[dry-run] $*${RST}"; else eval "$@"; fi; }
+
+# ---- 乾淨取代：保留 local → 清除舊的 → 全新複製 → 還原 local -----------------
+# 統一走「清除再貼上」：全新安裝時 rm -rf 為 no-op，重裝時即乾淨取代（cp -R 全平台可用）
+LOCAL_BAK="$TARGET/.claude.local.bak"
+PRESERVE_LOCAL=0
+if [ "$FORCE" = 1 ] && [ -f "$DEST_CLAUDE/settings.local.json" ] \
+   && [ "$RESET_LOCAL" != 1 ] && [ "$WITH_LOCAL" != 1 ]; then
+  PRESERVE_LOCAL=1
+  run "cp \"$DEST_CLAUDE/settings.local.json\" \"$LOCAL_BAK\""
+fi
+
+# 清除舊的 .claude 與舊的根 CLAUDE.md（本次都會重貼新的）
+run "rm -rf \"$DEST_CLAUDE\""
+[ "$SRC_HAS_MD" = 1 ] && [ -e "$DEST_MD" ] && run "rm -f \"$DEST_MD\""
+
+# 全新複製
+run "cp -R \"$SRC\" \"$DEST_CLAUDE\""
+run "find \"$DEST_CLAUDE\" -name .DS_Store -delete 2>/dev/null || true"
+[ "$WITH_LOCAL" = 1 ] || run "rm -f \"$DEST_CLAUDE/settings.local.json\""
+
+# 還原保留的 local
+if [ "$PRESERVE_LOCAL" = 1 ]; then
+  run "mv \"$LOCAL_BAK\" \"$DEST_CLAUDE/settings.local.json\""
+  ok "已保留原有 settings.local.json（未被覆蓋）"
+fi
+[ "$EXISTED" = 1 ] && ok "已清除原有 .claude 並重貼 → $DEST_CLAUDE" || ok "已複製 .claude → $DEST_CLAUDE"
+
+# ---- 搬移 CLAUDE.md 到根目錄 ------------------------------------------------
+if [ "$SRC_HAS_MD" = 1 ]; then
+  run "mv -f \"$DEST_CLAUDE/CLAUDE.md\" \"$DEST_MD\""
+  ok "已搬移 CLAUDE.md → $DEST_MD"
+fi
+
+# ---- 產生 settings.local.json（若有 .example 且尚未存在）--------------------
+if [ -f "$DEST_CLAUDE/settings.local.json.example" ] && [ ! -f "$DEST_CLAUDE/settings.local.json" ]; then
+  run "cp \"$DEST_CLAUDE/settings.local.json.example\" \"$DEST_CLAUDE/settings.local.json\""
+  ok "已由範本產生 settings.local.json（記得填入金鑰，勿進版控）"
+fi
+
+echo
+if [ "$DRY" = 1 ]; then
+  warn "以上為 dry-run，未實際寫入。移除 --dry-run 即可執行。"
+else
+  ok "${BOLD}完成${RST}。在 $TARGET 啟動 claude 即可套用此範本。"
+fi

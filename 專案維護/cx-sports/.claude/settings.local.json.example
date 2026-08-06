@@ -1,0 +1,14 @@
+{
+  "_README": "此檔案不提交到 git。複製為 .claude/settings.local.json 並填入實際值。",
+  "env": {
+    "MYSQL_USER": "your_mysql_user",
+    "MYSQL_PASS": "your_mysql_password",
+    "REDIS_URL": "redis://127.0.0.1:6379",
+    "GITLAB_TOKEN": "glpat-xxx",
+    "GITLAB_URL": "https://gitlab.example.com",
+    "JIRA_URL": "https://your-domain.atlassian.net",
+    "JIRA_USER_EMAIL": "you@example.com",
+    "JIRA_API_TOKEN": "your_jira_api_token"
+  },
+  "enableAllProjectMcpServers": true
+}

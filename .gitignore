@@ -1,0 +1,17 @@
+# macOS
+.DS_Store
+
+# IDE
+.idea/
+.vscode/
+
+# 本機私有設定（金鑰用，README 明訂勿進版控）
+settings.local.json
+.env
+.env.*
+
+# 稽核產出（網站體驗稽核範本的執行結果，含目標站截圖，非範本本體）
+ux-reports/
+
+# 依賴
+node_modules/

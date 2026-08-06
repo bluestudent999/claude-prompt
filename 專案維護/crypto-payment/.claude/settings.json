@@ -1,0 +1,82 @@
+{
+  "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "echo '=== Memory ===' && cat \"$HOME/.claude/projects/$(echo $CLAUDE_PROJECT_DIR | tr '/' '-')/memory/MEMORY.md\" 2>/dev/null || echo 'No memory'"
+          },
+          {
+            "type": "command",
+            "command": "bash \"$CLAUDE_PROJECT_DIR/.claude/hooks/check-oq-pending-session.sh\" 2>/dev/null || true"
+          }
+        ]
+      }
+    ],
+    "PreToolUse": [
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash \"$CLAUDE_PROJECT_DIR/.claude/skills/strategic-compact/suggest-compact.sh\" 2>/dev/null || true",
+            "async": true
+          }
+        ]
+      },
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"$CLAUDE_PROJECT_DIR/.claude/hooks/validate_commit_msg.py\""
+          },
+          {
+            "type": "command",
+            "command": "bash \"$CLAUDE_PROJECT_DIR/.claude/hooks/check-oq-on-commit.sh\""
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 -c \"\nimport sys, json\ntry:\n    data = json.load(sys.stdin)\n    path = data.get('tool_result', {}).get('filePath', '') or data.get('tool_input', {}).get('file_path', '')\n    if any(p in path for p in ['service/', 'repository/', 'controller/', 'filter/', 'event/']):\n        print()\n        print('提示：已修改業務層檔案，涉及金額/私鑰/platform_id/驗簽時建議執行 /security-check')\nexcept Exception:\n    pass\n\""
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "cd \"$CLAUDE_PROJECT_DIR\" 2>/dev/null && (git diff --quiet HEAD 2>/dev/null || echo $'\\n尚有未提交的變更\\n建議：1) mvn test  2) /security-check  3) 確認在 feature/PROJ_XXX 分支再 commit\\n') || true"
+          }
+        ]
+      }
+    ]
+  },
+  "autoMode": {
+    "allow": [
+      "讀取專案內任何檔案（不含 File Access 紅線清單）",
+      "搜尋程式碼（Grep、Glob）",
+      "執行 mvn compile / mvn test / mvn -pl crypto-payment-service -am compile",
+      "執行 git status、git diff、git log、git branch",
+      "建立和編輯 .claude/ 目錄下的設定檔"
+    ],
+    "soft_deny": [
+      "讀取 .env / application-prod.yml / application-staging.yml / *.key / *.pem / *.p12 / *.jks / logs/",
+      "刪除檔案或目錄、執行 rm -rf",
+      "執行 git push、git reset --hard、git rebase、git commit --no-verify",
+      "執行 flyway:migrate 或新增 / 修改 crypto-payment-flyway 的 V*.sql",
+      "修改 filter/SignFilter.java 或任何 Aes/Gcm/Encrypt/Decrypt/Key 加密類",
+      "修改 application*.yml 的生產 datasource / redis / kafka / chain 節點設定"
+    ]
+  },
+  "_comment": "敏感 env（本地開發憑證）放 settings.local.json 的 env 區段，不進版控。commit message 格式由 hooks/validate_commit_msg.py 強制 type(PROJ-XXX)。"
+}

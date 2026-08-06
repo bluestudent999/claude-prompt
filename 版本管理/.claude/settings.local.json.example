@@ -1,0 +1,12 @@
+{
+  "_comment": "複製為 settings.local.json（不進 git，加入 .gitignore）。填入本機私有 env 與升級期工具路徑。",
+  "env": {
+    "JAVA_HOME_SOURCE": "/Library/Java/JavaVirtualMachines/jdk-1.8.jdk/Contents/Home",
+    "JAVA_HOME_TARGET": "/Library/Java/JavaVirtualMachines/jdk-21.jdk/Contents/Home",
+    "MAVEN_OPTS": "-Xmx2g",
+    "PRIVATE_REPO_TOKEN": "<若有私服依賴，填存取 token>"
+  },
+  "permissions": {
+    "allow": []
+  }
+}

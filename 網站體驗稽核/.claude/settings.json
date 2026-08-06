@@ -1,0 +1,49 @@
+{
+  "permissions": {
+    "allow": [
+      "mcp__chrome-devtools",
+      "Bash(date:*)",
+      "Bash(mkdir -p:*)",
+      "Bash(ls:*)",
+      "Bash(test -f:*)",
+      "Bash(wc:*)",
+      "Bash(file:*)",
+      "Bash(du:*)",
+      "Bash(grep:*)",
+      "Bash(rg:*)"
+    ]
+  },
+  "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "echo '=== 網站體驗稽核 · 開工三問 ===' && echo '1) Chrome DevTools MCP 可用嗎？（不可用不要抓 HTML 假裝有體驗）' && echo '2) 環境模式是 test 還是 production？（test 交易流程要走到底）' && echo '3) 稽核目標與範圍看過了嗎？→ .claude/audit-target.md' && echo '--- 紅線：沒證據不成 Finding · 觀察與推論分離 · 瀏覽器單一佔用（蒐證角色絕不平行）---'"
+          },
+          {
+            "type": "command",
+            "command": "test -f \"$CLAUDE_PROJECT_DIR/.claude/audit-target.md\" && grep -q '<例' \"$CLAUDE_PROJECT_DIR/.claude/audit-target.md\" && echo '⚠️  .claude/audit-target.md 仍是樣板未填寫（仍有 <例…> 佔位符），開工前請先填目標站與環境模式' || true"
+          }
+        ]
+      }
+    ]
+  },
+  "autoMode": {
+    "allow": [
+      "以 Chrome DevTools MCP 導航、截圖、讀取頁面結構與 Console/Network/效能",
+      "在測試環境（environment: test）填寫表單並送出交易流程",
+      "讀取稽核產出資料夾內的證據與 Finding 檔案",
+      "寫入稽核產出資料夾（ux-reports/）",
+      "執行 date / mkdir / ls / test -f 等產出資料夾維護指令"
+    ],
+    "soft_deny": [
+      "修改目標站的任何程式碼、設定或內容檔案",
+      "在 production 環境送出不可逆交易（付款、下單、提領）",
+      "改測試帳號的密碼／Email、註銷帳號、解綁支付方式",
+      "對目標站做大量並發、爆破、目錄掃描或注入測試",
+      "覆蓋既有 ux-reports/ 歷史 run 的證據檔（回歸驗證需要舊證據當基準）",
+      "把帳密／Token 寫進報告、Finding、log 或截圖檔名"
+    ]
+  }
+}

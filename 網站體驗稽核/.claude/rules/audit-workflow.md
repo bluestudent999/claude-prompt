@@ -1,0 +1,137 @@
+# 稽核工作流程（雙模式生命週期）
+
+> 本文規範一次 UX 稽核從接單到交付的完整步驟與退出閘門。禁止跳步，禁止未經蒐證就開始寫建議。
+
+---
+
+## 需求提交格式（使用者端）
+
+```
+稽核模式：快掃 / 深度走查 / 單一旅程 / 回歸驗證
+目標網址：（起始 URL；若指定多頁請列出）
+使用者角色：（誰在用這個網站？如：第一次到訪的潛在客戶 / 已註冊會員 / 手機端使用者）
+關注目標：（希望使用者完成什麼？如：完成註冊、找到並購買商品、查詢帳戶餘額）
+登入需求：（需要 / 不需要；憑證的環境變數名稱）
+環境模式：（test 測試環境可完整下單 / production 生產環境需停在可逆畫面；預設 test）
+已知痛點：（可選，若已有客服回饋或數據異常請提供）
+不可觸碰：（可選，如「不要動 A 帳號」「別改測試帳號密碼」）
+```
+
+- 缺 `目標網址` → 必問，不得自行猜測。
+- 缺 `使用者角色` / `關注目標` → 可依站點類型提出**一個**建議預設值，寫在計畫裡讓使用者確認，然後繼續。**不要為此卡住整個稽核。**
+
+---
+
+## Step 0：Preflight（動工前）
+
+1. **能力確認**：Chrome DevTools MCP 可用？（見 `observation-protocol.md` §1）
+2. **環境模式與範圍確認**：宣告本次是 `test` 還是 `production`（決定交易流程走不走到底，見 `scope-safety.md` §1）；目標網域在授權清單內？
+3. **憑證確認**：需登入時，環境變數是否已設？未設 → 只跑訪客範圍並留痕。
+4. **產出資料夾**：建立 `ux-reports/$(date +%F)-<站點簡稱>/` 與其下 `findings/`、`evidence/screenshots/`、`evidence/logs/`。
+5. **可達性確認**：開起始頁、確認狀態碼與頁面渲染。不可達 → **中止稽核，不產半套結論**，明確回報「目標站不可達」並附證據。
+
+---
+
+## Step 1：範圍與計畫（Plan）
+
+**快掃**：宣告要看的頁面清單（1~3 頁）與兩個視窗，一句話寫下 Persona 與目標。不需要 `audit-plan.md`。
+
+**深度走查**：調用 `site-scout`，產出 `audit-plan.md`，內容至少含：
+- 站點類型判定與主要轉換目標（這個網站希望使用者做什麼？）
+- 站點結構摘要（主導航、關鍵頁面、有無登入牆）
+- **Persona × Journey 矩陣**：2~4 個 Persona，每個 1~3 條 Journey，每條 Journey 有明確成功條件
+- 每條 Journey 的預估步數；`test` 模式標明「要走到底的終點畫面」（成功頁／狀態更新後的列表）與「要刻意試錯的環節」；`production` 模式標明「停在哪一步」
+- 視窗矩陣決定
+- 明確的**不做清單**（哪些頁面／流程本次不碰，為什麼）
+
+**閘門 G1**：計畫中每條 Journey 都有可判定的成功條件，且交易類流程已標明終點畫面（`test`）或停止點（`production`）。使用者若對範圍有異議，在此調整——**計畫沒定就不要開始蒐證**（蒐證是本流程最貴的一段）。
+
+---
+
+## Step 2：蒐證（Observe）— 序列執行，不可平行
+
+**快掃**：對每個指定頁面 × 每個視窗，執行 `observation-protocol.md` §4 的標準蒐證動作。
+
+**深度走查**：依 `audit-plan.md` 逐條 Journey 調用 `journey-runner`（**一次一條**）。每條 Journey 產出：
+- 逐步記錄：`我想做什麼 → 我看到什麼 → 我做了什麼 → 結果如何`
+- 每個關鍵步驟的截圖
+- 卡點、繞路、來回、看不懂的位置（附證據）
+- Journey 結果：`完成 / 完成但受阻 / 未完成`，以及未完成的原因
+
+**閘門 G2**：
+- 每條 Journey 都有結果標記與逐步證據，沒有「憑印象補完」的步驟。
+- 證據檔案實際存在於 `evidence/`（用 `ls` 確認，不要憑記憶）。
+- 遇到的失敗與卡關都已記錄，不得靜默略過。
+
+---
+
+## Step 3：評估（Evaluate）— 可平行，離線讀證據
+
+平行調用（三者都只讀檔案，不碰瀏覽器）：
+- `heuristic-evaluator` — 導航、資訊架構、表單、回饋、錯誤處理、一致性、內容與微文案
+- `visual-critic` — 視覺層級、間距節奏、對比、可讀性、RWD 斷點、觸控目標
+- `a11y-perf-inspector` — WCAG 2.2 AA 子集、a11y tree、鍵盤可達性、Console 錯誤、網路與效能實測
+
+每個角色輸出符合 `evidence-discipline.md` §3 契約的 Finding Block，落地到 `findings/`。
+
+**Finding id 分配**：為避免撞號，主流程在派工時就指定各角色的**號段**（例：heuristic 001-099、visual 100-199、a11y-perf 200-299）。
+
+**閘門 G3**：
+- 每條 Finding 皆有真實證據路徑、`observed` 與 `why_it_hurts` 已分離、有準則 ID 對映。
+- 沒有任何 Finding 只憑「通則」或「一般最佳實務」而無本站觀察。
+
+---
+
+## Step 4：守門（Gate）
+
+1. **`evidence-auditor`**：逐條驗 `evidence-discipline.md` §5 的六項檢查。不通過的 Finding → 退回修正或刪除。
+2. **`recommendation-reviewer`**：驗建議是否可交辦、是否對症、是否越權（見該 agent 定義）。
+3. **去重**：依 `evidence-discipline.md` §4 合併同根因 Finding。
+
+**閘門 G4（交付硬門檻）**：
+| 指標 | 標準 |
+|---|---|
+| evidence-coverage | **100%** |
+| 欄位齊全率 | **100%** |
+| 空話建議數 | **0** |
+| `confidence: Low` 且 `severity: Blocker` | **0** |
+| 未遮蔽個資 / 明碼憑證出現在產出 | **0** |
+
+**任一項未達標不得進 Step 5。** 修正後重跑守門。
+
+---
+
+## Step 5：報告與交付（Report）
+
+1. 讀 `references/report-standard.md` 與 `templates/report-template.md`。
+2. 調用 `report-writer`：去重後的 Finding → 依 `references/severity-priority.md` 排序 → 產出 `report.md`。
+3. **誠實填寫「稽核限制」章節**：沒走到的路徑、沒觀察的維度、降級與失敗、卡關處。
+4. **回報格式**（給使用者的最終訊息）：
+
+```
+報告：<report.md 路徑>
+Finding：<總數>（Blocker n / Major n / Minor n / Suggestion n）
+Journey：完成 n / 受阻 n / 未完成 n
+證據：<檔案數> 個（screenshots n / logs n）
+本次限制：<一句話>
+最該先修的三件事：<三條 title>
+```
+
+---
+
+## 回歸驗證模式（`/ux-verify`）
+
+1. 讀上次 `report.md`，取出所有 Finding 的 `id` / `url` / `observed` / `recommendation`。
+2. **逐條**重走該 Finding 的觀察路徑，重新蒐證（新證據落到新的 run 資料夾，**不覆蓋舊證據**）。
+3. 逐條判定：`已修復` / `部分修復` / `未修復` / `退步（改壞了）` / `無法複驗（頁面已改版）`，每個判定都要附**新證據**。
+4. 順手發現的新問題另開新 id（延續舊報告的號段，不重用舊號）。
+5. 產出對照表 + 新增 Finding，交付。
+
+---
+
+## Token 與 Context 紀律
+
+- **證據落地、不留在 context**：截圖與長 log 一律寫檔，Finding 只引用路徑。不要把整頁 snapshot 或整份 network 清單留在對話裡。
+- **`take_snapshot` 輸出很大**：用完就從敘述中丟掉，只保留要用的 uid 與定位文字。
+- 深度走查建議在 Step 2 每完成 2~3 條 Journey 後執行 `/strategic-compact`，把已落地的證據從 context 卸掉。
+- 評估角色**只讀自己要用的證據檔**，禁止把整個 `evidence/` 全讀進來。

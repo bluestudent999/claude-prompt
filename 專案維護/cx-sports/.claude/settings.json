@@ -1,0 +1,67 @@
+{
+  "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "echo '=== Memory ===' && cat \"$HOME/.claude/projects/$(echo $CLAUDE_PROJECT_DIR | tr '/' '-')/memory/MEMORY.md\" 2>/dev/null || echo 'No memory'"
+          },
+          {
+            "type": "command",
+            "command": "bash \"$CLAUDE_PROJECT_DIR/.claude/hooks/check-oq-pending-session.sh\" 2>/dev/null || true"
+          }
+        ]
+      }
+    ],
+    "PreToolUse": [
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash \"$CLAUDE_PROJECT_DIR/.claude/skills/strategic-compact/suggest-compact.sh\" 2>/dev/null || true",
+            "async": true
+          },
+          {
+            "type": "command",
+            "command": "bash \"$CLAUDE_PROJECT_DIR/.claude/hooks/block-i18n-direct-edit.sh\""
+          }
+        ]
+      },
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash \"$CLAUDE_PROJECT_DIR/.claude/hooks/check-oq-on-commit.sh\""
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Write|Edit",
+        "hooks": []
+      }
+    ]
+  },
+  "autoMode": {
+    "allow": [
+      "讀取專案內任何檔案",
+      "搜尋程式碼（Grep、Glob）",
+      "執行 mvn compile / mvn test / mvn -pl <module> -am compile",
+      "執行 git status、git diff、git log、git branch",
+      "建立和編輯 .claude/ 目錄下的設定檔"
+    ],
+    "soft_deny": [
+      "刪除檔案或目錄",
+      "執行 git push、git reset --hard、git rebase",
+      "修改 src/main/resources/db/migration/ 既有 V*.sql（Flyway 遷移）",
+      "修改各子專案 src/main/resources/application*.yml 中的生產 datasource / redis / kafka 設定",
+      "執行 rm -rf"
+    ]
+  },
+
+  "_comment_mcp": "MCP server 設定已移至 repo 根目錄 .mcp.json（官方專案級 MCP 位置）。敏感 env 變數（GITLAB_TOKEN / JIRA_API_TOKEN 等）仍放 settings.local.json 的 env 區段，.mcp.json 透過 ${VAR} 插值引用。"
+}

@@ -1,0 +1,343 @@
+#!/usr/bin/env python3
+"""
+prompt-lint — 範本庫一致性檢查（只檢查，不改檔）
+
+    prompt-lint [選項]
+
+檢查項：
+    routing   跨範本路由表逐字一致（7 份 CLAUDE.md 的職責路由表）
+    self-row  「表格第 N 列為本職」的 N 與實際列號相符
+    shared    <!-- shared:<id> --> 區塊跨檔案未漂移
+    links     Markdown 內指向 .claude 內部的檔案連結存在
+    json      .claude 下所有 *.json 格式合法
+
+選項：
+    -o, --only <check>   只跑指定檢查（可重複；名稱見上）
+    -q, --quiet          只輸出問題與結語，不列通過項
+    -l, --list           列出偵測到的範本後結束
+    -h, --help           顯示說明
+
+離開碼：0 = 全數通過；1 = 有問題；2 = 用法錯誤
+"""
+
+import json
+import os
+import re
+import sys
+from collections import defaultdict
+
+ROOT = os.path.dirname(os.path.dirname(os.path.abspath(os.path.realpath(__file__))))
+
+# ---- 樣式 -------------------------------------------------------------------
+if sys.stdout.isatty():
+    BOLD, DIM, RED, GRN, YLW, CYN, RST = (
+        "\033[1m", "\033[2m", "\033[31m", "\033[32m", "\033[33m", "\033[36m", "\033[0m")
+else:
+    BOLD = DIM = RED = GRN = YLW = CYN = RST = ""
+
+CHECKS = ["routing", "self-row", "shared", "links", "json"]
+
+problems = []   # (check, 相對路徑, 訊息)
+
+
+def fail(check, path, msg):
+    problems.append((check, path, msg))
+
+
+def rel(p):
+    return os.path.relpath(p, ROOT)
+
+
+# ---- 範本探索（與 prompt-setup 同規則：深度 ≤3 的 .claude 目錄）----------------
+def find_templates():
+    found = []
+    for dp, dns, _ in os.walk(ROOT):
+        dns[:] = [d for d in dns if d not in ("node_modules", ".git", ".idea")]
+        if os.path.relpath(dp, ROOT).count(os.sep) > 2:
+            dns[:] = []
+            continue
+        if ".claude" in dns:
+            claude = os.path.join(dp, ".claude")
+            name = os.path.relpath(dp, ROOT)
+            found.append((name, claude))
+            dns.remove(".claude")
+    return sorted(found)
+
+
+def md_files(claude_dir):
+    for dp, _, fs in os.walk(claude_dir):
+        for f in fs:
+            if f.endswith(".md"):
+                yield os.path.join(dp, f)
+
+
+# ---- 1. 路由表一致性 ---------------------------------------------------------
+ROUTING_HEADER = "## 跨 prompt-setup 職責路由"
+SELF_RE = re.compile(r"表格第\s*(\d+)\s*列")
+
+
+def parse_routing(claude_md):
+    """回傳 (資料列清單, 你在這裡那行, 起始行號)；找不到回傳 (None, None, None)。"""
+    lines = open(claude_md, encoding="utf-8").read().splitlines()
+    start = next((i for i, l in enumerate(lines) if l.startswith(ROUTING_HEADER)), None)
+    if start is None:
+        return None, None, None
+    rows, self_line, in_table = [], None, False
+    for l in lines[start:]:
+        s = l.strip()
+        if s.startswith("|"):
+            in_table = True
+            if set(s) <= set("|- :"):        # 分隔列
+                continue
+            rows.append(s)
+        elif in_table and s and not s.startswith("|"):
+            in_table = False
+        if s.startswith("> **你在這裡"):
+            self_line = s
+            break
+    return (rows[1:] if rows else []), self_line, start + 1   # rows[0] 是表頭
+
+
+def check_routing(tpls):
+    tables = {}
+    for name, claude in tpls:
+        md = os.path.join(claude, "CLAUDE.md")
+        if not os.path.isfile(md):
+            fail("routing", rel(claude), "缺少 CLAUDE.md")
+            continue
+        rows, self_line, ln = parse_routing(md)
+        if rows is None:
+            fail("routing", rel(md), f"找不到「{ROUTING_HEADER}」章節")
+            continue
+        tables[name] = (rows, self_line, md, ln)
+
+    if len(tables) < 2:
+        return tables
+
+    # 以出現次數最多的表格為基準
+    counter = defaultdict(list)
+    for name, (rows, _, _, _) in tables.items():
+        counter[tuple(rows)].append(name)
+    base_rows, base_names = max(counter.items(), key=lambda kv: len(kv[1]))
+
+    for rows_key, names in counter.items():
+        if rows_key == base_rows:
+            continue
+        for name in names:
+            md = tables[name][2]
+            diffs = []
+            for i in range(max(len(rows_key), len(base_rows))):
+                a = rows_key[i] if i < len(rows_key) else "（缺這一列）"
+                b = base_rows[i] if i < len(base_rows) else "（多出這一列）"
+                if a != b:
+                    diffs.append(f"第 {i + 1} 列\n"
+                                 f"        本檔：{a}\n"
+                                 f"        基準：{b}")
+            fail("routing", rel(md),
+                 f"路由表與基準（{'、'.join(base_names)}）不一致：\n      " +
+                 "\n      ".join(diffs))
+    return tables
+
+
+# ---- 2. 「你在這裡」列號 ------------------------------------------------------
+def check_self_row(tpls, tables):
+    for name, claude in tpls:
+        if name not in tables:
+            continue
+        rows, self_line, md, _ = tables[name]
+        cmd = "prompt-setup " + name.replace(os.sep, " ")
+        if self_line is None:
+            fail("self-row", rel(md), "找不到「> **你在這裡…」宣告列")
+            continue
+        m = SELF_RE.search(self_line)
+        if not m:
+            fail("self-row", rel(md), "「你在這裡」列缺少「表格第 N 列」")
+            continue
+        declared = int(m.group(1))
+        actual = next((i + 1 for i, r in enumerate(rows) if f"`{cmd}`" in r), None)
+        if actual is None:
+            fail("self-row", rel(md),
+                 f"路由表中找不到本範本自己的指令 `{cmd}`")
+        elif declared != actual:
+            fail("self-row", rel(md),
+                 f"宣告「表格第 {declared} 列」，但 `{cmd}` 實際在第 {actual} 列")
+
+
+# ---- 3. shared 區塊 ---------------------------------------------------------
+SHARED_RE = re.compile(
+    r"<!--\s*shared:\s*([A-Za-z0-9_\-]+)\s*-->\n(.*?)<!--\s*/shared\s*-->",
+    re.S)
+
+
+def check_shared(tpls):
+    blocks = defaultdict(list)   # id -> [(內容, 檔案)]
+    for _, claude in tpls:
+        for f in md_files(claude):
+            text = open(f, encoding="utf-8").read()
+            for sid, body in SHARED_RE.findall(text):
+                blocks[sid].append((body.strip(), f))
+    for sid, items in blocks.items():
+        if len(items) < 2:
+            continue
+        counter = defaultdict(list)
+        for body, f in items:
+            counter[body].append(f)
+        if len(counter) == 1:
+            continue
+        base_body, base_files = max(counter.items(), key=lambda kv: len(kv[1]))
+        for body, files in counter.items():
+            if body == base_body:
+                continue
+            for f in files:
+                fail("shared", rel(f),
+                     f"shared 區塊「{sid}」內容與基準（{rel(base_files[0])}）不同")
+    return blocks
+
+
+# ---- 4. 內部連結 -------------------------------------------------------------
+MD_LINK_RE = re.compile(r"\[[^\]]*\]\(([^)\s]+)\)")
+CODE_PATH_RE = re.compile(r"`([^`\s]+\.(?:md|json|sh|js|py))`")
+SKIP_PREFIX = ("http://", "https://", "#", "mailto:", "<", "@")
+# 本範本庫慣例：裸路徑以 .claude/ 為根（不論引用者位於哪一層）
+CLAUDE_ROOTS = ("rules/", "agents/", "skills/", "references/",
+                "templates/", "hooks/", "workflows/", "commands/")
+# 部署時才生成、刻意不進版控的檔案（引用它們不算斷鏈）
+RUNTIME_FILES = ("settings.local.json",)
+
+
+def resolve_link(target, src_file, claude_abs):
+    """回傳絕對路徑；若該連結指向目標專案（無法驗證）則回傳 None。"""
+    if target.startswith("./") or target.startswith("../"):
+        return os.path.abspath(os.path.join(os.path.dirname(src_file), target))
+    if target.startswith(".claude/"):
+        return os.path.abspath(os.path.join(claude_abs, target[len(".claude/"):]))
+    if target.startswith(CLAUDE_ROOTS):
+        return os.path.abspath(os.path.join(claude_abs, target))
+    return None   # plan/、pom.xml、evidence/… 皆為目標專案路徑
+
+
+def check_links(tpls):
+    for _, claude in tpls:
+        claude_abs = os.path.abspath(claude)
+        for f in md_files(claude):
+            text = open(f, encoding="utf-8").read()
+            targets = set(MD_LINK_RE.findall(text)) | set(CODE_PATH_RE.findall(text))
+            for t in sorted(targets):
+                if t.startswith(SKIP_PREFIX) or any(c in t for c in "*<>{}"):
+                    continue
+                if os.path.basename(t) in RUNTIME_FILES:
+                    continue
+                t = t.split("#", 1)[0]
+                if not t:
+                    continue
+                resolved = resolve_link(t, f, claude_abs)
+                if resolved is None:
+                    continue
+                # 只驗證落在 .claude 內的路徑
+                if not resolved.startswith(claude_abs + os.sep):
+                    continue
+                if not os.path.exists(resolved):
+                    fail("links", rel(f), f"連結指向不存在的檔案：{t}")
+
+
+# ---- 5. JSON 格式 -----------------------------------------------------------
+def check_json(tpls):
+    for _, claude in tpls:
+        for dp, _, fs in os.walk(claude):
+            for f in fs:
+                if not f.endswith(".json"):
+                    continue
+                p = os.path.join(dp, f)
+                try:
+                    json.load(open(p, encoding="utf-8"))
+                except Exception as e:
+                    fail("json", rel(p), f"JSON 解析失敗：{e}")
+
+
+# ---- 主流程 -----------------------------------------------------------------
+def main(argv):
+    only, quiet = [], False
+    i = 0
+    while i < len(argv):
+        a = argv[i]
+        if a in ("-h", "--help"):
+            print(__doc__.strip())
+            return 0
+        elif a in ("-q", "--quiet"):
+            quiet = True
+        elif a in ("-l", "--list"):
+            for name, claude in find_templates():
+                print(f"  {CYN}{name}{RST}  {DIM}{rel(claude)}{RST}")
+            return 0
+        elif a in ("-o", "--only"):
+            i += 1
+            if i >= len(argv):
+                print(f"{RED}✗ --only 需要一個檢查名稱{RST}", file=sys.stderr)
+                return 2
+            if argv[i] not in CHECKS:
+                print(f"{RED}✗ 未知檢查「{argv[i]}」，可用：{', '.join(CHECKS)}{RST}",
+                      file=sys.stderr)
+                return 2
+            only.append(argv[i])
+        else:
+            print(f"{RED}✗ 未知選項「{a}」（-h 看說明）{RST}", file=sys.stderr)
+            return 2
+        i += 1
+
+    run = only or CHECKS
+    tpls = find_templates()
+    if not tpls:
+        print(f"{RED}✗ 找不到任何 .claude 範本（範本庫：{ROOT}）{RST}", file=sys.stderr)
+        return 2
+
+    print(f"{BOLD}prompt-lint{RST} {DIM}{ROOT}{RST}")
+    print(f"範本 {len(tpls)} 套：{DIM}{'、'.join(n for n, _ in tpls)}{RST}\n")
+
+    tables, blocks = {}, {}
+    # routing 必須先跑，self-row 依賴它的解析結果
+    if "routing" in run or "self-row" in run:
+        tables = check_routing(tpls)
+        if "routing" not in run:
+            problems[:] = [p for p in problems if p[0] != "routing"]
+    if "self-row" in run:
+        check_self_row(tpls, tables)
+    if "shared" in run:
+        blocks = check_shared(tpls)
+    if "links" in run:
+        check_links(tpls)
+    if "json" in run:
+        check_json(tpls)
+
+    by_check = defaultdict(list)
+    for c, p, m in problems:
+        by_check[c].append((p, m))
+
+    MAX_SHOW = 10**9 if len(run) == 1 else 15   # --only 單項時列出全部
+    for c in run:
+        items = by_check.get(c)
+        if items:
+            print(f"{RED}✗ {c}{RST} — {len(items)} 個問題")
+            for p, m in items[:MAX_SHOW]:
+                print(f"    {BOLD}{p}{RST}\n      {m}")
+            if len(items) > MAX_SHOW:
+                print(f"    {DIM}…還有 {len(items) - MAX_SHOW} 個"
+                      f"（`prompt-lint --only {c}` 看完整清單）{RST}")
+            print()
+        elif not quiet:
+            extra = ""
+            if c == "shared":
+                extra = f" {DIM}（{len(blocks)} 個 shared 區塊）{RST}" if blocks \
+                    else f" {DIM}（尚未使用 shared 標記）{RST}"
+            print(f"{GRN}✓ {c}{RST}{extra}")
+
+    n = len(problems)
+    print()
+    if n:
+        print(f"{RED}{BOLD}✗ {n} 個問題待處理{RST}")
+        return 1
+    print(f"{GRN}{BOLD}✓ 全數通過{RST}")
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main(sys.argv[1:]))

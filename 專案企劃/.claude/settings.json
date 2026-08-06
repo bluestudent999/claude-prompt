@@ -1,0 +1,37 @@
+{
+  "permissions": {
+    "allow": [
+      "Read",
+      "Grep",
+      "Glob",
+      "Bash(git status:*)",
+      "Bash(git diff:*)",
+      "Bash(git log:*)"
+    ]
+  },
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash \"$CLAUDE_PROJECT_DIR/.claude/skills/strategic-compact/suggest-compact.sh\" 2>/dev/null || true",
+            "async": true
+          }
+        ]
+      }
+    ]
+  },
+  "autoMode": {
+    "allow": [
+      "讀取企劃專案內任何檔案",
+      "搜尋文件（Grep、Glob）",
+      "撰寫 Brief / Spec / Backlog 至 plan/"
+    ],
+    "soft_deny": [
+      "刪除既有 plan/ 產出",
+      "跳過 spec-reviewer 直接打 Baseline"
+    ]
+  }
+}
