@@ -93,6 +93,7 @@ ALTER TABLE orders
 
 **遷移鐵律：**
 - **絕不修改已執行的遷移檔**（Flyway 會 checksum 驗證）
+- **新增檔案一律用時間戳版本號**：`V<YYYYMMDDHHMMSS>__<description>.sql`（`date +%Y%m%d%H%M%S`）；既有語意版號檔保留不動 —— 見 `rules/flyway-migration.md`
 - 大表 DDL 必加 `ALGORITHM=INPLACE, LOCK=NONE`
 - 先加欄位（給 `DEFAULT`）再加索引，分開遷移
 - 線上大表 DDL 前先估行數與業務低峰期
@@ -169,7 +170,7 @@ SELECT * FROM orders WHERE id > #{lastId} ORDER BY id LIMIT 20;
 | 未包含分片鍵 | ShardingSphere 跨所有分片查 | `WHERE` 必含分片鍵 |
 | 寫後立即讀但沒 `@Transactional` | 主從延遲讀不到 | 同交易內或強制主庫 |
 | 長交易 | 持有 `FOR UPDATE` 過久阻塞 | 交易內不做外部 API 呼叫 |
-| 大表修改遷移檔 | Flyway checksum 失敗 | 寫新 `V` 檔案修正 |
+| 大表修改遷移檔 | Flyway checksum 失敗 | 寫新 `V` 檔案修正（時間戳版本號） |
 
 ---
 

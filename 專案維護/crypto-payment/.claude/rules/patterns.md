@@ -93,9 +93,11 @@ public class DepositService {
 - **DAO：** `repository/` 下，搭配 MyBatis + **ShardingSphere 5.4** 主從分片；`#{param}` 參數化（見 `security.md` §6）
 - **禁忌：** 不在 Service 寫原生 JDBC；不手動指定讀/寫庫（ShardingSphere 自動）
 - **Flyway（`crypto-payment-flyway` 模組）：**
-  - schema 變更一律新增版號檔（`V1_0_x__description.sql`）
+  - schema 變更一律新增版號檔，**新檔用時間戳** `V<YYYYMMDDHHMMSS>__description.sql`（`date +%Y%m%d%H%M%S`）
+  - 既有語意版號檔（`V1_0_x__*.sql`）**保留不動**，新舊共存不會亂序
   - **禁改既有 migration 檔**——已套用的檔改了會導致 checksum 衝突
   - 新增欄位遵循安全演進（見 `stability.md` §Schema Evolution）
+  - 完整規範見 [`flyway-migration.md`](./flyway-migration.md)
 
 詳細實作見 `mysql-shardingsphere5` skill。
 

@@ -15,7 +15,7 @@ model: sonnet
 - **ShardingSphere 5.4** — **自動讀寫分離（auto read-write split）**；**不要手動路由**（不要在程式碼指定主 / 從資料源），交給 ShardingSphere 依 SQL 類型自動導向
 - **MyBatis** — XML mapper / 註解查詢，DAO 位於 `repository/`；**不是 JPA**
   - **禁用 `JpaRepository`、`@Entity`、`@Repository` 風格**（見 `rules/patterns.md` §9）
-- **Flyway** — 遷移由**同 repo 的 `crypto-payment-flyway` 模組**執行；命名 `V<major>_<minor>_<patch>__<description>.sql`（例：`V1_0_3__add_deposit_status.sql`）；版本號遞增不重複
+- **Flyway** — 遷移由**同 repo 的 `crypto-payment-flyway` 模組**執行；**新增一律用時間戳版本號** `V<YYYYMMDDHHMMSS>__<description>.sql`（例：`V20260813131930__add_config.sql`，`date +%Y%m%d%H%M%S` 產生）。既有語意版號檔（`V1_0_3__*.sql`）**保留不動**。詳見 [`rules/flyway-migration.md`](../rules/flyway-migration.md)
   - **禁改既有 migration 檔**；一律**新增版號檔**
 - **多租戶** — 資料以 `platform_id` 分租，**所有查詢必須以 `platform_id` 過濾；跨平台存取 = critical bug**
 
@@ -135,7 +135,7 @@ SELECT * FROM information_schema.INNODB_LOCKS;
 - [ ] 無 N+1 查詢模式
 - [ ] 複雜查詢已檢查 `EXPLAIN` 結果
 - [ ] 交易保持簡短；需一致性讀的查詢包在事務內（避免讀從庫舊資料）
-- [ ] Flyway 為**新增版號檔**（未改既有檔），命名正確且安全
+- [ ] Flyway 為**新增版號檔**（未改既有檔），**新檔為時間戳格式** `V<14位數字>__<snake_case>.sql`，`V` 大寫
 - [ ] SQL 與 ShardingSphere 5.4 自動讀寫分離相容，無手動路由
 - [ ] DB 寫入後有更新 / 失效對應 Redis 快取
 
@@ -157,7 +157,7 @@ SELECT * FROM information_schema.INNODB_LOCKS;
 **Summary:** {一句話 ≤80 字}
 **Counts:** CRITICAL=N HIGH=N MEDIUM=N LOW=N
 **Next actions:**
-- [ ] {動作 1 — ≤ 50 字（例：Flyway/src/main/resources/db/migrations/general/V1.5.0__xxx.sql 第 10 行改用 DECIMAL(18,4)）}
+- [ ] {動作 1 — ≤ 50 字（例：crypto-payment-flyway/src/main/resources/db/migration/V20260813131930__xxx.sql 第 10 行改用 DECIMAL(18,4)）}
 **Artifacts:**
 - {file}:{line} — {問題：索引缺失 / 型別錯誤 / ShardingSphere 不相容 ..., ≤ 50 字} | fix: {≤ 50 字 / 或 "見 Next actions"}
 ```
@@ -166,4 +166,4 @@ SELECT * FROM information_schema.INNODB_LOCKS;
 
 ---
 
-**牢記**：本專案使用 MySQL 8 + ShardingSphere 5.4 自動讀寫分離 + **MyBatis（非 JPA）** + Flyway（`crypto-payment-flyway` 模組）。所有查詢必含 `platform_id`；金額 / 鏈上數量欄位永遠 DECIMAL；MyBatis 參數永遠 `#{}`；Flyway 只新增版號檔不改既有；不手動路由主從。
+**牢記**：本專案使用 MySQL 8 + ShardingSphere 5.4 自動讀寫分離 + **MyBatis（非 JPA）** + Flyway（`crypto-payment-flyway` 模組）。所有查詢必含 `platform_id`；金額 / 鏈上數量欄位永遠 DECIMAL；MyBatis 參數永遠 `#{}`；Flyway 只新增版號檔不改既有，**新檔一律時間戳版本號**；不手動路由主從。

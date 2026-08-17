@@ -17,7 +17,7 @@ model: sonnet
   - DAO 繼承 `com.cx.framework` 基底（MyBatis-Plus `BaseMapper` / `AbstractBaseEsDao` / `AbstractEsPartitionByDateDao`）
   - 共用 DAO 放 `cx-sport-common` `com.lc.sports.dao.*`（44+ domain）
   - **禁用 `JpaRepository`、`@Entity`、`@Repository` 風格**（見 `rules/patterns.md` §9）
-- **Flyway** — 遷移位於 `Flyway/src/main/resources/db/migrations/general/`，命名 `V<major>.<minor>.<patch>__<description>.sql`（例：`V1.5.0__user_money_init.sql`）；schema 限定於 `gamedbn`，`clean-disabled: true`
+- **Flyway** — 遷移位於 `Flyway/src/main/resources/db/migrations/general/`；**新增一律用時間戳版本號** `V<YYYYMMDDHHMMSS>__<description>.sql`（例：`V20260813131930__add_config.sql`，`date +%Y%m%d%H%M%S` 產生）。既有語意版號檔（`V1.5.0__*.sql`）**保留不動**。schema 限定於 `gamedbn`，`clean-disabled: true`。詳見 [`rules/flyway-migration.md`](../rules/flyway-migration.md)
 - **HikariCP 3.1.0** 連線池
 
 ## 核心職責
@@ -130,7 +130,7 @@ SELECT * FROM information_schema.INNODB_LOCKS;
 - [ ] 無 N+1 查詢模式
 - [ ] 複雜查詢已檢查 `EXPLAIN` 結果
 - [ ] 交易保持簡短
-- [ ] Flyway 遷移命名正確且安全
+- [ ] Flyway 遷移命名正確且安全（**新檔為時間戳格式** `V<14位數字>__<snake_case>.sql`，`V` 大寫，未改既有檔）
 - [ ] SQL 與 ShardingSphere 相容
 
 ## 參考規範
@@ -152,7 +152,7 @@ SELECT * FROM information_schema.INNODB_LOCKS;
 **Summary:** {一句話 ≤80 字}
 **Counts:** CRITICAL=N HIGH=N MEDIUM=N LOW=N
 **Next actions:**
-- [ ] {動作 1 — ≤ 50 字（例：Flyway/src/main/resources/db/migrations/general/V1.5.0__xxx.sql 第 10 行改用 DECIMAL(18,4)）}
+- [ ] {動作 1 — ≤ 50 字（例：Flyway/src/main/resources/db/migrations/general/V20260813131930__xxx.sql 第 10 行改用 DECIMAL(18,4)）}
 **Artifacts:**
 - {file}:{line} — {問題：索引缺失 / 型別錯誤 / ShardingSphere 不相容 ..., ≤ 50 字} | fix: {≤ 50 字 / 或 "見 Next actions"}
 ```

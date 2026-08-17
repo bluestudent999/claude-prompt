@@ -27,7 +27,7 @@ description: crypto-payment 資料層模式 — MySQL 8 + ShardingSphere 5.4 讀
 
 ## Flyway Migration（`crypto-payment-flyway` 模組）
 
-- schema 變更**一律新增版號檔**：`crypto-payment-flyway/src/main/resources/db/migration/V1_0_x__description.sql`
+- schema 變更**一律新增版號檔**，版本號用**時間戳**：`crypto-payment-flyway/src/main/resources/db/migration/V<YYYYMMDDHHMMSS>__description.sql`（`date +%Y%m%d%H%M%S`；既有 `V1_0_x__*.sql` 保留不動，見 `rules/flyway-migration.md`）
 - **禁改既有 migration 檔**——已套用的檔改了 checksum 衝突，整個 migration 失敗
 - 命名遵循既有版號序列（先 `ls` 看最大版號往後接）
 - **執行 migration 需明確確認**，Agentic 任務**禁自動跑 flyway:migrate**

@@ -23,6 +23,11 @@ description: 跨 repo 提交前的 checklist 與 MR 模板。當一個需求同�
 
 ## 操作 checklist（commit 前）
 
+> ⚠️ **若本次涉及 DB schema：`Flyway` 是獨立 repo，不會跟著 sport 的 CI 跑。**
+> - [ ] Flyway repo 的 migration 已用**時間戳版本號**（`rules/flyway-migration.md`）
+> - [ ] **Flyway repo 自己的版本號驗證器已通過**（同上 §7）—— sport 這邊全綠不代表那邊沒問題
+> - [ ] 兩邊 MR 已交叉引用，且註明合入順序
+
 對**每個**受影響 repo 跑一輪：
 
 ### Phase 1：對齊 MR 範圍

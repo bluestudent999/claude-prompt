@@ -8,7 +8,7 @@ tools: Read, Grep, Glob, Write, Edit, Bash
 
 ## 規則
 
-- 檔名 `V{n}__{描述}.sql`，放 `src/main/resources/db/migration`；版號遞增。
+- 檔名 `V<YYYYMMDDHHMMSS>__<description>.sql`（時間戳，`date +%Y%m%d%H%M%S` 產生；例 `V20260813131930__add_config.sql`），放 `src/main/resources/db/migration`。既有其他格式的檔案**保留不動**。見 [`rules/flyway-migration.md`](../rules/flyway-migration.md)。
 - **已發布的 migration 不可修改**，只能往前加新版。
 - **expand-contract：** 加欄位先可空 / 給預設值（expand）→ 程式適配 → 後續版本才收緊（contract）。
 - **正式環境禁止破壞性即時變更**（drop/rename 直改），避免與可旁路、結算對接衝突。

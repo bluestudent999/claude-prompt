@@ -160,7 +160,7 @@ YYYY-MM-DD
 - **Spring Boot 3.1.2** — 使用 **Jakarta namespace**（`jakarta.*`，非 `javax.*`）、Spring Security 6 的 `SecurityFilterChain` 寫法
 - **ShardingSphere 5.4** — 讀寫分離自動路由，**不要手動路由**；分片環境下 SQL 語法有限制（部分子查詢、跨分片聚合）
 - **MySQL 8** — DAO 風格資料存取（DAO 置於 `repository/`），不使用 JPA / Hibernate
-- **Flyway** — schema 變更一律走 `crypto-payment-flyway` 模組；**禁改既有 migration，一律新增版號檔**（例 `V1_0_3__description.sql`）
+- **Flyway** — schema 變更一律走 `crypto-payment-flyway` 模組；**禁改既有 migration，一律新增版號檔**，**新檔用時間戳**（例 `V20260813131930__add_config.sql`；見 `rules/flyway-migration.md`）
 - **Redis（Jedis 4.4.3）** — 用於快取與分散式鎖；快取失效在 DB 寫入同事務內或緊接其後更新
 - **原生 Apache Kafka** — 跨服務 / 下游異步訊息，用 `@KafkaListener`（**不是** Spring Cloud Stream，**沒有** `@EnableBinding` / `@StreamListener`）；listener 在 `event/`
 - **Quartz + Spring `@Scheduled`** — 排程（歸集 job、入款重試等），job 在 `job/`

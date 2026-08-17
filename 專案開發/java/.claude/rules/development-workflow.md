@@ -93,6 +93,7 @@ java -version 2>&1 | grep -E "21\." || { echo "[Preflight] JDK 版本不符，�
   - 無 TODO、無 FIXME、無 Warning。
   - **Dead Code 只清自己造成的**：本次改動造成的未使用 import / 變數 / 私有方法**必須清掉**；**既有的** dead code **不主動刪除**，僅在 `Remaining Work` 記錄回報（刪它屬於「順便重構」，違反本 Step 的範圍紀律，且既有未使用碼可能靠反射 / 設定動態引用）。
   - OpenAPI 與 Flyway schema 已同步更新。
+  - 涉及 migration：**版本號驗證器通過**（見 `rules/flyway-migration.md` §7）。
 - **完成輸出格式 (Completion Output)**：
   - TASK 完成後必須以標準格式輸出成果：`Completed Files`、`Modified Files`、`Tests (PASS)` 與 `Remaining Work`（若有阻塞需註明 `Blocked By: TASK-xxx`）。
 - 提交前必須進行雙重審查：

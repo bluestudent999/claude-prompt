@@ -45,7 +45,7 @@
 
 | 業務關鍵字 | 模組 | 對應目錄 | 風險 | 說明 |
 |-----------|------|---------|------|------|
-| DB schema / DDL / Flyway 遷移 | crypto-payment-flyway | `crypto-payment-flyway/src/main/resources/db/migration/` | L1 | **只增新版號檔（V1_0_x__desc.sql），禁改既有** |
+| DB schema / DDL / Flyway 遷移 | crypto-payment-flyway | `crypto-payment-flyway/src/main/resources/db/migration/` | L1 | **只增新版號檔，禁改既有**；新檔用時間戳 `V<YYYYMMDDHHMMSS>__desc.sql`（見 `rules/flyway-migration.md`） |
 
 ## 3. 前端子專案
 
