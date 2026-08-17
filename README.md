@@ -31,6 +31,8 @@
 | `prompt-setup 專案維護 crypto-payment` | 維運 | crypto-payment 加密支付維護 | Java 21 / Spring Boot 3 / Vue 2 |
 | `prompt-setup 版本管理` | 版本升級 | Java 8→21、Boot 2→3 遷移 | Java / OpenRewrite |
 | `prompt-setup 網站體驗稽核` | UX 稽核 | 讓 AI 實際體驗已完成的網站，產 UX 修改建議報告 | 純文件（需 Chrome DevTools MCP） |
+| `prompt-setup 專案維護 sicbo` | 維運 | sicbo 骰寶骰子辨識服務維護 | Python 3.12 / YOLOv8 / OpenCV |
+| `prompt-setup 專案開發 java crypto-node` | 新開發（Java） | crypto-node 鏈下索引服務（多租戶、38 步驟驅動） | Java 21 / Spring Boot 3.5 / PostgreSQL |
 
 > 隨時用 `prompt-setup --list` 查看實際可用範本。
 
@@ -89,8 +91,10 @@ prompt-setup <分類> [子項] [選項]
 ```bash
 prompt-setup 專案開發 ai-ux-agent   # → 專案開發/ai-ux-agent/.claude
 prompt-setup 專案開發 java       # → 專案開發/java/.claude
+prompt-setup 專案開發 java crypto-node  # → 專案開發/java/crypto-node/.claude
 prompt-setup 專案維護 cx-sports       # → 專案維護/cx-sports/.claude
 prompt-setup 專案維護 crypto-payment  # → 專案維護/crypto-payment/.claude
+prompt-setup 專案維護 sicbo          # → 專案維護/sicbo/.claude
 prompt-setup 版本管理            # → 版本管理/.claude
 prompt-setup 專案企劃            # → 專案企劃/.claude
 prompt-setup 網站體驗稽核        # → 網站體驗稽核/.claude

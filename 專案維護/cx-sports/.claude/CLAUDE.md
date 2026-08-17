@@ -41,6 +41,8 @@
 | 既有加密支付維護 / 修 bug（crypto-payment，Java 21 / Boot 3） | 維護 | `prompt-setup 專案維護 crypto-payment` |
 | Java 8→21 / Boot 2→3 版本升級遷移 | 版本管理 | `prompt-setup 版本管理` |
 | 已完成網站的 UX 體驗稽核（實際開瀏覽器體驗、產 UX 修改建議報告） | 網站體驗稽核 | `prompt-setup 網站體驗稽核` |
+| 既有骰寶辨識維護 / 修 bug（sicbo，Python / YOLO 影像辨識） | 維護 | `prompt-setup 專案維護 sicbo` |
+| crypto-node 鏈下索引服務開發（Java 21 / Boot 3.5 / 多租戶） | 開發 | `prompt-setup 專案開發 java crypto-node` |
 
 > **你在這裡：維護 · cx-sports-v2**（表格第 4 列為本職，不適用切換）。切換提示範例：「這是一次 Java/Boot 版本升級遷移，本維護範本不處理，請 `prompt-setup 版本管理` 後再進行」「這是一段全新需求，請先 `prompt-setup 專案企劃` 收斂範圍」。
 
@@ -54,6 +56,7 @@
 | 雙層快取 | [`.claude/rules/patterns.md`](.claude/rules/patterns.md) §6.5（Redis + CacheService，禁 @Cacheable） |
 | 系統參數 | [`.claude/rules/patterns.md`](.claude/rules/patterns.md) §8.5（config 表 + FrontConfigVO 反射） |
 | Grounding / Token | [`.claude/rules/coding-style.md`](.claude/rules/coding-style.md) §6（> 300 行禁 full read） |
+| **Flyway migration 版本號** | [`.claude/rules/flyway-migration.md`](.claude/rules/flyway-migration.md)（**新檔用時間戳**、禁改既有、獨立 repo） |
 
 ## 4. 開發工作流程（5 步 + preflight）
 
@@ -103,6 +106,7 @@ L3 → `code-reviewer` × 1；L2 → + 擇一領域；L1 → + `java-reviewer` +
 | 金額 / RoundingMode / 金鑰管理 / Log 脫敏 | [`.claude/rules/security.md`](.claude/rules/security.md) |
 | 測試政策（Mode B / L1-L3 / 基座） | [`.claude/rules/testing.md`](.claude/rules/testing.md) |
 | 格式 / 命名 / Log / 重構安全 | [`.claude/rules/coding-style.md`](.claude/rules/coding-style.md) |
+| Flyway migration 版本號（時間戳） | [`.claude/rules/flyway-migration.md`](.claude/rules/flyway-migration.md) |
 | i18n 多語系新增 / 對齊統一走 `scripts/i18n-add-key.py`，禁止 Edit i18n 檔 | [`.claude/rules/i18n.md`](.claude/rules/i18n.md) |
 | 業務 domain 索引（收需求先比對） | [`.claude/rules/modules.md`](.claude/rules/modules.md) |
 | Java PostToolUse / pre-commit hook | [`.claude/rules/java-hooks.md`](.claude/rules/java-hooks.md) |

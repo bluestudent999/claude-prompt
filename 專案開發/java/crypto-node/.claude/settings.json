@@ -1,0 +1,64 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(./mvnw:*)",
+      "Bash(mvn:*)",
+      "Bash(java -version)",
+      "Bash(javac -version)",
+      "Bash(docker info)",
+      "Bash(docker ps:*)",
+      "Bash(ls:*)",
+      "Bash(wc:*)",
+      "Bash(grep:*)",
+      "Bash(rg:*)",
+      "Bash(find:*)",
+      "Bash(git status:*)",
+      "Bash(git diff:*)",
+      "Bash(git log:*)",
+      "Bash(gh pr:*)"
+    ]
+  },
+  "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "echo '=== crypto-node 開工提醒 ===' && echo '1) 版本基準：Java 21 + Spring Boot 3.5（本範本覆蓋 plan D18 的 4.1）— 不要抄 Boot 4 寫法' && echo '2) 讀 bigpicture 前先看它的「取代對照表」— WebSocket/Webhook/Reorg/confirmations 都已被取代' && echo '3) 整合測試一律兩租戶 fixture（tenant-a / tenant-b）— 隔離 bug 在單租戶下 100% 測不出來' && echo '4) 架構：六角 + Modulith — Domain 零框架（含 Modulith 註解）；I1 範圍內不得用 @ApplicationModuleListener' && echo '--- 紅線：10 條不變量 I1~I10 · 對外契約不可片面變更 · 已鎖定決策不得自行推翻 ---'"
+          },
+          {
+            "type": "command",
+            "command": "test -d \"$CLAUDE_PROJECT_DIR/plan\" && grep -rl '⏳ 待決' \"$CLAUDE_PROJECT_DIR/plan\" 2>/dev/null | head -5 | sed 's/^/⚠️  尚有待決 OQ: /' || true"
+          }
+        ]
+      }
+    ]
+  },
+  "autoMode": {
+    "allow": [
+      "讀取專案內任何檔案",
+      "搜尋程式碼（Grep、Glob）",
+      "執行 ./mvnw compile、./mvnw test、靜態檢查",
+      "執行 git status、git diff、git log",
+      "讀取 plan/ 下的企劃書段落"
+    ],
+    "soft_deny": [
+      "在 Domain 層 import org.springframework.* / jakarta.persistence.* / Jackson / Lombok（含 Modulith 註解）",
+      "讓 Application 層依賴 Infrastructure，或直接使用 JdbcTemplate / Spring Data Repository",
+      "把 Domain 物件直接當 JPA Entity 使用（省略 Entity ↔ Domain 映射）",
+      "模組間直接注入彼此的 Service 或 Repository；或 import 他人的 internal package",
+      "用 @ApplicationModuleListener / AFTER_COMMIT 事件拆開 I1 涵蓋的區塊四項寫入",
+      "用 Modulith 的 Event Publication Registry 取代 events 表（兩者用途不同）",
+      "實作已被移除的範圍：WebSocket（D2）、Webhook 推送與 Dispatcher（D16）、Reorg 回溯與 payment.reorged（D17）、confirmations 欄位（D4）",
+      "引入 web3j / MQ / Quartz（D10 明確排除）",
+      "變更對外事件契約的欄位、sequence 語意或 idempotency_key 組成規則",
+      "新增呼叫端可控的 tenant_id 參數",
+      "放寬或移除 watched_addresses 的 UNIQUE (chain, address) 約束（I9 地基）",
+      "修改下游 crypto-payment 的任何程式碼",
+      "升級或降級 Spring Boot 版本（鎖定 3.5.x）",
+      "修改已套用的 Flyway migration",
+      "在單租戶 fixture 上撰寫整合測試",
+      "跳過實作步驟企劃書的回填（DoD 第 5 條）"
+    ]
+  }
+}

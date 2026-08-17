@@ -53,7 +53,7 @@ def find_templates():
     found = []
     for dp, dns, _ in os.walk(ROOT):
         dns[:] = [d for d in dns if d not in ("node_modules", ".git", ".idea")]
-        if os.path.relpath(dp, ROOT).count(os.sep) > 2:
+        if os.path.relpath(dp, ROOT).count(os.sep) > 3:
             dns[:] = []
             continue
         if ".claude" in dns:

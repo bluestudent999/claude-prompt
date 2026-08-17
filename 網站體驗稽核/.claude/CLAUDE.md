@@ -35,6 +35,8 @@
 | 既有加密支付維護 / 修 bug（crypto-payment，Java 21 / Boot 3） | 維護 | `prompt-setup 專案維護 crypto-payment` |
 | Java 8→21 / Boot 2→3 版本升級遷移 | 版本管理 | `prompt-setup 版本管理` |
 | 已完成網站的 UX 體驗稽核（實際開瀏覽器體驗、產 UX 修改建議報告） | 網站體驗稽核 | `prompt-setup 網站體驗稽核` |
+| 既有骰寶辨識維護 / 修 bug（sicbo，Python / YOLO 影像辨識） | 維護 | `prompt-setup 專案維護 sicbo` |
+| crypto-node 鏈下索引服務開發（Java 21 / Boot 3.5 / 多租戶） | 開發 | `prompt-setup 專案開發 java crypto-node` |
 
 > **你在這裡：網站體驗稽核**（表格第 7 列為本職，不適用切換）。
 > 切換提示範例：「你要的是**動手把這些 UX 建議實作進 code**，本稽核範本只產報告不改產品程式碼；請切到 `prompt-setup 專案維護 cx-sports`（或對應開發範本），並把本次 `report.md` 當作需求輸入。」

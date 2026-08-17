@@ -63,7 +63,7 @@ list_templates() {
     [ -f "$d/CLAUDE.md" ] && has_md="含 CLAUDE.md"
     printf '  %sprompt-setup %s%s   %s%s%s\n' "$CYN" "${rel//\// }" "$RST" "$DIM" "$has_md" "$RST"
     found=1
-  done < <(find "$TEMPLATES_ROOT" -maxdepth 3 -type d -name .claude \
+  done < <(find "$TEMPLATES_ROOT" -maxdepth 4 -type d -name .claude \
              -not -path "*/node_modules/*" \
              -not -path "$TEMPLATES_ROOT/.claude" 2>/dev/null | sort)
   [ "$found" = 1 ] || warn "找不到任何 .claude 範本"

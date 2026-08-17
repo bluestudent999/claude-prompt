@@ -33,6 +33,8 @@
 | 既有加密支付維護 / 修 bug（crypto-payment，Java 21 / Boot 3） | 維護 | `prompt-setup 專案維護 crypto-payment` |
 | Java 8→21 / Boot 2→3 版本升級遷移 | 版本管理 | `prompt-setup 版本管理` |
 | 已完成網站的 UX 體驗稽核（實際開瀏覽器體驗、產 UX 修改建議報告） | 網站體驗稽核 | `prompt-setup 網站體驗稽核` |
+| 既有骰寶辨識維護 / 修 bug（sicbo，Python / YOLO 影像辨識） | 維護 | `prompt-setup 專案維護 sicbo` |
+| crypto-node 鏈下索引服務開發（Java 21 / Boot 3.5 / 多租戶） | 開發 | `prompt-setup 專案開發 java crypto-node` |
 
 > **你在這裡：版本管理 · 升級遷移**（表格第 6 列為本職，不適用切換）。切換提示範例：「此工作是新增功能而非行為等價遷移，違反升級紅線；請 `prompt-setup 專案開發 <java|ai-ux-agent>` 後再進行」「這是新需求規劃，請先 `prompt-setup 專案企劃`」。
 

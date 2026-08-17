@@ -29,6 +29,8 @@
 | 既有加密支付維護 / 修 bug（crypto-payment，Java 21 / Boot 3） | 維護 | `prompt-setup 專案維護 crypto-payment` |
 | Java 8→21 / Boot 2→3 版本升級遷移 | 版本管理 | `prompt-setup 版本管理` |
 | 已完成網站的 UX 體驗稽核（實際開瀏覽器體驗、產 UX 修改建議報告） | 網站體驗稽核 | `prompt-setup 網站體驗稽核` |
+| 既有骰寶辨識維護 / 修 bug（sicbo，Python / YOLO 影像辨識） | 維護 | `prompt-setup 專案維護 sicbo` |
+| crypto-node 鏈下索引服務開發（Java 21 / Boot 3.5 / 多租戶） | 開發 | `prompt-setup 專案開發 java crypto-node` |
 
 > **你在這裡：開發 · SDRP（Java）**（表格第 3 列為本職，不適用切換）。切換提示範例：「此需求屬企劃職責（例：定範圍 / 驗收標準 / 任務拆解），本開發範本不處理；請先 `prompt-setup 專案企劃` 收斂為 Spec/Backlog 後再回來實作。」若接到的是既有 cx-sports-v2 主業務維護或版本升級，同理提示切換到維護或版本管理範本。
 
@@ -41,6 +43,7 @@
 - **生命週期規範與步驟**：`.claude/rules/development-workflow.md`
 - **代碼風格與異常規範**：`.claude/rules/coding-style.md`
 - **JUnit 5 測試政策**：`.claude/rules/testing.md`
+- **Flyway migration 版本號（時間戳）**：`.claude/rules/flyway-migration.md`
 - **審計與安全合規**：`.claude/rules/security-audit.md`
 - **提交與 MR 指標要求**：`.claude/rules/git-workflow.md`
 

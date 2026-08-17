@@ -1,0 +1,63 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(python -m py_compile:*)",
+      "Bash(python3 -m py_compile:*)",
+      "Bash(python --version)",
+      "Bash(python3 --version)",
+      "Bash(bash -n:*)",
+      "Bash(ls:*)",
+      "Bash(wc:*)",
+      "Bash(grep:*)",
+      "Bash(rg:*)",
+      "Bash(find:*)",
+      "Bash(git status:*)",
+      "Bash(git diff:*)",
+      "Bash(git log:*)",
+      "Bash(git ls-files:*)",
+      "Bash(netstat:*)"
+    ]
+  },
+  "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "echo '=== sicbo 開工提醒 ===' && echo '1) git repo 根在 detector/，只 add sicbo/ 路徑；不要 git add -A' && echo '2) 文件不可信 — 動手前先 grep 驗證現況（CLAUDE.md §7 列了 9 項已知落差）' && echo '3) 改介面/埠/串流源 → 必須同步 deployment_guide.md + start_recognize.* + pack_prod.sh' && echo '--- 紅線：TCP 契約 {\"value\":\"NNN\"} 3字元1-6 · 一回合一次 · 非3顆不送 ---'"
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "command -v python3 >/dev/null 2>&1 && ls *.py >/dev/null 2>&1 && python3 -m py_compile *.py 2>&1 | head -5 || true"
+          }
+        ]
+      }
+    ]
+  },
+  "autoMode": {
+    "allow": [
+      "讀取專案內任何檔案",
+      "搜尋程式碼（Grep、Glob）",
+      "執行 python -m py_compile、bash -n 語法檢查",
+      "執行 git status、git diff、git log、git ls-files",
+      "執行 local_train.py --dryrun（只驗資料集不訓練）"
+    ],
+    "soft_deny": [
+      "修改 TCP 輸出契約（JSON 結構、value 語意）而未標明需 Go 端同步",
+      "移除 send_dice_result 既有的 3 顆 / 1-6 驗證",
+      "調整推論參數或開盅門檻而未做回放驗證",
+      "刪除 data/verified_rounds_sicbo/ 或 data/raw/collected_data_sicbo/（回歸驗證與再訓練的原料）",
+      "覆蓋既有的 runs/detect/train-N/ 訓練批次",
+      "新增 *.pt / *.zip / 資料集 / 訓練圖進版控",
+      "git add -A（會帶走同 repo 其他子專案 baccarat_3type / xocdia 的變更）",
+      "一次修多項 CLAUDE.md §7 的已知落差"
+    ]
+  }
+}

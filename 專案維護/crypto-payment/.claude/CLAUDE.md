@@ -47,6 +47,8 @@
 | 既有加密支付維護 / 修 bug（crypto-payment，Java 21 / Boot 3） | 維護 | `prompt-setup 專案維護 crypto-payment` |
 | Java 8→21 / Boot 2→3 版本升級遷移 | 版本管理 | `prompt-setup 版本管理` |
 | 已完成網站的 UX 體驗稽核（實際開瀏覽器體驗、產 UX 修改建議報告） | 網站體驗稽核 | `prompt-setup 網站體驗稽核` |
+| 既有骰寶辨識維護 / 修 bug（sicbo，Python / YOLO 影像辨識） | 維護 | `prompt-setup 專案維護 sicbo` |
+| crypto-node 鏈下索引服務開發（Java 21 / Boot 3.5 / 多租戶） | 開發 | `prompt-setup 專案開發 java crypto-node` |
 
 > **你在這裡：維護 · crypto-payment**（表格第 5 列為本職，不適用切換）。切換提示範例：「這是一段全新需求，請先 `prompt-setup 專案企劃` 收斂範圍」「這是 cx-sports-v2（體育主業務）的維護，本範本是 crypto-payment，請 `prompt-setup 專案維護 cx-sports`」。
 
@@ -58,7 +60,7 @@
 | 多租戶隔離 | [`.claude/rules/security.md`](.claude/rules/security.md)（所有查詢過濾 `platform_id`） |
 | HMAC 驗簽 | [`.claude/rules/security.md`](.claude/rules/security.md)（SignFilter /api/pay/*，timestamp+nonce，5 分鐘 replay window） |
 | 金額 | [`.claude/rules/security.md`](.claude/rules/security.md)（BigDecimal / RoundingMode.DOWN） |
-| DB Migration | [`.claude/rules/patterns.md`](.claude/rules/patterns.md)（Flyway 只增不改、ShardingSphere 自動路由） |
+| DB Migration | [`.claude/rules/flyway-migration.md`](.claude/rules/flyway-migration.md)（**新檔用時間戳版本號**、禁改既有）＋ [`.claude/rules/patterns.md`](.claude/rules/patterns.md)（ShardingSphere 自動路由） |
 | 回應信封 / 例外 | [`.claude/rules/patterns.md`](.claude/rules/patterns.md)（BaseResponse&lt;T&gt;、自訂 exception、建構子注入） |
 | 冪等 / 防重放 | [`.claude/rules/stability.md`](.claude/rules/stability.md)（webhook / Kafka 重送、nonce、鏈重組） |
 | 測試（Boot 3） | [`.claude/rules/testing.md`](.claude/rules/testing.md)（JUnit 5 Jupiter，L1 強制整合測試） |
@@ -121,7 +123,8 @@ L3 → `code-reviewer` × 1；L2 → + 擇一領域；L1 → + `java-reviewer` +
 |------|------|
 | 開發流程（preflight / spec / plan / test / review） | [`.claude/rules/development-workflow.md`](.claude/rules/development-workflow.md) |
 | Git 分支 / commit / merge | [`.claude/rules/git-workflow.md`](.claude/rules/git-workflow.md) |
-| 分層 / DI / 回應信封 / 快取 / Flyway | [`.claude/rules/patterns.md`](.claude/rules/patterns.md) |
+| 分層 / DI / 回應信封 / 快取 | [`.claude/rules/patterns.md`](.claude/rules/patterns.md) |
+| **Flyway migration 版本號（時間戳）** | [`.claude/rules/flyway-migration.md`](.claude/rules/flyway-migration.md) |
 | 私鑰 / AES-GCM / HMAC / platform_id / 金額 / Log 脫敏 | [`.claude/rules/security.md`](.claude/rules/security.md) |
 | 測試政策（JUnit 5 / L1-L3 / 基座） | [`.claude/rules/testing.md`](.claude/rules/testing.md) |
 | 格式 / 命名 / Log / 重構安全 | [`.claude/rules/coding-style.md`](.claude/rules/coding-style.md) |

@@ -1,0 +1,168 @@
+# 開發工作流程（38 步驟驅動）
+
+> 本專案由 `plan/2026-08-17-crypto-node-implementation-steps.md` 的 **S01 ~ S38** 推進。
+> **一次一個步驟。** 不要因為「這兩步很像」就合併著做——步驟的粒度就是驗收的粒度。
+
+---
+
+## 文件優先序（衝突時的裁決）
+
+```
+實作步驟企劃書   ← 排程、步驟、驗收測試以此為準
+     ↑ 承接
+開發企劃書       ← 技術決策 D1~D18、不變量、資料模型、對外契約以此為準
+     ↑ 承接
+bigpicture       ← 願景與範圍；多處已被取代，讀前必看「取代對照表」
+```
+
+> **bigpicture 是陷阱。** 它描述了 WebSocket 雙通道、Webhook Dispatcher、Reorg 引擎、`payment.reorged`、`confirmations` 欄位 —— **這些全部已被 D2/D16/D17/D4 取代**。
+> **開工前先讀 bigpicture 的「⚠ 本文件的取代對照表」**，否則會實作出已被否決的東西。仍然完全有效的段落只有：§1.3 非目標、§2.3 假幣與零金額過濾、§4 支援鏈與規格、§6 維運與告警、§8 風險、§9.1 灰度上線策略。
+
+---
+
+## Step -1：Preflight（每個 session 第一次動工前）
+
+```bash
+# JDK 對齊（Java 21）
+java -version 2>&1 | grep -E '"21' || echo "[preflight] JDK 未對齊 21"
+./mvnw -v | grep -i java
+
+# 編譯 smoke
+./mvnw -q -DskipTests compile
+
+# 確認 Boot 版本鎖在 3.5.x（本範本覆蓋 plan D18 的 4.1）
+grep -n "spring-boot" pom.xml | head
+```
+
+| 失敗 | 處置 |
+|------|------|
+| JDK 非 21 | **必修，不動工** |
+| 編譯失敗 | **必修** —— HEAD 本身壞掉，疊上去的改動無效 |
+| Boot 版本不是 3.5.x | 停下來回報 —— 版本分歧會產生一整類 API 不相容問題 |
+
+---
+
+## Step 0：讀步驟與研究
+
+1. **讀該步驟**：範圍、驗收測試、涉及哪些不變量（實作步驟企劃書 §1.4 有對照表）。
+2. **確認前置步驟已完成**（進度總表）。前置未完成 → 停手回報。
+3. **查已鎖定決策**（`locked-decisions.md`）：這個步驟會不會踩到被移除的範圍？
+4. **大檔讀取紀律**：plan 三份文件分別是 579 / 1081 / 1499 行，**禁止 full read**。先 `grep -n "^#\{1,3\} "` 建標題索引，再 `Read(offset, limit)` 讀需要的段落。
+
+---
+
+## Step 1：規劃（planner）
+
+產出 `plan/task-Sxx-plan.md`，**必含**：
+
+```markdown
+## §0 元資料
+- 步驟：Sxx
+- 涉及不變量：I1 / I8 / …（或「無」）
+- 是否涉及對外契約：是 / 否
+- 涉及哪些 Modulith 模組 / 分層：<模組名> · domain / application / infrastructure
+- 前置步驟：Sxx（已完成 ✅）
+
+## §1 Investigation（每條有證據）
+| 假設 | 驗證方式 | 結果 |
+
+## §2 變更檔案清單（單一事實來源）
+
+## §3 實作步驟
+
+## §4 驗收計畫
+- 該步驟列出的驗收測試：<逐條>
+- 涉及不變量的對應測試：<逐條，含測試類別名>
+- 架構：ArchitectureTests 通過（modules.verify() + Domain 純度 + 依賴方向）
+- 迴歸：./mvnw test 全綠
+
+## §5 風險
+## §6 Open Questions
+## §7 Success Criteria（對照 DoD 七條）
+```
+
+**OQ 硬規則：**
+- 可用 grep / Read / 跑測試驗證的 → **planner 自答鎖定**，不丟給使用者。
+- 需要判斷的 → **必列 OQ，嚴禁推測**。本專案典型必問：
+  - **模組切分定案**（`architecture.md` §3 只是提議）—— S01 實作前必問
+  - **I7 與 D17 的矛盾**（`invariants.md` 末段）該怎麼對齊
+  - 確認數門檻的具體數值（每鏈、每租戶）
+  - `payment.detected` 在哪些鏈開啟（D6）
+  - 原生幣入金是否要支援（D8，影響 40% 工作量）
+  - 任何需要下游配合的契約調整
+- **OQ 未解答前禁止編寫業務代碼**；決議必回寫 plan（原文加刪除線 + ✅ 決議），只存 chat 不算數。
+- **越界回企劃**：OQ 若屬商業範圍／驗收標準 → 提示切 `prompt-setup 專案企劃`。
+
+---
+
+## Step 2：實作
+
+**Golden Rule：依計畫實作。** 禁止自行重設計、優化架構、或新增未經計畫的需求。唯一真理來源是 `plan/`。
+
+- **最小化讀取**：只讀該步驟需要的檔案，不讀全專案。
+- **禁止越權決策**：不自行新增事件型別、資料表欄位、對外 API、設定項。
+- **禁止順便重構**：不修改與本步驟無關的檔案。
+- **Stop Rule**：遇到文件互相矛盾（bigpicture vs 開發企劃書、I7 vs D17）→ **立即停止並回報**，不要挑一個猜。
+
+**每次寫入路徑都要問：** 「這條路徑被執行兩次會怎樣？」（I6 冪等）
+**每次新增查詢都要問：** 「它有沒有依租戶範圍過濾？」（I8 隔離）
+**每次新增類別都要問：** 「它屬於哪一層？依賴方向對嗎？」（`architecture.md` §1）
+**想用 `@ApplicationModuleListener` 時要問：** 「這件事在 I1 的四項寫入範圍內嗎？」是 → **不能用**（`architecture.md` §4）
+
+---
+
+## Step 3：驗收
+
+依 `testing.md` 執行：
+
+```bash
+./mvnw test                      # 含 *IT.java（Testcontainers + 兩租戶 fixture）+ ArchitectureTests
+./mvnw -q test -Dtest='ArchitectureTests'   # 架構邊界單獨確認
+./mvnw -q checkstyle:check spotbugs:check   # 依專案實際外掛名調整
+```
+
+**DoD 七條全滿足才算完成**（見 `testing.md` §6）。動到類別或 package → 跑 `/arch-check`。
+
+---
+
+## Step 4：審查
+
+| 情境 | reviewer |
+|------|---------|
+| 一律 | `code-reviewer` |
+| 動到 package 結構 / 新增類別 / 跨模組呼叫 / 引入相依 | + `arch-guard` |
+| 動到掃描迴圈 / 事務 / 冪等 / 高度推進 | + `invariant-guard` |
+| 動到查詢 / 認證 / 歸屬解析 / 拉取 API | + `tenant-isolation-reviewer` |
+| 動到 `/v1/events` 或事件欄位 | + `contract-reviewer` |
+
+四個領域 reviewer **可平行**（同一則訊息中啟動）。
+
+**完成輸出格式：** `Completed Files`、`Modified Files`、`Tests (PASS)`、`涉及不變量與其測試`、`架構檢查結果`、`Remaining Work`（阻塞註明 `Blocked By: Sxx`）。
+
+---
+
+## Step 5：回填與提交
+
+1. **回填實作步驟企劃書**（§0.2 完成紀錄範本）+ 更新 §2 進度總表的完成數。
+2. 確認 `plan/` 無「⏳ 待決」OQ（否則 git hook 攔截）。
+3. Commit（見 `git-workflow.md`）。
+
+> **回填是 DoD 第 7 條。** 沒回填 = 步驟未完成，不要跳到下一步。
+
+---
+
+## 步驟不通過時
+
+實作步驟企劃書 §0.3 有規範。原則：
+
+- **不要為了讓測試過而放寬驗收標準。** 驗收標準是規格。
+- 若判定該步驟的驗收標準本身有問題 → 列 OQ 回報，由使用者裁決是否修改企劃書。
+- 卡住超過合理時間 → 回報並附「試過什麼、為什麼不行」，不要無限重試（同一手法失敗 2 次就換路徑）。
+
+---
+
+## Context 紀律
+
+- plan 三份文件共 3935 行 —— **永遠用 grep 索引 + 分段讀**，不要整份載入。
+- 讀過 ≥ 3 個實作檔或跑過 ≥ 2 輪 reviewer → 評估 `/strategic-compact`。
+- 壓縮時**必須保留**：步驟編號與進度、plan §2 檔案清單、涉及的不變量與模組分層、**版本基準（Boot 3.5）與架構基準（Domain 零框架）**、未決 OQ、已建立的行號索引。
