@@ -44,12 +44,12 @@
 - `agents/`:企劃角色 Prompt
   - `product-manager.md` — 需求收斂,產 Product Brief
   - `business-analyst.md` — 撰寫可切片的 Business Spec
-  - `delivery-planner.md` — 拆 TASK,產 Task Backlog(DAG / Context Budget)
+  - `delivery-planner.md` — 拆 TASK,產 Task Backlog(DAG / Context Budget / AI 工時估算)
   - `spec-reviewer.md` — 獨立審查,產 Harness Output Contract
 - `rules/`:硬性規則
   - `planning-workflow.md` — 企劃生命週期(6 步,含 Step 3.5 任務拆解)
   - `spec-standard.md` — 規格結構與切片約定
-  - `task-planning.md` — 任務拆解 / backlog / DAG / Context Budget 標準
+  - `task-planning.md` — 任務拆解 / backlog / DAG / Context Budget / **工時估算(AI Agent 開發前提)**
   - `handoff-contract.md` — 跨 Agent 資料契約 + OQ 生命週期
   - `context-discipline.md` — 上下文與 token 紀律
 - `skills/`:可呼叫指令(見下)

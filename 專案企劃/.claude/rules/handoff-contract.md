@@ -37,7 +37,7 @@
 |------|------------------------|------------------------|------------------|
 | PM → BA | **Product Brief**(見 §3.1) | BA 只讀 Brief + 領域上下文 | `核心範圍 In/Out`、`成功指標`、`Open Questions` |
 | BA → Delivery | **Business Spec**(見 spec-standard) | Delivery 只讀 Spec 各節 | `§1.3 User Flow`、`§1.6 AC`、`§1.5 Edge Cases` |
-| Delivery → Dev | **Task Backlog**(見 task-planning) | 開發 planner 逐一取單顆 TASK | `Required Spec Sections`、`Depends On`、`Context Budget` |
+| Delivery → Dev | **Task Backlog**(見 task-planning) | 開發 planner 逐一取單顆 TASK | `Required Spec Sections`、`Depends On`、`Context Budget`、`AI 產出`、`人介入` |
 | 任一階段 → Reviewer | 對應產出 + `Review 聚焦面向` | Reviewer 只讀指定文件 + 聚焦點 | Reviewer 回 `Status/Counts/...` |
 
 > **反模式(禁止)**:把上一階段的完整對話貼進下一個 Agent 的 prompt。交接一律走「文件路徑 + 章節編號 + 結構化欄位」。
@@ -70,6 +70,9 @@
 ### 3.3 Task Backlog(Delivery 輸出 = 開發輸入)
 
 結構完全依 `rules/task-planning.md`。對開發 planner 而言,每顆 TASK 是一個**自包含工作單元**:光看該 TASK 列 + 它指向的 `Required Spec Sections`,就足以開工,不需通讀整份 Spec。
+
+**估算欄位的交接語意(§3.5)**:`AI 產出` 與 `人介入` 是**企劃層的粗量級**,不是交期承諾。
+開發 planner 把技術步驟拆完、**由下而上加總**後,以開發端的數字為準;若差距顯著,回報企劃校正估算係數(task-planning §3.5.6)。
 
 ---
 

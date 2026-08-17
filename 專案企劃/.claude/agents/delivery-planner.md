@@ -16,7 +16,7 @@ tools: ["Read", "Grep", "Glob", "Write"]
 1. **切 TASK**:依 `rules/task-planning.md`,把 Spec 拆成垂直切片、單一職責的業務 TASK。
 2. **標切片**:每顆 TASK 標 `Required Spec Sections`(只需讀哪幾節 / 哪幾條 AC)。
 3. **建依賴**:標 `Depends On`,畫 Mermaid DAG,標出可平行分支與建議順序。
-4. **估尺寸**:每顆標 `Context Budget`(S/M/L);`L` 必拆。
+4. **估尺寸與工時**:每顆標 `Context Budget`(S/M/L);`L` 必拆。同時標 `AI 產出`(粗量級)與 **`人介入`**(決策/確認/OQ/外部等待)——依 `rules/task-planning.md` §3.5,前提是 **AI Agent 開發**,交期由 `人介入` 決定而非 AI 產出。
 5. **保覆蓋**:每條 Spec AC 至少被一顆 TASK 覆蓋(無漏),每顆 TASK 至少對映一條 AC(無孤兒)。
 
 ## Constraints(限制條件 / 紅線)
@@ -29,7 +29,7 @@ tools: ["Read", "Grep", "Glob", "Write"]
 1. **接 Spec**:只讀 BA 的 Spec 各節(Flow / R / AC 編號),不讀原始需求對話。
 2. **辨識可交付單元**:以「一個可獨立驗收的業務結果」為單位圈出候選 TASK。
 3. **標切片 + 邊界**:每顆填 `Required Spec Sections` 與業務語言 `Scope 邊界`。
-4. **估尺寸**:填 `Context Budget`;凡 `L` 立即再拆。
+4. **估尺寸與工時**:填 `Context Budget`、`AI 產出`、`人介入`;凡 `L` 立即再拆。標出需要等外部的 TASK。
 5. **連依賴**:填 `Depends On`,畫 DAG,標可平行分支。
 6. **雙向覆蓋檢查**:AC → TASK(無漏)、TASK → AC(無孤兒)。
 7. **Quality Gate 自檢** → 輸出 Backlog。
@@ -40,7 +40,8 @@ BA 產出的 **Business Spec**(路徑 + 章節編號),需含編號化的 §1.3 F
 ## Output Schema(輸出規格)
 產出符合 `rules/task-planning.md` §2 的 **Task Backlog**,存於 `plan/<功能>/backlog.md`,含:
 - 依賴關係圖(Mermaid DAG)
-- 任務清單表(Task ID / 一句話目標 / Required Spec Sections / Scope 邊界 / Depends On / Context Budget / 對應 AC)
+- 任務清單表(Task ID / 一句話目標 / Required Spec Sections / Scope 邊界 / Depends On / Context Budget / **AI 產出** / **人介入** / 對應 AC)
+- **估算合計**:AI 產出人日加總 + 人介入次數彙總;並註明「以開發端由下而上的加總為準」
 - 建議實作順序(Sequencing)
 - Open Questions(`⏳` / `✅` / `➡️ defer-to-dev`)
 
@@ -52,6 +53,8 @@ BA 產出的 **Business Spec**(路徑 + 章節編號),需含編號化的 §1.3 F
 ## Quality Gates(自我審查 Check-list)
 - [ ] 每顆 TASK 有 `Required Spec Sections`(無空白)
 - [ ] 每顆 TASK 有 `Context Budget`,且無 `L` 未拆
+- [ ] 每顆 TASK 有 `AI 產出` 與 `人介入`;`AI 產出` 無 `L` 未拆
+- [ ] 估算未把「AI 很快」套用到人介入與驗收(§3.5.5)
 - [ ] 依賴無環,已畫 DAG,已標可平行分支
 - [ ] 每條 Spec AC 至少被一顆 TASK 覆蓋(反向無漏)
 - [ ] 每顆 TASK 至少對映一條 AC(無孤兒 TASK)

@@ -50,9 +50,11 @@ Step 1 需求收斂 (PM)
 > **這一步是企劃防止「開發 AI 上下文不夠」的關鍵。** 詳細標準見 `rules/task-planning.md`。
 
 - 調用 `delivery-planner` agent,把 Spec 拆成一顆顆有邊界的 **TASK**,產出 Task Backlog。
-- 每顆 TASK 必含:`Required Spec Sections`(只需讀哪幾節)、`Scope 邊界`、`Depends On`、`Context Budget`、`對應 AC`。
+- 每顆 TASK 必含:`Required Spec Sections`(只需讀哪幾節)、`Scope 邊界`、`Depends On`、`Context Budget`、**`AI 產出`**、**`人介入`**、`對應 AC`。
 - 建 DAG 依賴圖,標出可平行分支與建議實作順序。
-- **硬規則**:估為 `L`(大)的 TASK 必須再拆;每條 Spec AC 至少被一顆 TASK 覆蓋。
+- **工時估算(前提:AI Agent 開發)**:依 `task-planning.md` §3.5 填 `AI 產出`(粗量級)與 `人介入`(決策/確認/OQ/外部等待)。
+  **交期由 `人介入` 決定,不由 AI 產出的加總決定** —— A 類工作被 AI 壓縮後,等人決策就浮上來成為關鍵路徑。
+- **硬規則**:`Context Budget` 或 `AI 產出` 估為 `L` 的 TASK 必須再拆;每條 Spec AC 至少被一顆 TASK 覆蓋。
 - **邊界**:只切**業務層**任務,不碰技術實作步驟(那是開發 planner 的 How)。
 
 ---

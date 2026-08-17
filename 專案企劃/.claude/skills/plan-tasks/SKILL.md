@@ -18,6 +18,7 @@ description: 把已定案的 Business Spec 拆成 Task Backlog(Required Spec Sec
 2. **委派 delivery-planner**:傳 Spec 路徑 + 章節編號。
 3. **產出** `plan/<功能>/backlog.md`:任務表 + Mermaid DAG + Sequencing。
 4. **雙向覆蓋檢查**:每條 AC 被覆蓋(無漏)、每顆 TASK 對映 AC(無孤兒)。
+5. **工時估算**(見 `rules/task-planning.md` §3.5):填 `AI 產出` 與 `人介入`,前提是 **AI Agent 開發**。交期依 `人介入` 推估,**不是** AI 產出的加總;標出 `⏳ 等外部` 的日曆風險。
 
 ## 每顆 TASK 必含
 `Task ID` / 一句話目標 / **`Required Spec Sections`**(只讀哪幾節) / `Scope 邊界`(業務語言) / `Depends On` / **`Context Budget`**(S/M/L) / 對應 AC。

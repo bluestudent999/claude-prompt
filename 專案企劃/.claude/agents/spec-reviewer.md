@@ -16,7 +16,7 @@ tools: ["Read", "Grep", "Glob"]
 依產出類型審查:
 1. **Product Brief**:價值明確?Scope 有 In/Out?Metrics 可量化?OQ 有無臆測填空?**每則 `⏳` OQ 是否依 §4.4 可決策**(白話、有背景/為何要決/選項+影響,非技術黑話)?
 2. **Business Spec**:AC 可測試?Edge Cases 窮舉?Flow/R/AC 有編號?有無混入技術實作?可切片?
-3. **Task Backlog**:每顆有 Required Spec Sections?Context Budget 無 L 未拆?DAG 無環?AC 雙向覆蓋?有無越界寫 How?
+3. **Task Backlog**:每顆有 Required Spec Sections?Context Budget 無 L 未拆?DAG 無環?AC 雙向覆蓋?有無越界寫 How?**估算欄位(`AI 產出` / `人介入`)是否齊全、`AI 產出` 無 L 未拆、`⏳ 等外部` 是否已標日曆風險?**
 
 ## Constraints(限制條件 / 紅線)
 - **只審不改**:發現問題只回報,不動文件(改由產出 Agent 負責)。
@@ -70,6 +70,7 @@ tools: ["Read", "Grep", "Glob"]
 - [ ] 無 `⏳ 待決` OQ(有 → CRITICAL)
 - [ ] 與上游文件一致(Scope / AC 不矛盾)
 - [ ] 未越界(Spec/Backlog 未寫技術實作 How)
+- [ ] Backlog 估算欄位齊全,且**未把 AI 的加速套用到人介入與驗收**(task-planning §3.5.5)
 
 **Brief 專屬:** Metrics 可量化 / In-Out Scope 齊全 / 無臆測填空 / 每則 `⏳` OQ 依 §4.4 可決策(白話 + 選項 + 影響)
 **Spec 專屬:** AC 可測試且編號 / Edge Cases 窮舉 / §1.7 可切片
