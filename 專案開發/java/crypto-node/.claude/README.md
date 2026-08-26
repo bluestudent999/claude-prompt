@@ -119,7 +119,7 @@ crypto-node 服務端的「只允許內網網段呼叫 `/admin/**`」是**依連
 |---|---|---|
 | **API 失敗被渲染成空清單** | 值班員誤讀為「沒有資料」 | E1 |
 | **Operator 做出的半成品看起來像完成** | 下游收到的門鈴**沒有可驗證的簽章**，且全程沒被擋 | R1a② |
-| **前端隱藏按鈕就當授權完成** | 直接打 API 即繞過 | R2 + web-integration §5 |
+| **前端隱藏按鈕就當授權完成** | 直接打 API 即繞過 | R2 + web-integration §3 |
 
 ### 已決的技術決策（2026-08-26）
 
@@ -135,7 +135,7 @@ crypto-node 服務端的「只允許內網網段呼叫 `/admin/**`」是**依連
 
 > ⚠ **連接方式的後果**：內網 RESTful 就是企劃警告的「代為呼叫」—— **服務端的網段過濾對後台路徑永遠放行**。
 > 於是 **nginx 三項成為唯一防線**，且**後台後端的授權判定不是「多一道」，它是那一道**。
-> Admin API client 的實作要求（Port 隔離、逾時、禁 retry、錯誤分類）見 `rules/web-integration.md` §2.5。
+> **實作手法不由範本預先鎖定** —— 範本只記決議與紅線，怎麼寫是開發當下對著程式碼判斷。
 
 ### 前端技術棧細節
 
@@ -245,8 +245,8 @@ D2/D3/D4/D9/D10/D11/D13/D16/D17 都有完整推導。最常見的誤觸是「加
 │   ├── event-contract.md      拉取 API 契約、五條鐵律、變更規則、Admin API、對帳
 │   ├── development-workflow.md 文件優先序、38 步驟流程、OQ 規則
 │   ├── testing.md             兩租戶硬規則、三層測試、Mock RPC、DoD
-│   ├── web-frontend.md        （B 軌）技術棧基準 + UI 行為契約：危險操作、三種狀態、憑證只顯示一次、半成品明示
-│   ├── web-integration.md     （B 軌）兩層串接、nginx 內網邊界靜默失效、資料唯一來源、OQ-9
+│   ├── web-frontend.md        （B 軌）技術棧基準、Vue 2 混入防護、去哪讀行為契約、易犯的靜默失效
+│   ├── web-integration.md     （B 軌）拓樸與連接決議、nginx 邊界靜默失效（跨文件推論）、OQ-9 紀律
 │   ├── coding-style.md        Java 21 / Boot 3.5、相依紀律、大檔讀取、結構性設計 vs 投機性複雜度
 │   └── git-workflow.md        分支、commit、MR、AIDD 指標
 ├── agents/              ← 8 個角色（含 arch-guard、web-reviewer）

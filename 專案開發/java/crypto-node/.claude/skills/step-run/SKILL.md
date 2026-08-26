@@ -61,11 +61,11 @@ grep -nE "^#{3,4} " plan/crypto-node-web/spec.md      # 先建索引
 **T 任務是企劃層產出，只有業務語言。** 動工前 planner 必須先補：
 
 - 這顆落在**前端**、**後台後端**、還是兩者都有？
-- 需要呼叫哪些 **crypto-node Admin API**？該 API 是否已存在（不存在 → 那是服務端變更，見 `web-integration.md` §7）
-- 授權判定寫在哪（**必須在後端**，`web-integration.md` §5）
+- 需要呼叫哪些 **crypto-node Admin API**？該 API 是否已存在（不存在 → 那是服務端變更，見 `web-integration.md` §4）
+- 授權判定寫在哪（**必須在後端**，`web-integration.md` §3）
 - 對映的 **AC 編號**要怎麼驗
 
-**OQ-9 六項已決五項半**（2026-08-26）；**僅剩第 6 項的定址手段待確認**（`web-integration.md` §7.1）。碰到其餘任何一項 → 決議已在 `locked-decisions.md`，**照決議做，不要重新選**。
+**OQ-9 六項已決五項半**（2026-08-26）；**僅剩第 6 項的定址手段待確認**（`web-integration.md` §5、§6）。碰到其餘任何一項 → 決議已在 `locked-decisions.md`，**照決議做，不要重新選**。
 
 ---
 
