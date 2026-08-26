@@ -6,9 +6,18 @@
 
 ---
 
-## 0. 運作模式：38 步驟驅動（最高優先）
+## 0. 運作模式：雙軌驅動（最高優先）
 
-本專案由 [`plan/2026-08-17-crypto-node-implementation-steps.md`](plan/2026-08-17-crypto-node-implementation-steps.md) 的 **S01 ~ S38** 推進。接到「執行 S12」這類指令時：
+本 repo 有**兩條交付線**，工單來源不同、流程相同：
+
+| 軌 | 交付物 | 工單來源 | 編號 |
+|---|-------|---------|------|
+| **A · 服務端** | `crypto-node-service`（鏈下索引與事件中繼） | [`plan/2026-08-17-crypto-node-implementation-steps.md`](plan/2026-08-17-crypto-node-implementation-steps.md) 實作步驟企劃書 | **S01 ~ S38** |
+| **B · 維運後台** | `crypto-node-web`（前端 + 後台後端） | [`plan/crypto-node-web/backlog.md`](plan/crypto-node-web/backlog.md) 企劃 Task Backlog | **T1a ~ T13c-ii**（19 顆） |
+
+> **兩軌的工單格式不同**：A 軌的 S 步驟已含技術驗收測試；**B 軌的 T 任務是企劃層產出（業務語言），需要開發 planner 先補技術設計（How）** —— 見 §0.1。
+
+接到「執行 S12」或「執行 T7」這類指令時：
 
 1. **讀步驟**：到實作步驟企劃書找該步驟的範圍、驗收測試與涉及的不變量。
 2. **planner 拆解**：產出 `plan/task-Sxx-plan.md`，管理 `⏳ 待決 OQ`。
@@ -17,6 +26,18 @@
 5. **回填進度**：把完成紀錄寫回實作步驟企劃書（§0.2 範本），並更新 §2 進度總表。
 
 > **回填不是可選的。** 那份文件是活的，`Definition of Done` 第 5 條明訂「本文件已回填完成紀錄」。沒回填 = 步驟未完成。
+
+### 0.1 B 軌（後台）的差異
+
+| 項目 | A 軌（S 步驟） | B 軌（T 任務） |
+|------|--------------|--------------|
+| 工單內容 | 已含技術範圍與驗收測試 | **只有業務語言**：目標、`Required Spec Sections`、Scope 邊界、對應 AC |
+| planner 的工作 | 落到具體檔案與測試 | **先補技術設計（How）**，再落到檔案與測試 |
+| 讀規格 | 讀該步驟即可 | **只讀 `Required Spec Sections` 指定的那幾節**，不通讀 60KB 的 spec |
+| 驗收依據 | 步驟列出的驗收測試 | **對映的 AC 編號**（spec §1.6） |
+| 回填 | 實作步驟企劃書 | `backlog.md` 的任務清單狀態 |
+
+> **B 軌的 `Required Spec Sections` 是上下文預算的核心** —— 企劃已經切好了，**照著讀就不會爆**。看到自己在通讀整份 spec，就是沒照做。
 
 ---
 
@@ -62,6 +83,12 @@ bigpicture（願景與範圍）  ← 多處已被取代，讀前必看其「取�
 - **多租戶評估：** `plan/2026-08-14-crypto-node-multi-tenant-evaluation.md`
 - **RPC 成本分析：** `plan/2026-08-14-crypto-node-rpc-cost-analysis.md`
 
+**B 軌（維運後台）** —— 企劃三件套，衝突時以 `spec.md` 為準：
+
+- **任務清單：** `plan/crypto-node-web/backlog.md`（19 顆 T 任務、DAG、估算、三個跨系統依賴）
+- **業務規格：** `plan/crypto-node-web/spec.md`（**R# 業務規則 / E# 邊界情境 / AC 驗收條件** —— 依 `Required Spec Sections` 分節讀，禁 full read）
+- **範圍與決議：** `plan/crypto-node-web/brief.md`（In/Out Scope、成功指標 M1~M6、OQ 決議）
+
 ### 規範
 
 - **10 條核心不變量（最高紅線）：** [`.claude/rules/invariants.md`](.claude/rules/invariants.md)
@@ -70,6 +97,8 @@ bigpicture（願景與範圍）  ← 多處已被取代，讀前必看其「取�
 - **對外事件契約（跨系統）：** [`.claude/rules/event-contract.md`](.claude/rules/event-contract.md)
 - **開發流程與步驟回填：** [`.claude/rules/development-workflow.md`](.claude/rules/development-workflow.md)
 - **測試政策（兩租戶硬規則）：** [`.claude/rules/testing.md`](.claude/rules/testing.md)
+- **後台前端規範（B 軌）：** [`.claude/rules/web-frontend.md`](.claude/rules/web-frontend.md)
+- **後台串接規範（B 軌）：** [`.claude/rules/web-integration.md`](.claude/rules/web-integration.md)
 - **Flyway migration 版本號（時間戳）：** [`.claude/rules/flyway-migration.md`](.claude/rules/flyway-migration.md)
 - **Java 21 / Boot 3.5 風格：** [`.claude/rules/coding-style.md`](.claude/rules/coding-style.md)
 - **分支與提交：** [`.claude/rules/git-workflow.md`](.claude/rules/git-workflow.md)
@@ -86,7 +115,9 @@ bigpicture（願景與範圍）  ← 多處已被取代，讀前必看其「取�
 5. **已鎖定的架構決策不得自行推翻**（`rules/locked-decisions.md`）：不做 WebSocket、不做 Webhook 推送、不做 Reorg 回溯、不引入 web3j / MQ / Quartz、單一部署產出物。要翻案 → 停手，回報使用者走決策流程。
 6. **範圍紀律**：只做實作步驟企劃書列出的內容，不做「順便加的」功能、不為已移除的範圍（WebSocket / Webhook / `reorged`）留接縫。
    > **判準是「這個抽象隔離的是哪一個已知的變動源」**（`rules/coding-style.md` §8）。Ports、分層、模組邊界隔離的是**已知會發生**的框架與技術變動 → **必做，缺了才是缺陷**；為不存在的變動源而建 → 不做。**結構性設計不足與投機性複雜度都是缺陷。**
-7. **步驟完成必須回填**實作步驟企劃書，且既有測試不得有任何一個變紅。
+7. **後台的內網邊界會靜默失效**（B 軌，`web-integration.md` §2）：nginx 之後，crypto-node 服務端的「只允許內網網段呼叫 `/admin/**`」對所有請求一律放行。**邊界必須由 nginx 執行，且服務端網段過濾不可再計入防線**。後台後端**不得成為 Admin API 的公開代理**，且必須自行完成權限與租戶範圍判定。
+8. **後台不得成為業務資料的第二個真實來源**（B 軌，R11）：租戶／地址／訂閱者／交易／事件一律以 crypto-node 為唯一來源。後台自有資料**只有四類**（使用者帳號、權限指派、操作紀錄、開通檢核狀態）。
+9. **步驟完成必須回填**實作步驟企劃書（A 軌）或 `backlog.md` 任務狀態（B 軌），且既有測試不得有任何一個變紅。
 
 ---
 
@@ -111,7 +142,7 @@ bigpicture（願景與範圍）  ← 多處已被取代，讀前必看其「取�
 
 ## 4. 可用工具與 Sub-agents
 
-- **自訂 Skills**：`/step-run`、`/arch-check`、`/invariant-check`、`/mock-rpc`、`/strategic-compact`
+- **自訂 Skills**：`/step-run`、`/arch-check`、`/invariant-check`、`/mock-rpc`、**`/vue3-console`（B 軌前端）**、`/strategic-compact`
 - **Sub-agents**：
 
 | Agent | 職責 |
@@ -122,9 +153,10 @@ bigpicture（願景與範圍）  ← 多處已被取代，讀前必看其「取�
 | `invariant-guard` | **I1~I10 守門**：改動是否破壞不變量、對應測試是否存在 |
 | `tenant-isolation-reviewer` | **I8 / I9 專責**：租戶隔離與越權路徑（最關鍵） |
 | `contract-reviewer` | 對外拉取 API 契約與下游相容性 |
+| `web-reviewer` | **B 軌守門**：後台 UI 行為契約、租戶範圍、憑證處理、內網邊界、Admin API 串接 |
 | `build-error-resolver` | Maven / Spring Boot 3.5 編譯與啟動錯誤診斷 |
 
-**派工原則：** 動到 package 結構 / 新增類別 / 跨模組呼叫 / 引入相依 → `arch-guard`；動到掃描迴圈 / 事務 / 冪等 → `invariant-guard`；動到查詢 / 認證 / 歸屬解析 → `tenant-isolation-reviewer`；動到 `/v1/events` 或事件欄位 → `contract-reviewer`。四者可平行。
+**派工原則：** 動到 package 結構 / 新增類別 / 跨模組呼叫 / 引入相依 → `arch-guard`；動到掃描迴圈 / 事務 / 冪等 → `invariant-guard`；動到查詢 / 認證 / 歸屬解析 → `tenant-isolation-reviewer`；動到 `/v1/events` 或事件欄位 → `contract-reviewer`；**動到後台前端 / 後台後端 / Admin API 呼叫 → `web-reviewer`**。五者可平行。
 
 ---
 

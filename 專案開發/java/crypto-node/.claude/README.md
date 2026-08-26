@@ -20,13 +20,22 @@ claude
 
 ## 快速開始
 
-本專案由實作步驟企劃書的 **S01 ~ S38** 推進：
+本 repo **雙軌推進**：
+
+| 軌 | 交付物 | 工單 | 來源 |
+|---|-------|------|------|
+| **A · 服務端** | `crypto-node-service` | **S01 ~ S38** | 實作步驟企劃書 |
+| **B · 維運後台** | `crypto-node-web`（前端 + 後台後端） | **T1a ~ T13c-ii**（19 顆） | `plan/crypto-node-web/backlog.md` |
+
+兩軌共用同一套流程，差別在讀哪份工單與驗收依據（A 軌看驗收測試，B 軌看**對映的 AC 編號**）：
 
 ```
-/step-run S01        ← 執行某一個步驟（讀步驟 → 拆計畫 → 實作 → 驗收 → 回填）
+/step-run S01        ← A 軌：執行服務端步驟
+/step-run T7         ← B 軌：執行後台任務（planner 會先補技術設計 How）
 /arch-check          ← 架構邊界檢查（Modulith 模組 + 六角分層 + Domain 純度）
 /invariant-check     ← 盤點 10 條不變量的測試覆蓋
 /mock-rpc            ← Mock RPC 情境腳本設計
+/vue3-console        ← B 軌：Vue 3 + Element Plus 實作模式（對映 spec 的 R#/E#）
 /strategic-compact   ← 步驟完成後壓縮 context
 ```
 
@@ -92,6 +101,38 @@ plan 沒有定義模組邊界。`architecture.md` §3 依「不變量的歸屬�
 
 ---
 
+## B 軌：維運後台（crypto-node-web）
+
+讓維運人員用網頁完成 crypto-node 的設定與事故處置 —— 開通租戶、匯入地址、發下游 API Key、必要時止血。**Email + 2FA、三級權限（Viewer / Operator / Admin）、僅限內網／VPN。**
+
+### ⚠ 最高紅線：內網邊界會靜默失效（R13a）
+
+crypto-node 服務端的「只允許內網網段呼叫 `/admin/**`」是**依連線來源位址判斷、完全忽略代理標頭**。決議 3 之後對外由 nginx 收口 —— 服務端看到的來源恆為 nginx 自己（落在內網網段）→ **對所有請求一律放行**。
+
+**不會報錯、不會有 log、測試不會紅。**
+
+三項缺一不可：① nginx 只允許內網／VPN 存取 `/admin/**`；② 不得有繞過 nginx 直達服務的路徑；③ **服務端網段過濾不可再計入防線**（必須明文記錄，否則有人以為還有兩道而各自放鬆）。
+
+### 三個最容易犯的錯
+
+| 錯誤 | 後果 | 出處 |
+|---|---|---|
+| **API 失敗被渲染成空清單** | 值班員誤讀為「沒有資料」 | E1 |
+| **Operator 做出的半成品看起來像完成** | 下游收到的門鈴**沒有可驗證的簽章**，且全程沒被擋 | R1a② |
+| **前端隱藏按鈕就當授權完成** | 直接打 API 即繞過 | R2 + web-integration §5 |
+
+### 技術棧：Vue 3 + Element Plus（已決 2026-08-26）
+
+`Vue 3 + Element Plus + Pinia + Vite`。**Vue 2 → Vue 3 是升級不是換框架** —— 組織既有的 Vue 心智模型直接可用。
+
+> ⚠ **隨之而來的最高風險：抄到 Vue 2 寫法。** 組織有兩個 Vue 2 專案在旁邊（cx-sports / crypto-payment），網路教學也大量是 Vue 2。這與 Boot 3.5 誤抄 Boot 4 是同一類錯誤 —— `web-reviewer` 的**第一個檢查項（A0）**就是掃這個。
+> 對照表見 `rules/web-frontend.md` §1，實作模式見 `/vue3-console`。
+> **不要去改 cx-sports / crypto-payment 的 vue2 skill** —— 那兩個專案仍在 Vue 2，那些 skill 對它們是正確的。
+
+**仍待決（OQ-9）**：前端落點（同 repo 目錄 vs 獨立 repo）、後台與服務的連接方式、第二因素形式、工作階段管理、快取策略、逐台狀態能否純靠 nginx。**未決前禁止開始寫對應的業務程式碼。**
+
+---
+
 ## ⚠ 三件開工前必知
 
 ### 1. 版本基準：Java 21 + Spring Boot 3.5（覆蓋 plan D18）
@@ -151,12 +192,13 @@ D2/D3/D4/D9/D10/D11/D13/D16/D17 都有完整推導。最常見的誤觸是「加
 | `planner` | 步驟拆解 + 驗收計畫（含具體測試方法名） | 開始任一步驟前 |
 | `code-reviewer` | Java 品質、**Boot 3.5 API 相容**、過度工程、事務與並發 | 一律 |
 | `arch-guard` | **架構邊界**：Domain 純度、依賴方向、Modulith 模組、事件與 I1 衝突 | package 結構 / 新增類別 / 跨模組 / 相依 |
+| `web-reviewer` | **B 軌守門**：UI 行為契約、租戶範圍、憑證處理、內網邊界、Admin API 串接 | 後台前端 / 後台後端 / Admin API 呼叫 |
 | `invariant-guard` | I1~I10 + **實際跑測試驗證** | 掃描迴圈 / 事務 / 冪等 / 高度推進 |
 | `tenant-isolation-reviewer` | **I8 / I9 專責** | 查詢 / 認證 / 歸屬解析 / 拉取 API |
 | `contract-reviewer` | 對外契約與下游相容性 | `/v1/events` 或事件欄位 |
 | `build-error-resolver` | Maven / Boot 3.5 編譯與啟動錯誤 | `mvnw` 失敗 |
 
-四個領域 reviewer 可平行啟動。
+五個領域 reviewer 可平行啟動。
 
 ---
 
@@ -187,10 +229,12 @@ D2/D3/D4/D9/D10/D11/D13/D16/D17 都有完整推導。最常見的誤觸是「加
 │   ├── event-contract.md      拉取 API 契約、五條鐵律、變更規則、Admin API、對帳
 │   ├── development-workflow.md 文件優先序、38 步驟流程、OQ 規則
 │   ├── testing.md             兩租戶硬規則、三層測試、Mock RPC、DoD
+│   ├── web-frontend.md        （B 軌）技術棧基準 + UI 行為契約：危險操作、三種狀態、憑證只顯示一次、半成品明示
+│   ├── web-integration.md     （B 軌）兩層串接、nginx 內網邊界靜默失效、資料唯一來源、OQ-9
 │   ├── coding-style.md        Java 21 / Boot 3.5、相依紀律、大檔讀取、結構性設計 vs 投機性複雜度
 │   └── git-workflow.md        分支、commit、MR、AIDD 指標
-├── agents/              ← 7 個角色（含 arch-guard）
-└── skills/              ← step-run / arch-check / invariant-check / mock-rpc / strategic-compact
+├── agents/              ← 8 個角色（含 arch-guard、web-reviewer）
+└── skills/              ← step-run / arch-check / invariant-check / mock-rpc / vue3-console / strategic-compact
 ```
 
 ---

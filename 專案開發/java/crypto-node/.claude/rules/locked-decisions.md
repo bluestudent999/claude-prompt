@@ -63,6 +63,34 @@
 
 ---
 
+## 三之二、B 軌（維運後台）的已決與待決
+
+**已由企劃決議、不得推翻**（來源 `plan/crypto-node-web/brief.md` OQ-1~8）：
+
+| 決議 | 內容 |
+|------|------|
+| OQ-1 | 使用者**只有維運團隊**，內部分三級權限。❌ 不納入業務／客服查詢介面、❌ 不納入下游客戶自助開通 |
+| OQ-2 | 登入為 **Email + 雙因素驗證** |
+| OQ-3 | **僅限公司內網／VPN**，不對外網開放 |
+| OQ-6 | 首期以**設定**為重心（租戶／地址／訂閱者／API Key），查詢類為輔助 |
+| OQ-8 | **發放下游憑證只限 Admin**（API Key 與簽章金鑰），Operator 不可 |
+| 決議 6 | **已廢除「一次性設定連結」設計** —— 不要實作連結流程 |
+
+**Out of Scope（不得為它們鋪路）**：帳務／訂單比對、出金與私鑰、監控圖表儀表板、告警管道設定、業務客服介面、下游自助開通、對外網開放、改變下游 `/v1/events` 取件方式。
+
+**已決（開發端，2026-08-26）**：
+
+| 決議 | 內容 |
+|------|------|
+| **前端技術棧** | **Vue 3 + Element Plus + Pinia + Vite**。理由：組織既有 Vue 心智模型可用、Element UI → Element Plus 有遷移對應、admin 生態 Vue 較強；**Vue 2 → Vue 3 是升級不是換框架** |
+| **前端落點** | **同 repo**：`crypto-node-web/`，與 `crypto-node-service`、`crypto-node-flyway` 同層。理由：前後端契約變更可在同一個 commit / MR 完成，避開 `cx-sports` 的 Flyway 獨立 repo 那種「自己 repo 全綠、另一邊有問題」的不同步 |
+
+> ⚠ **隨之而來的最高風險：抄到 Vue 2 寫法。** 組織有兩個 Vue 2 專案在旁邊、網路教學也大量是 Vue 2 —— 這與 Boot 3.5 誤抄 Boot 4 是同一類錯誤。對照表見 [`web-frontend.md`](./web-frontend.md) §1，實作模式見 [`/vue3-console`](../skills/vue3-console/SKILL.md)。
+
+**待決（OQ-9，defer-to-dev）**：其餘五項 + 前端落點，見 [`web-integration.md`](./web-integration.md) §8。**未決前禁止開始寫對應的業務程式碼。**
+
+---
+
 ## 四、與這些決策相關的常見誤判
 
 | 你可能想做 | 為什麼不行 |
@@ -77,6 +105,11 @@
 | 「Domain 直接當 JPA Entity 可以省一次映射」 | D19：Domain 一旦被 `jakarta.persistence` 綁死，整套架構的價值歸零 |
 | 「模組間一律用事件解耦」 | 通則對，但 **I1 優先**。區塊四項寫入必須同事務同步，見 `architecture.md` §4 |
 | 「Modulith 有 Outbox，`events` 表是不是多餘的」 | 兩者用途完全不同：Registry 管模組間內部事件，`events` 表是**對外契約**的載體與下游游標依據 |
+| （B 軌）「後台存一份租戶清單查詢比較快」 | 違反 R11 —— 後台不得成為業務資料的第二個真實來源。快取屬 OQ-9 待決 |
+| （B 軌）「服務端已經擋了內網，後台不用再判權限」 | **nginx 之後那層保護靜默失效**（R13a）。後台必須自行判定權限與租戶範圍 |
+| （B 軌）「前端把按鈕藏起來就好」 | 前端隱藏是 UX 不是安全邊界，後端必須重新判定 |
+| （B 軌）「用組織熟悉的 Vue 2 最快」 | Vue 2 已 EOL（2023-12-31）。已決議用 **Vue 3**（`web-frontend.md` §1） |
+| （B 軌）從 cx-sports / crypto-payment 複製 Vue 元件過來 | 那兩個是 **Vue 2**。觀念可參考，**程式碼不可直接抄** —— Options API、`filters`、`.sync`、Vuex 在 Vue 3 都不可用 |
 
 ---
 

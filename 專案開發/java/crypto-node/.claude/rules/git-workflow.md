@@ -23,6 +23,10 @@
 
 **scope 對映 Modulith 模組**（見 `architecture.md` §3）：`chain` / `scanning` / `attribution` / `event` / `delivery` / `tenant` / `reconciliation` / `admin`；建置與骨架類用 `build` / `arch`
 
+**B 軌（維運後台，同 repo）**：`web`（前端）／ `web-api`（後台後端）。
+
+> **同 repo 的好處要用起來**：一個需求同時動 `crypto-node-service` 與 `crypto-node-web` 時，**兩邊放同一個 commit / MR** —— 契約與消費端一起改、一起 review、一起回退。不要拆成兩個 commit 再靠人記得配對。
+
 ```
 feat(scanning): S12 掃描區間計算，掃至 head - N
 

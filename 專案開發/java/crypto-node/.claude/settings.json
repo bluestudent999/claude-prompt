@@ -24,7 +24,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "echo '=== crypto-node 開工提醒 ===' && echo '1) 版本基準：Java 21 + Spring Boot 3.5（本範本覆蓋 plan D18 的 4.1）— 不要抄 Boot 4 寫法' && echo '2) 讀 bigpicture 前先看它的「取代對照表」— WebSocket/Webhook/Reorg/confirmations 都已被取代' && echo '3) 整合測試一律兩租戶 fixture（tenant-a / tenant-b）— 隔離 bug 在單租戶下 100% 測不出來' && echo '4) 架構：六角 + Modulith — Domain 零框架（含 Modulith 註解）；I1 範圍內不得用 @ApplicationModuleListener' && echo '--- 紅線：10 條不變量 I1~I10 · 對外契約不可片面變更 · 已鎖定決策不得自行推翻 ---'"
+            "command": "echo '=== crypto-node 開工提醒 ===' && echo '1) 版本基準：Java 21 + Spring Boot 3.5（本範本覆蓋 plan D18 的 4.1）— 不要抄 Boot 4 寫法' && echo '2) 讀 bigpicture 前先看它的「取代對照表」— WebSocket/Webhook/Reorg/confirmations 都已被取代' && echo '3) 整合測試一律兩租戶 fixture（tenant-a / tenant-b）— 隔離 bug 在單租戶下 100% 測不出來' && echo '4) 架構：六角 + Modulith — Domain 零框架（含 Modulith 註解）；I1 範圍內不得用 @ApplicationModuleListener' && echo '5) 雙軌：A 軌 S01~S38（服務端）／ B 軌 T1a~T13c-ii（維運後台）— 後台 spec 480 行禁 full read，照 Required Spec Sections 分節讀' && echo '--- 紅線：10 條不變量 I1~I10 · 對外契約不可片面變更 · 已鎖定決策不得自行推翻 ---'"
           },
           {
             "type": "command",
@@ -40,9 +40,20 @@
       "搜尋程式碼（Grep、Glob）",
       "執行 ./mvnw compile、./mvnw test、靜態檢查",
       "執行 git status、git diff、git log",
-      "讀取 plan/ 下的企劃書段落"
+      "讀取 plan/ 下的企劃書段落",
+      "讀取 plan/crypto-node-web/ 下的企劃三件套（依 Required Spec Sections 分節）"
     ],
     "soft_deny": [
+      "（後台）使用 Vue 2 寫法：Options API、element-ui、vuex、filters、$listeners、.sync；或直接複製 cx-sports / crypto-payment 的 Vue 2 元件",
+      "（後台）讓後台後端成為 Admin API 的公開代理，或依賴服務端網段過濾代替自行授權判定",
+      "（後台）持久化四類以外的業務資料（租戶／地址／訂閱者／交易／事件），或把服務端變更紀錄寫入後台自有儲存",
+      "（後台）在 OQ-9 決議前自行實作快取層",
+      "（後台）把明文憑證寫入 localStorage / sessionStorage / cookie / 持久化狀態 / 網址 / log",
+      "（後台）把 API 取得失敗渲染成空清單（會被誤讀為「沒有資料」）",
+      "（後台）只在前端隱藏按鈕就當授權完成，後端未重新判定權限與租戶範圍",
+      "（後台）對結果未知的變更操作自動重送",
+      "（後台）自行推斷「全叢集是否切換完成」（服務端尚未提供逐台能力）",
+      "（後台）為 Out of Scope 的能力鋪路：業務客服介面、下游自助開通、對外網開放、監控儀表板",
       "在 Domain 層 import org.springframework.* / jakarta.persistence.* / Jackson / Lombok（含 Modulith 註解）",
       "讓 Application 層依賴 Infrastructure，或直接使用 JdbcTemplate / Spring Data Repository",
       "把 Domain 物件直接當 JPA Entity 使用（省略 Entity ↔ Domain 映射）",
