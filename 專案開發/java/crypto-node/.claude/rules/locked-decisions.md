@@ -84,10 +84,15 @@
 |------|------|
 | **前端技術棧** | **Vue 3 + Element Plus + Pinia + Vite**。理由：組織既有 Vue 心智模型可用、Element UI → Element Plus 有遷移對應、admin 生態 Vue 較強；**Vue 2 → Vue 3 是升級不是換框架** |
 | **前端落點** | **同 repo**：`crypto-node-web/`，與 `crypto-node-service`、`crypto-node-flyway` 同層。理由：前後端契約變更可在同一個 commit / MR 完成，避開 `cx-sports` 的 Flyway 獨立 repo 那種「自己 repo 全綠、另一邊有問題」的不同步 |
+| **第二因素** | **TOTP 驗證器 App**（企劃決議 6）。種子**加密後存 DB**、漂移容許 **±30 秒**、**不做備援碼**（備援碼是自助繞過第二因素的管道，牴觸 **E5**） |
+| **工作階段管理** | **Spring Session + JDBC**（存既有 PostgreSQL，**不引入 Redis**，D10）。⚠ **禁止 stateless JWT** —— R15／R4／AC-49 都要求「立刻失效」，JWT 結構上做不到 |
+| **讀取效能手段** | **首期不做跨請求快取**（只允許單一請求內去重）。首期一個租戶、使用者個位數 —— 先量再優化 |
+| **逐台能力（部分）** | 各實例以 `application.yml` 的 **`node-id`** 標明身分，**node-id 衝突則拒絕啟動**。⚠ node-id 只回答「我是誰」，**不回答「怎麼指定打給哪一台」** —— 定址手段待確認，見 [`web-integration.md`](./web-integration.md) §7.1 |
+| **後台與服務的連接方式** | **內網 RESTful**（後台後端代為呼叫 Admin API）。⚠ **這正是企劃警告的「代為呼叫」路徑** —— 確認 R13a 成立：服務端網段過濾對後台永遠放行，**nginx 三項成為唯一防線，後台後端的授權判定不是「多一道」而是那一道**。實作要求見 [`web-integration.md`](./web-integration.md) §2.5 |
 
 > ⚠ **隨之而來的最高風險：抄到 Vue 2 寫法。** 組織有兩個 Vue 2 專案在旁邊、網路教學也大量是 Vue 2 —— 這與 Boot 3.5 誤抄 Boot 4 是同一類錯誤。對照表見 [`web-frontend.md`](./web-frontend.md) §1，實作模式見 [`/vue3-console`](../skills/vue3-console/SKILL.md)。
 
-**待決（OQ-9，defer-to-dev）**：其餘五項 + 前端落點，見 [`web-integration.md`](./web-integration.md) §8。**未決前禁止開始寫對應的業務程式碼。**
+**待決（OQ-9，defer-to-dev）**：僅剩第 6 項的**定址手段**，見 [`web-integration.md`](./web-integration.md) §7.1、§8。**未決前禁止開始寫對應的業務程式碼。**
 
 ---
 
@@ -105,8 +110,14 @@
 | 「Domain 直接當 JPA Entity 可以省一次映射」 | D19：Domain 一旦被 `jakarta.persistence` 綁死，整套架構的價值歸零 |
 | 「模組間一律用事件解耦」 | 通則對，但 **I1 優先**。區塊四項寫入必須同事務同步，見 `architecture.md` §4 |
 | 「Modulith 有 Outbox，`events` 表是不是多餘的」 | 兩者用途完全不同：Registry 管模組間內部事件，`events` 表是**對外契約**的載體與下游游標依據 |
-| （B 軌）「後台存一份租戶清單查詢比較快」 | 違反 R11 —— 後台不得成為業務資料的第二個真實來源。快取屬 OQ-9 待決 |
-| （B 軌）「服務端已經擋了內網，後台不用再判權限」 | **nginx 之後那層保護靜默失效**（R13a）。後台必須自行判定權限與租戶範圍 |
+| （B 軌）「後台存一份租戶清單查詢比較快」 | 違反 R11 —— 後台不得成為業務資料的第二個真實來源。且已決議**首期不做跨請求快取** |
+| （B 軌）「用 JWT 比較現代、不用查 DB」 | 已決 Spring Session。R15／R4／AC-49 都要求立刻失效，JWT 唯一的優點正好被需求抵銷 |
+| （B 軌）「給個備援碼比較不會被鎖在外面」 | 那是自助繞過第二因素的管道，牴觸 **E5** |
+| （B 軌）「設了 node-id 就解決 R17 了」 | node-id 只回答「我是誰」，**不回答「怎麼指定打給哪一台」**。逐台切換仍需定址手段 |
+| （B 軌）「服務端已經擋了內網，後台不用再判權限」 | **nginx 之後那層保護靜默失效**（R13a）。且已決議走內網 RESTful ＝代為呼叫，服務端對後台**永遠放行**。後台的判定是唯一的那道 |
+| （B 軌）「反正都在內網，nginx 那幾條可以先簡單做」 | 內網 RESTful 讓服務端那層失效後，**nginx 就是唯一邊界**。放鬆等於對外開放 Admin API |
+| （B 軌）「加個 retry 讓串接更穩」 | E2：結果未知**不得自動重送**。變更類一律不重試（`web-integration.md` §2.5） |
+| （B 軌）「引入 OkHttp / Feign 比較好用」 | D10 最小相依。Boot 3.5 內建 `RestClient` 就夠（**不要用 `RestTemplate`**，維護模式） |
 | （B 軌）「前端把按鈕藏起來就好」 | 前端隱藏是 UX 不是安全邊界，後端必須重新判定 |
 | （B 軌）「用組織熟悉的 Vue 2 最快」 | Vue 2 已 EOL（2023-12-31）。已決議用 **Vue 3**（`web-frontend.md` §1） |
 | （B 軌）從 cx-sports / crypto-payment 複製 Vue 元件過來 | 那兩個是 **Vue 2**。觀念可參考，**程式碼不可直接抄** —— Options API、`filters`、`.sync`、Vuex 在 Vue 3 都不可用 |

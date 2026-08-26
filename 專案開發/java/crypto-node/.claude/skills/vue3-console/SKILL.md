@@ -243,7 +243,7 @@ Operator 會做出**看起來完成、實際不能用**的東西 —— 這是�
 
 | ❌ | 為什麼 |
 |---|---|
-| 用 Pinia 快取業務資料當事實來源 | 違反 R11；快取屬 OQ-9 待決，未決前不要做 |
+| 用 Pinia 快取業務資料當事實來源 | 違反 R11；且已決議**首期不做跨請求快取**（`locked-decisions.md`） |
 | 裝 axios 全域 retry 攔截器 | 會把變更類請求也重送，違反 E2 |
 | 用 Options API 或任何 Vue 2 寫法 | `web-frontend.md` §1 —— `web-reviewer` 的第一個 CRITICAL |
 | 抄 `cx-sports` / `crypto-payment` 的 Vue 2 元件 | 那兩個專案是 Vue 2；觀念可參考，**程式碼不可直接抄** |

@@ -45,6 +45,22 @@ grep -rn "export default {" --include="*.vue" <前端範圍> | head    # Options
 | 3 | 是否有註記「服務端網段過濾在 nginx 架構下不可計入防線」，且 R13 的驗收明確標為由部署承接（後台側驗不到） | HIGH |
 
 > **靜默失效提醒**：nginx 之後服務端看到的來源恆為 nginx 自己 → 網段過濾對所有請求放行。**不會報錯、不會有 log、測試不會紅。**
+> **連接方式已決為內網 RESTful（＝代為呼叫）**，所以這個風險**確認成立**，不是假設。
+
+### A2. Admin API Client（§2.5）
+
+| # | 檢查 | 級別 |
+|---|------|------|
+| 2a | Application 直接碰 HTTP，未經 `CryptoNodeAdminPort` | CRITICAL |
+| 2b | 引入第三方 HTTP client（OkHttp / Feign…）而非 Boot 內建 `RestClient` | HIGH |
+| 2c | 使用 `RestTemplate`（維護模式） | MEDIUM |
+| 2d | **未設定連線／讀取逾時** | HIGH |
+| 2e | **裝了全域 retry**，或對變更類請求重試 | CRITICAL |
+| 2f | 錯誤未分類 —— **「連線逾時」與「送出後讀取逾時」被壓成同一種** | CRITICAL |
+| 2g | Admin API 憑證落 log 或回顯於錯誤訊息 | CRITICAL |
+| 2h | Admin API 原始回應直接透傳前端（未經授權過濾與 DTO 轉換） | CRITICAL |
+
+> **2f 是最容易寫錯的**：多數 HTTP client 把兩者歸為同一個 exception，但**前者可安全重試、後者絕對不行**（E1 vs E2 的畫面行為完全不同）。
 
 ### B. 租戶範圍與授權（R2、R4、E12）
 

@@ -121,7 +121,23 @@ crypto-node 服務端的「只允許內網網段呼叫 `/admin/**`」是**依連
 | **Operator 做出的半成品看起來像完成** | 下游收到的門鈴**沒有可驗證的簽章**，且全程沒被擋 | R1a② |
 | **前端隱藏按鈕就當授權完成** | 直接打 API 即繞過 | R2 + web-integration §5 |
 
-### 技術棧：Vue 3 + Element Plus（已決 2026-08-26）
+### 已決的技術決策（2026-08-26）
+
+| 項目 | 決議 |
+|---|---|
+| 前端技術棧 | **Vue 3 + Element Plus + Pinia + Vite** |
+| 前端落點 | **同 repo**：`crypto-node-web/`，與 `crypto-node-service`、`crypto-node-flyway` 同層 |
+| 後台與服務的連接 | **內網 RESTful**（後台後端代為呼叫 Admin API） |
+| 第二因素 | **TOTP**；種子加密存 DB、漂移 **±30 秒**、**不做備援碼**（牴觸 E5） |
+| 工作階段 | **Spring Session + JDBC**（不引入 Redis）。⚠ **禁止 stateless JWT** |
+| 快取 | **首期不做跨請求快取**；只允許單一請求內去重 |
+| 逐台能力 | `application.yml` 設 `node-id`，衝突拒絕啟動。**定址手段待確認** |
+
+> ⚠ **連接方式的後果**：內網 RESTful 就是企劃警告的「代為呼叫」—— **服務端的網段過濾對後台路徑永遠放行**。
+> 於是 **nginx 三項成為唯一防線**，且**後台後端的授權判定不是「多一道」，它是那一道**。
+> Admin API client 的實作要求（Port 隔離、逾時、禁 retry、錯誤分類）見 `rules/web-integration.md` §2.5。
+
+### 前端技術棧細節
 
 `Vue 3 + Element Plus + Pinia + Vite`。**Vue 2 → Vue 3 是升級不是換框架** —— 組織既有的 Vue 心智模型直接可用。
 
