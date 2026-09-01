@@ -101,7 +101,7 @@ L3 → `code-reviewer` × 1；L2 → + 擇一領域；L1 → + `java-reviewer` +
 | 主題 | 位置 |
 |------|------|
 | 開發流程（preflight / spec / plan / test / review） | [`.claude/rules/development-workflow.md`](.claude/rules/development-workflow.md) |
-| Git 分支 / MR / commit | [`.claude/rules/git-workflow.md`](.claude/rules/git-workflow.md) |
+| Git 分支 / MR / commit | [`.claude/rules/git-workflow.md`](.claude/rules/git-workflow.md)（**測試分支禁止回流開發分支**） |
 | 分層 / DI / 快取 / 資料物件 / 系統參數 | [`.claude/rules/patterns.md`](.claude/rules/patterns.md) |
 | 金額 / RoundingMode / 金鑰管理 / Log 脫敏 | [`.claude/rules/security.md`](.claude/rules/security.md) |
 | 測試政策（Mode B / L1-L3 / 基座） | [`.claude/rules/testing.md`](.claude/rules/testing.md) |

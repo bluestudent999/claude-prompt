@@ -45,7 +45,7 @@
 - **JUnit 5 測試政策**：`.claude/rules/testing.md`
 - **Flyway migration 版本號（時間戳）**：`.claude/rules/flyway-migration.md`
 - **審計與安全合規**：`.claude/rules/security-audit.md`
-- **提交與 MR 指標要求**：`.claude/rules/git-workflow.md`
+- **提交與 MR 指標要求**：`.claude/rules/git-workflow.md`（**測試分支的程式碼禁止回流開發分支**）
 
 ---
 

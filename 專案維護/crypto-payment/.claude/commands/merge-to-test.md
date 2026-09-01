@@ -41,3 +41,5 @@
    - 提醒：feature 分支保留，待 developing merge 後再刪除
 
 > **規則**：merge 到 developing_test 時**必須使用 `--no-ff`**，保留合併節點。
+>
+> **方向紅線**：本指令只做 `feature/*` → `developing_test` 這一個方向。反向（`developing_test` → `developing` / `feature/*`，含 merge、cherry-pick、rebase、複製檔案）**一律禁止**——測試分支帶著所有待測功能，回流會讓上線夾帶未核准的程式碼（見 [`rules/git-workflow.md`](../rules/git-workflow.md)「測試分支單向流動」）。

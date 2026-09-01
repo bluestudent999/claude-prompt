@@ -236,7 +236,7 @@ prompt-setup 版本管理 --dir ~/work/legacy-app --dry-run
 
 含 `*` `<` `>` 的萬用/佔位路徑與 `settings.local.json`（部署時才生成）自動略過。
 
-> **`shared` 標記怎麼用：** 目前尚未使用。若日後決定某段規範必須在多個範本間逐字一致（例如維護兩套共用的 reviewer 分工表），把它包進 `<!-- shared:<id> -->` … `<!-- /shared -->`，`prompt-lint` 就會盯住它不漂移——**不需要建組裝機制，也不影響部署**。
+> **`shared` 標記怎麼用：** 目前有 1 個——`test-branch-one-way`（**測試分支單向流動**紅線，見下），落在 6 套開發／維護範本的 `rules/git-workflow.md`。若日後又有某段規範必須在多個範本間逐字一致，把它包進 `<!-- shared:<id> -->` … `<!-- /shared -->`，`prompt-lint` 就會盯住它不漂移——**不需要建組裝機制，也不影響部署**。
 
 ---
 

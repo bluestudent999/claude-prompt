@@ -101,7 +101,7 @@ bigpicture（願景與範圍）  ← 多處已被取代，讀前必看其「取�
 - **後台串接規範（B 軌）：** [`.claude/rules/web-integration.md`](.claude/rules/web-integration.md)
 - **Flyway migration 版本號（時間戳）：** [`.claude/rules/flyway-migration.md`](.claude/rules/flyway-migration.md)
 - **Java 21 / Boot 3.5 風格：** [`.claude/rules/coding-style.md`](.claude/rules/coding-style.md)
-- **分支與提交：** [`.claude/rules/git-workflow.md`](.claude/rules/git-workflow.md)
+- **分支與提交：** [`.claude/rules/git-workflow.md`](.claude/rules/git-workflow.md)（**測試分支的程式碼禁止回流開發分支**）
 
 ---
 

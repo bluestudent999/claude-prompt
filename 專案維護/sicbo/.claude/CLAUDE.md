@@ -82,7 +82,7 @@
 | 管線分段與參數 | [`rules/pipeline.md`](.claude/rules/pipeline.md)：conf 0.40 / IoU 0.5 / 面積 400 / 追蹤距離 60 / 穩定 1.5s |
 | 辨識準確度回歸 | [`rules/pipeline.md`](.claude/rules/pipeline.md) §5：改推論參數必須用**留存的驗證圖**回放比對，不得憑感覺調 |
 | Python 風格 / Token 紀律 | [`rules/coding-style.md`](.claude/rules/coding-style.md)（> 300 行禁 full read、最小可行實作） |
-| 分支 / commit / 大檔紀律 | [`rules/git-workflow.md`](.claude/rules/git-workflow.md)（**權重與資料集不得再新增進版控**） |
+| 分支 / commit / 大檔紀律 | [`rules/git-workflow.md`](.claude/rules/git-workflow.md)（**權重與資料集不得再新增進版控**；**測試分支禁止回流開發分支**） |
 | Agent 路由 / 輸出契約 | [`rules/agents.md`](.claude/rules/agents.md) |
 
 ---

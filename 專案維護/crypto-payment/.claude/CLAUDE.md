@@ -122,7 +122,7 @@ L3 → `code-reviewer` × 1；L2 → + 擇一領域；L1 → + `java-reviewer` +
 | 主題 | 位置 |
 |------|------|
 | 開發流程（preflight / spec / plan / test / review） | [`.claude/rules/development-workflow.md`](.claude/rules/development-workflow.md) |
-| Git 分支 / commit / merge | [`.claude/rules/git-workflow.md`](.claude/rules/git-workflow.md) |
+| Git 分支 / commit / merge | [`.claude/rules/git-workflow.md`](.claude/rules/git-workflow.md)（**`developing_test` 禁止回流 `developing`**） |
 | 分層 / DI / 回應信封 / 快取 | [`.claude/rules/patterns.md`](.claude/rules/patterns.md) |
 | **Flyway migration 版本號（時間戳）** | [`.claude/rules/flyway-migration.md`](.claude/rules/flyway-migration.md) |
 | 私鑰 / AES-GCM / HMAC / platform_id / 金額 / Log 脫敏 | [`.claude/rules/security.md`](.claude/rules/security.md) |

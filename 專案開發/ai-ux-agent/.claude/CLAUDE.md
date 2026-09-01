@@ -48,7 +48,7 @@
 - **Python 代碼風格與異常規範：** `.claude/rules/coding-style.md`
 - **pytest 測試政策：** `.claude/rules/testing.md`
 - **憑證、脫敏與證據完整性：** `.claude/rules/security-audit.md`
-- **提交與 MR 指標：** `.claude/rules/git-workflow.md`
+- **提交與 MR 指標：** `.claude/rules/git-workflow.md`（**測試分支的程式碼禁止回流開發分支**）
 
 ---
 
