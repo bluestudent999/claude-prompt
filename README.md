@@ -236,7 +236,7 @@ prompt-setup 版本管理 --dir ~/work/legacy-app --dry-run
 
 含 `*` `<` `>` 的萬用/佔位路徑與 `settings.local.json`（部署時才生成）自動略過。
 
-> **`shared` 標記怎麼用：** 目前有 2 個——`test-branch-one-way`（**測試分支單向流動**紅線，見下），落在 6 套開發／維護範本的 `rules/git-workflow.md`；`claude-local-only`（**Claude Code 設定不進版控**紅線，`settings.json` 除外），落在全部 9 套範本的 `CLAUDE.md`。若日後又有某段規範必須在多個範本間逐字一致，把它包進 `<!-- shared:<id> -->` … `<!-- /shared -->`，`prompt-lint` 就會盯住它不漂移——**不需要建組裝機制，也不影響部署**。
+> **`shared` 標記怎麼用：** 目前有 3 個——`test-branch-one-way`（**測試分支單向流動**紅線，見下），落在 6 套開發／維護範本的 `rules/git-workflow.md`；`claude-local-only`（**Claude Code 設定不進版控**紅線，`settings.json` 除外），落在全部 9 套範本的 `CLAUDE.md`；`next-step-closing`（**收尾必寫「下一步執行」**），同樣落在全部 9 套範本的 `CLAUDE.md`。若日後又有某段規範必須在多個範本間逐字一致，把它包進 `<!-- shared:<id> -->` … `<!-- /shared -->`，`prompt-lint` 就會盯住它不漂移——**不需要建組裝機制，也不影響部署**。
 
 ---
 
