@@ -101,3 +101,18 @@
 3. **紅線自檢**：確認未觸發任何不可逆操作；確認報告與 findings 內**無**帳密、Token、未遮蔽個資。
 4. **限制留痕**：確認「稽核限制」章節誠實記錄了沒走到的路徑、沒觀察到的維度、失敗與降級。
 5. **回報格式**：報告路徑、Finding 總數與 Severity 分佈、走完／卡關的 Journey 數、證據檔案數、本次稽核限制一句話。
+
+---
+
+<!-- shared:claude-local-only -->
+## Claude Code 專案規範 / 範本 — 僅本機使用，不進版控（`settings.json` 除外）
+
+`CLAUDE.md` 與 `.claude/` 是**本機開發輔助設定**，不隨專案進版控；唯一例外是 `.claude/settings.json`（團隊共用的 hook／權限設定）。部署本範本後，專案 `.gitignore` 須含：
+
+```gitignore
+# Claude Code 專案規範 / 範本 — 僅本機使用,不進版控(settings.json 除外)
+CLAUDE.md
+.claude/*
+!.claude/settings.json
+```
+<!-- /shared -->

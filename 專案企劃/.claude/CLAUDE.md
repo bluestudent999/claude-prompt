@@ -74,3 +74,18 @@
 ---
 
 > **設計依據**:本工作區的 Agent 均依根 `CLAUDE.md` 的「9 段 Prompt 設計框架」撰寫(Identity / Mission / Responsibilities / Constraints / Workflow / Input / Output / Context Transfer / Quality Gates / Failure Handling),並遵守 Principle 4(職責分離)與 Principle 6(資料契約與狀態管理)。
+
+---
+
+<!-- shared:claude-local-only -->
+## Claude Code 專案規範 / 範本 — 僅本機使用，不進版控（`settings.json` 除外）
+
+`CLAUDE.md` 與 `.claude/` 是**本機開發輔助設定**，不隨專案進版控；唯一例外是 `.claude/settings.json`（團隊共用的 hook／權限設定）。部署本範本後，專案 `.gitignore` 須含：
+
+```gitignore
+# Claude Code 專案規範 / 範本 — 僅本機使用,不進版控(settings.json 除外)
+CLAUDE.md
+.claude/*
+!.claude/settings.json
+```
+<!-- /shared -->

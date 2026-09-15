@@ -77,3 +77,18 @@
 2. 進行 Review：調用 `code-reviewer` 與 `arch-guard` 進行代碼與架構審查。
 3. 檢查 OQ：確認 plan 中無「⏳ 待決」的 Open Questions（否則提交將被 git hook 攔截）。
 4. 發起 MR：在 Merge Request 中檢附 AIDD 指標數據。
+
+---
+
+<!-- shared:claude-local-only -->
+## Claude Code 專案規範 / 範本 — 僅本機使用，不進版控（`settings.json` 除外）
+
+`CLAUDE.md` 與 `.claude/` 是**本機開發輔助設定**，不隨專案進版控；唯一例外是 `.claude/settings.json`（團隊共用的 hook／權限設定）。部署本範本後，專案 `.gitignore` 須含：
+
+```gitignore
+# Claude Code 專案規範 / 範本 — 僅本機使用,不進版控(settings.json 除外)
+CLAUDE.md
+.claude/*
+!.claude/settings.json
+```
+<!-- /shared -->

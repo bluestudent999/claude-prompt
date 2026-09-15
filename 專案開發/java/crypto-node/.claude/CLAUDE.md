@@ -168,3 +168,18 @@ bigpicture（願景與範圍）  ← 多處已被取代，讀前必看其「取�
 4. 涉及對外契約 → `contract-reviewer` 放行，並確認是否需通知下游。
 5. 檢查 OQ：`plan/` 中無「⏳ 待決」（否則 git hook 攔截）。
 6. **回填實作步驟企劃書**的完成紀錄與進度總表。
+
+---
+
+<!-- shared:claude-local-only -->
+## Claude Code 專案規範 / 範本 — 僅本機使用，不進版控（`settings.json` 除外）
+
+`CLAUDE.md` 與 `.claude/` 是**本機開發輔助設定**，不隨專案進版控；唯一例外是 `.claude/settings.json`（團隊共用的 hook／權限設定）。部署本範本後，專案 `.gitignore` 須含：
+
+```gitignore
+# Claude Code 專案規範 / 範本 — 僅本機使用,不進版控(settings.json 除外)
+CLAUDE.md
+.claude/*
+!.claude/settings.json
+```
+<!-- /shared -->

@@ -139,3 +139,18 @@ L3 → `code-reviewer` × 1；L2 → + 擇一領域；L1 → + `cv-pipeline-revi
 9. **無任何自動化測試**。
 
 > 修這些落差時**一次只修一項**、走完整流程、同步更新文件。**禁止**在修 A 的 commit 裡順手改 B（見 `rules/coding-style.md` 最小可行實作、`rules/git-workflow.md`）。
+
+---
+
+<!-- shared:claude-local-only -->
+## Claude Code 專案規範 / 範本 — 僅本機使用，不進版控（`settings.json` 除外）
+
+`CLAUDE.md` 與 `.claude/` 是**本機開發輔助設定**，不隨專案進版控；唯一例外是 `.claude/settings.json`（團隊共用的 hook／權限設定）。部署本範本後，專案 `.gitignore` 須含：
+
+```gitignore
+# Claude Code 專案規範 / 範本 — 僅本機使用,不進版控(settings.json 除外)
+CLAUDE.md
+.claude/*
+!.claude/settings.json
+```
+<!-- /shared -->

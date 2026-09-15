@@ -113,3 +113,18 @@ L3 → `code-reviewer` × 1；L2 → + 擇一領域；L1 → + `java-reviewer` +
 | Agent 編排 / 路由 / Harness Output Contract | [`.claude/rules/agents.md`](.claude/rules/agents.md) |
 | Agent 實作 | `.claude/agents/*.md` |
 | Skills | `.claude/skills/*/SKILL.md` |
+
+---
+
+<!-- shared:claude-local-only -->
+## Claude Code 專案規範 / 範本 — 僅本機使用，不進版控（`settings.json` 除外）
+
+`CLAUDE.md` 與 `.claude/` 是**本機開發輔助設定**，不隨專案進版控；唯一例外是 `.claude/settings.json`（團隊共用的 hook／權限設定）。部署本範本後，專案 `.gitignore` 須含：
+
+```gitignore
+# Claude Code 專案規範 / 範本 — 僅本機使用,不進版控(settings.json 除外)
+CLAUDE.md
+.claude/*
+!.claude/settings.json
+```
+<!-- /shared -->

@@ -84,3 +84,18 @@
 4. **檢查 OQ**：確認 `upgrade/*-plan.md` 無「⏳ 待決」OQ（否則 git hook 攔截）。
 5. **檢查 jakarta 單向性**：Boot 3 階段後不得殘留非 Java SE 的 `javax.*` import。
 6. **發起 MR**：附「版本前後對照表 + 行為差異記錄 + 回歸測試證據」。
+
+---
+
+<!-- shared:claude-local-only -->
+## Claude Code 專案規範 / 範本 — 僅本機使用，不進版控（`settings.json` 除外）
+
+`CLAUDE.md` 與 `.claude/` 是**本機開發輔助設定**，不隨專案進版控；唯一例外是 `.claude/settings.json`（團隊共用的 hook／權限設定）。部署本範本後，專案 `.gitignore` 須含：
+
+```gitignore
+# Claude Code 專案規範 / 範本 — 僅本機使用,不進版控(settings.json 除外)
+CLAUDE.md
+.claude/*
+!.claude/settings.json
+```
+<!-- /shared -->
