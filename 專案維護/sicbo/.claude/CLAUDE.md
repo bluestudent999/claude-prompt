@@ -66,6 +66,7 @@
 | 已完成網站的 UX 體驗稽核（實際開瀏覽器體驗、產 UX 修改建議報告） | 網站體驗稽核 | `prompt-setup 網站體驗稽核` |
 | 既有骰寶辨識維護 / 修 bug（sicbo，Python / YOLO 影像辨識） | 維護 | `prompt-setup 專案維護 sicbo` |
 | crypto-node 鏈下索引服務開發（Java 21 / Boot 3.5 / 多租戶） | 開發 | `prompt-setup 專案開發 java crypto-node` |
+| YUMMY 老虎機開發（Java 21 / Boot 3.5 + H5 遊戲前端，複製既有玩法） | 開發 | `prompt-setup 專案開發 java slots` |
 
 > **你在這裡：維護 · sicbo（骰寶辨識）**（表格第 8 列為本職，不適用切換）。
 > 切換提示範例：「這是 `baccarat_3type`（百家樂牌型）的維護，本範本是 sicbo，兩者是同 repo 的**不同子專案**，模型與管線不共用；請另開對應範本或明確指定要改 baccarat。」「這是一段全新需求（新遊戲類型 / 新輸出協議），請先 `prompt-setup 專案企劃` 收斂範圍。」

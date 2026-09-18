@@ -5,7 +5,7 @@ prompt-lint — 範本庫一致性檢查（只檢查，不改檔）
     prompt-lint [選項]
 
 檢查項：
-    routing   跨範本路由表逐字一致（7 份 CLAUDE.md 的職責路由表）
+    routing   跨範本路由表逐字一致（全部 CLAUDE.md 的職責路由表）
     self-row  「表格第 N 列為本職」的 N 與實際列號相符
     shared    <!-- shared:<id> --> 區塊跨檔案未漂移
     links     Markdown 內指向 .claude 內部的檔案連結存在

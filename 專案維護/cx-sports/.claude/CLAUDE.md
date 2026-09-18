@@ -43,6 +43,7 @@
 | 已完成網站的 UX 體驗稽核（實際開瀏覽器體驗、產 UX 修改建議報告） | 網站體驗稽核 | `prompt-setup 網站體驗稽核` |
 | 既有骰寶辨識維護 / 修 bug（sicbo，Python / YOLO 影像辨識） | 維護 | `prompt-setup 專案維護 sicbo` |
 | crypto-node 鏈下索引服務開發（Java 21 / Boot 3.5 / 多租戶） | 開發 | `prompt-setup 專案開發 java crypto-node` |
+| YUMMY 老虎機開發（Java 21 / Boot 3.5 + H5 遊戲前端，複製既有玩法） | 開發 | `prompt-setup 專案開發 java slots` |
 
 > **你在這裡：維護 · cx-sports-v2**（表格第 4 列為本職，不適用切換）。切換提示範例：「這是一次 Java/Boot 版本升級遷移，本維護範本不處理，請 `prompt-setup 版本管理` 後再進行」「這是一段全新需求，請先 `prompt-setup 專案企劃` 收斂範圍」。
 

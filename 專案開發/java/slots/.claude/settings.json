@@ -1,0 +1,73 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(./mvnw:*)",
+      "Bash(docker compose:*)",
+      "Bash(docker:*)",
+      "Bash(git status:*)",
+      "Bash(git diff:*)",
+      "Bash(git log:*)",
+      "Bash(gh pr:*)"
+    ]
+  },
+  "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "echo '=== Session Memory ===' && cat \"$CLAUDE_PROJECT_DIR/plan/MEMORY.md\" 2>/dev/null || echo 'No active memory'"
+          },
+          {
+            "type": "command",
+            "command": "bash \"$CLAUDE_PROJECT_DIR/.claude/hooks/check-oq-pending-session.sh\" 2>/dev/null || true"
+          }
+        ]
+      }
+    ],
+    "PreToolUse": [
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash \"$CLAUDE_PROJECT_DIR/.claude/skills/strategic-compact/suggest-compact.sh\" 2>/dev/null || true",
+            "async": true
+          }
+        ]
+      },
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash \"$CLAUDE_PROJECT_DIR/.claude/hooks/check-oq-on-commit.sh\""
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "[ -f ./mvnw ] && ./mvnw -q test -Dgroups=architecture || true"
+          }
+        ]
+      }
+    ]
+  },
+  "autoMode": {
+    "allow": [
+      "讀取專案內任何檔案",
+      "搜尋程式碼（Grep、Glob）",
+      "執行 ./mvnw compile / ./mvnw test",
+      "執行 git status、git diff、git log"
+    ],
+    "soft_deny": [
+      "刪除主要領域代碼目錄",
+      "執行 git push --force、git reset --hard HEAD~1"
+    ]
+  }
+}

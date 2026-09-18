@@ -33,6 +33,7 @@
 | `prompt-setup 網站體驗稽核` | UX 稽核 | 讓 AI 實際體驗已完成的網站，產 UX 修改建議報告 | 純文件（需 Chrome DevTools MCP） |
 | `prompt-setup 專案維護 sicbo` | 維運 | sicbo 骰寶骰子辨識服務維護 | Python 3.12 / YOLOv8 / OpenCV |
 | `prompt-setup 專案開發 java crypto-node` | 新開發（Java） | crypto-node 鏈下索引服務（多租戶、38 步驟驅動） | Java 21 / Spring Boot 3.5 / PostgreSQL |
+| `prompt-setup 專案開發 java slots` | 新開發（Java + H5） | YUMMY 老虎機（**複製既有玩法**，保真度導向） | Java 21 / Spring Boot 3.5 / MySQL + Redis ｜ Vue 3 + Cocos/PixiJS |
 
 > 隨時用 `prompt-setup --list` 查看實際可用範本。
 
@@ -217,7 +218,7 @@ prompt-setup 版本管理 --dir ~/work/legacy-app --dry-run
 
 | 檢查 | 抓什麼 |
 |------|--------|
-| `routing` | 7 份 `CLAUDE.md` 的職責路由表是否逐字一致（以多數份為基準，逐列指出差異） |
+| `routing` | 全部 `CLAUDE.md` 的職責路由表是否逐字一致（以多數份為基準，逐列指出差異） |
 | `self-row` | 「你在這裡…**表格第 N 列**」的 N 與該範本指令在表中的實際列號相符 |
 | `shared` | 標記為 `<!-- shared:<id> -->` … `<!-- /shared -->` 的區塊跨檔案未漂移 |
 | `links` | Markdown 連結與反引號路徑指向的 `.claude` 內部檔案存在 |
@@ -236,7 +237,7 @@ prompt-setup 版本管理 --dir ~/work/legacy-app --dry-run
 
 含 `*` `<` `>` 的萬用/佔位路徑與 `settings.local.json`（部署時才生成）自動略過。
 
-> **`shared` 標記怎麼用：** 目前有 3 個——`test-branch-one-way`（**測試分支單向流動**紅線，見下），落在 6 套開發／維護範本的 `rules/git-workflow.md`；`claude-local-only`（**Claude Code 設定不進版控**紅線，`settings.json` 除外），落在全部 9 套範本的 `CLAUDE.md`；`next-step-closing`（**收尾必寫「下一步執行」**），同樣落在全部 9 套範本的 `CLAUDE.md`。若日後又有某段規範必須在多個範本間逐字一致，把它包進 `<!-- shared:<id> -->` … `<!-- /shared -->`，`prompt-lint` 就會盯住它不漂移——**不需要建組裝機制，也不影響部署**。
+> **`shared` 標記怎麼用：** 目前有 5 個——`test-branch-one-way`（**測試分支單向流動**紅線，見下），落在 6 套開發／維護範本的 `rules/git-workflow.md`；`claude-local-only`（**Claude Code 設定不進版控**紅線，`settings.json` 除外），落在全部範本的 `CLAUDE.md`；`next-step-closing`（**收尾必寫「下一步執行」**），同樣落在全部範本的 `CLAUDE.md`；`oq-plain-language`（**OQ 要國中生讀得懂、且沒問題不要硬生問題**），落在全部範本負責 OQ 的那份 rule，並由各範本的 planner 類 agent 於檔首指向它；`no-emoji-in-code`（**程式碼、註解、設定檔禁止 emoji**，說明文件與前端不受限），落在 8 套有程式碼的範本的 `rules/coding-style.md`。若日後又有某段規範必須在多個範本間逐字一致，把它包進 `<!-- shared:<id> -->` … `<!-- /shared -->`，`prompt-lint` 就會盯住它不漂移——**不需要建組裝機制，也不影響部署**。
 
 ---
 
