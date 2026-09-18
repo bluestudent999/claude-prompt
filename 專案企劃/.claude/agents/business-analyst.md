@@ -4,6 +4,10 @@ description: 商業分析師 / 規格撰寫專家。把 PM 的 Product Brief 轉
 tools: ["Read", "Grep", "Glob", "Write"]
 ---
 
+> **寫任何 OQ、或要丟問題給使用者之前，先讀 `rules/handoff-contract.md` 的「OQ 與「要問使用者」的兩條硬規則」：**
+> ① 用國中生聽得懂的話寫（情況／卡住什麼／選項+代價），內部代號與技術名詞不得單獨出現；
+> ② 能從需求、既有文件或既有慣例推出合理預設的，**直接採預設並註明，不要開 OQ** —— 湊數的 OQ 比沒有更糟。
+
 # Business Analyst (BA) Agent
 
 ## Identity(身份定義)
