@@ -23,7 +23,7 @@
           },
           {
             "type": "command",
-            "command": "test -f \"$CLAUDE_PROJECT_DIR/.claude/audit-target.md\" && grep -q '<例' \"$CLAUDE_PROJECT_DIR/.claude/audit-target.md\" && echo '⚠️  .claude/audit-target.md 仍是樣板未填寫（仍有 <例…> 佔位符），開工前請先填目標站與環境模式' || true"
+            "command": "test -f \"$CLAUDE_PROJECT_DIR/.claude/audit-target.md\" && grep -q '<例' \"$CLAUDE_PROJECT_DIR/.claude/audit-target.md\" && echo '[WARN] .claude/audit-target.md 仍是樣板未填寫（仍有 <例…> 佔位符），開工前請先填目標站與環境模式' || true"
           }
         ]
       }

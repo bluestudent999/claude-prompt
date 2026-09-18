@@ -43,7 +43,7 @@ def main():
 
     # 格式錯誤，印出提示並以 exit 2 阻擋
     print('', flush=True)
-    print('❌ Commit message 格式不符合規範', flush=True)
+    print('[ERROR] Commit message 格式不符合規範', flush=True)
     print(f'   輸入：{msg}', flush=True)
     print('', flush=True)
     print('   正確格式：type(PREFIX-XXX): 簡短描述', flush=True)

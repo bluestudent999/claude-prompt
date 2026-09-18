@@ -52,7 +52,7 @@ fi
 {
   echo "[check-oq-on-commit] 偵測到升級 plan 有未決議 OQ，已攔截 git commit："
   for e in "${errors[@]}"; do
-    echo "  ✗ $e"
+    echo "  - $e"
   done
   echo ""
   echo "處理：與 user 確認後，將 §7 OQ 從「⏳ 待決」改為「✅ <決議>」"

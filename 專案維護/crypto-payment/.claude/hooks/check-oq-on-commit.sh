@@ -66,7 +66,7 @@ fi
 {
   echo "[check-oq-on-commit] 偵測到 plan 缺少必要資訊，已攔截 git commit："
   for e in "${errors[@]}"; do
-    echo "  ✗ $e"
+    echo "  - $e"
   done
   echo ""
   echo "處理方式："

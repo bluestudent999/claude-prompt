@@ -28,7 +28,7 @@
           },
           {
             "type": "command",
-            "command": "test -d \"$CLAUDE_PROJECT_DIR/plan\" && grep -rl '⏳ 待決' \"$CLAUDE_PROJECT_DIR/plan\" 2>/dev/null | head -5 | sed 's/^/⚠️  尚有待決 OQ: /' || true"
+            "command": "test -d \"$CLAUDE_PROJECT_DIR/plan\" && grep -rl '⏳ 待決' \"$CLAUDE_PROJECT_DIR/plan\" 2>/dev/null | head -5 | sed 's/^/[OQ] 尚有待決: /' || true"
           }
         ]
       }

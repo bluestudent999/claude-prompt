@@ -40,7 +40,7 @@ violations="$(
 
 {
   echo "[block-new-javax-import] 偵測到新增「非 Java SE 白名單」的 javax.* import，已攔截："
-  printf '%s\n' "$violations" | sed 's/^/  ✗ /'
+  printf '%s\n' "$violations" | sed 's/^/  - /'
   echo ""
   echo "Boot 3 階段後 Jakarta EE 類 API 一律用 jakarta.*（servlet / persistence / validation / annotation ...）。"
   echo "若這是 Java SE API（crypto / net / sql / naming ...），代表白名單需補，請更新本 hook 的 SE_WHITELIST。"
