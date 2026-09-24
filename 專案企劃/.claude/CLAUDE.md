@@ -37,6 +37,7 @@
 | 既有骰寶辨識維護 / 修 bug（sicbo，Python / YOLO 影像辨識） | 維護 | `prompt-setup 專案維護 sicbo` |
 | crypto-node 鏈下索引服務開發（Java 21 / Boot 3.5 / 多租戶） | 開發 | `prompt-setup 專案開發 java crypto-node` |
 | YUMMY 老虎機開發（Java 21 / Boot 3.5 + H5 遊戲前端，複製既有玩法） | 開發 | `prompt-setup 專案開發 java slots` |
+| lion-service 包網平台資安掃描（原始碼與設定靜態稽核，只產報告不改 code） | 資訊安全 | `prompt-setup 資訊安全 lion-service` |
 
 > **你在這裡：企劃（需求規劃）**（表格第 1 列為本職，不適用切換）。切換提示範例：「此工作屬<他階段>職責，本企劃範本不處理；請在該專案 `prompt-setup <對應指令>` 後再進行。」
 

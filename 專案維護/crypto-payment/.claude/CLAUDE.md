@@ -50,6 +50,7 @@
 | 既有骰寶辨識維護 / 修 bug（sicbo，Python / YOLO 影像辨識） | 維護 | `prompt-setup 專案維護 sicbo` |
 | crypto-node 鏈下索引服務開發（Java 21 / Boot 3.5 / 多租戶） | 開發 | `prompt-setup 專案開發 java crypto-node` |
 | YUMMY 老虎機開發（Java 21 / Boot 3.5 + H5 遊戲前端，複製既有玩法） | 開發 | `prompt-setup 專案開發 java slots` |
+| lion-service 包網平台資安掃描（原始碼與設定靜態稽核，只產報告不改 code） | 資訊安全 | `prompt-setup 資訊安全 lion-service` |
 
 > **你在這裡：維護 · crypto-payment**（表格第 5 列為本職，不適用切換）。切換提示範例：「這是一段全新需求，請先 `prompt-setup 專案企劃` 收斂範圍」「這是 cx-sports-v2（體育主業務）的維護，本範本是 crypto-payment，請 `prompt-setup 專案維護 cx-sports`」。
 
