@@ -34,6 +34,7 @@
 | crypto-node 鏈下索引服務開發（Java 21 / Boot 3.5 / 多租戶） | 開發 | `prompt-setup 專案開發 java crypto-node` |
 | YUMMY 老虎機開發（Java 21 / Boot 3.5 + H5 遊戲前端，複製既有玩法） | 開發 | `prompt-setup 專案開發 java slots` |
 | lion-service 包網平台資安掃描（原始碼與設定靜態稽核，只產報告不改 code） | 資訊安全 | `prompt-setup 資訊安全 lion-service` |
+| cx-sports-v2 體育投注主業務資安掃描（原始碼與設定靜態稽核，只產報告不改 code） | 資訊安全 | `prompt-setup 資訊安全 cx-sports-v2` |
 
 > **你在這裡：開發 · AI UX 稽核（Python）**（表格第 2 列為本職，不適用切換）。切換提示範例：「此需求屬企劃職責（例：新增 Persona / 改驗收標準 / 定範圍），本開發範本不處理；請先 `prompt-setup 專案企劃` 收斂為 Spec/Backlog 後再回來實作。」
 

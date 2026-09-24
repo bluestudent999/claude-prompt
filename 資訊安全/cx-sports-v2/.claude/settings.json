@@ -1,0 +1,45 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(grep:*)",
+      "Bash(rg:*)",
+      "Bash(find:*)",
+      "Bash(ls:*)",
+      "Bash(cat:*)",
+      "Bash(head:*)",
+      "Bash(tail:*)",
+      "Bash(sed -n:*)",
+      "Bash(wc:*)",
+      "Bash(sort:*)",
+      "Bash(uniq:*)",
+      "Bash(git log:*)",
+      "Bash(git show:*)",
+      "Bash(git diff:*)"
+    ],
+    "deny": [
+      "Bash(curl:*)",
+      "Bash(wget:*)",
+      "Bash(nc:*)",
+      "Bash(nmap:*)",
+      "Bash(sqlmap:*)",
+      "Bash(mysql:*)",
+      "Bash(redis-cli:*)",
+      "Bash(docker:*)",
+      "Bash(mvn spring-boot:run:*)",
+      "Bash(java -jar:*)"
+    ]
+  },
+  "autoMode": {
+    "allow": [
+      "read any file under the scan target",
+      "search code with Grep and Glob",
+      "write only under sec-reports/"
+    ],
+    "soft_deny": [
+      "modify any file in the scan target outside sec-reports/",
+      "send network requests to any host",
+      "connect to any database, cache or search cluster",
+      "start or run the target service"
+    ]
+  }
+}

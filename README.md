@@ -35,6 +35,7 @@
 | `prompt-setup 專案開發 java crypto-node` | 新開發（Java） | crypto-node 鏈下索引服務（多租戶、38 步驟驅動） | Java 21 / Spring Boot 3.5 / PostgreSQL |
 | `prompt-setup 專案開發 java slots` | 新開發（Java + H5） | YUMMY 老虎機（**複製既有玩法**，保真度導向） | Java 21 / Spring Boot 3.5 / MySQL + Redis ｜ Vue 3 + Cocos/PixiJS |
 | `prompt-setup 資訊安全 lion-service` | 資安稽核 | lion-service 包網平台資安掃描（原始碼與設定靜態稽核，**只產報告不改 code**） | 純文件（標的為 Java 8 / Spring Boot 2.0.2） |
+| `prompt-setup 資訊安全 cx-sports-v2` | 資安稽核 | cx-sports-v2 體育投注主業務資安掃描（多平台隔離 + 賠率結算軸，**只產報告不改 code**） | 純文件（標的為 Java 8 / Spring Boot 2.7.11） |
 
 > 隨時用 `prompt-setup --list` 查看實際可用範本。
 
