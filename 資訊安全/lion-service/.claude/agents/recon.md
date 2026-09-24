@@ -24,7 +24,7 @@ tools: Read, Grep, Glob, Bash, Write
 | # | 項目 | 產出什麼 |
 |---|---|---|
 | 1 | **對外入口** | Controller → HTTP method + path + 所屬模組 + 是否帶認證註解；另含回調、MQ consumer、排程 |
-| 2 | **認證與授權機制** | 在哪實作（SecurityConfig 路徑規則／Filter／Interceptor／AOP／註解），各自覆蓋哪些路徑 |
+| 2 | **認證與授權機制** | 在哪實作（SecurityConfig 路徑規則／Filter／Interceptor／AOP／註解），各自覆蓋哪些路徑；**另列出每個 filter 的註冊順序與 URL pattern**，供 `filter-bypass-auditor` 使用 |
 | 3 | **包網商隔離** | `platformId` 從哪來、有沒有統一取得管道、有沒有 AOP 覆寫 —— **這項最重要** |
 | 4 | **金流路徑** | 哪些類別／方法會實際異動餘額，鎖怎麼下 |
 | 5 | **第三方回調** | 每個回調入口 + 它的驗簽方式 |

@@ -65,11 +65,12 @@ lion-service 是**包網（白標）**平台：一套系統服務多家包網商
 
 ---
 
-## 七條掃描軸
+## 八條掃描軸
 
 | 軸 | 看什麼 | 誤報陷阱 |
 |---|---|---|
 | **包網商隔離** | `platformId` 能否被請求方影響 | 下層沒檢查但上層／AOP 已覆寫 |
+| **過濾器繞過** ⚠ | 那道防線**擋不擋得住** —— 提早放行分支、路徑比對方式 | 反過來才是陷阱：看到有 filter 就當有防護 |
 | **認證授權** | 功能級、**物件級**、代理層級、多後台一致性 | 認證可能在 SecurityConfig／Filter／nginx，不在註解上 |
 | **金流** | 金額可控性、異動時序、鎖、冪等、精度 | 純統計用 `double` 是規範允許的 |
 | **注入** | MyBatis `${}`、上傳、路徑穿越、反序列化、SSRF | `${}` 多數是欄名／排序且來自內部常數 |
@@ -78,6 +79,31 @@ lion-service 是**包網（白標）**平台：一套系統服務多家包網商
 | **依賴 CVE** | 版本 + **受影響元件是否實際被使用** | CVE 存在 ≠ 本專案受影響（誤報率最高） |
 
 詳見 `references/scan-axes.md`。
+
+---
+
+## ⚠ 已發生過的事故：filter 繞過
+
+**這條不是理論風險。** 認證 filter 存在繞過漏洞而被實際入侵，
+成因是**帶特定副檔名的請求被直接放行、完全不做檢查**。
+
+它難抓的地方在於 —— **它偽裝成「有防線」**：filter 確實存在、確實在檢查登入。
+任何「看到上游有 filter 就判誤報」的稽核紀律，都會直接放過它。
+
+所以本範本做了一個刻意的例外：
+
+> 判「上游 filter 擋掉了 → 誤報」之前，**必須先過防線有效性三問**：
+> ① 請求真的會走到那段檢查嗎（有無提早放行分支）？
+> ② 是精確比對還是 `startsWith` / `endsWith` / `contains`？有無正規化？
+> ③ 檢查失敗後有沒有真的 `return`？
+>
+> 三項都確認才可判誤報，且理由要寫成「在哪一行、怎麼比對的」。
+> 任一項確認不了 → 不判誤報，交 `filter-bypass-auditor`。
+
+**這是本範本唯一一處「寧可留下誤報，也不要放過」的例外。**
+
+`filter-bypass-auditor` 的主要產出是一張**放行分支盤點表** ——
+即使某幾條判不出可不可達，那張表本身就能直接當人工審查清單交給熟悉該模組的工程師。
 
 ---
 
@@ -91,6 +117,7 @@ lion-service 是**包網（白標）**平台：一套系統服務多家包網商
 | `evidence-discipline.md` §3 | 報一堆程式碼裡看起來不安全、但外面根本打不到的東西 |
 | `false-positive.md` | 21 處 MyBatis `${}` 整批報成 SQL injection，其中 18 處是內部常數 |
 | `false-positive.md` §4 | 重工 SonarQube 已經會報的規則型缺陷，把報告洗版洗到看不到重點 |
+| `false-positive.md` §2.5 | **看到有 filter 就判「上游擋掉了」，放過真正被利用過的繞過路徑** |
 | `report-standard.md` §3 | 寫「建議加強驗證」這種沒人能照著做的修復建議 |
 | `report-standard.md` §4 | 照嚴重度排優先序，結果第一條要重構整個模組，沒人動得了 |
 | `severity-rubric.md` | 全部標 CRITICAL，等於沒有分級 |
@@ -120,6 +147,7 @@ cat .claude/scan-target.md
 ```
 階段 1 盤點攻擊面        recon                          ← 沒做完不准進階段 2
 階段 2 分軸掃描（平行）   tenant-isolation-auditor
+                        filter-bypass-auditor
                         authz-auditor
                         money-flow-auditor
                         injection-auditor
@@ -158,14 +186,14 @@ lion-service/sec-reports/2026-09-24/
 ├── rules/
 │   ├── scope-safety.md           ★ 六條紅線（不碰線上、不改 code、報告不得含機密）
 │   ├── evidence-discipline.md    ★ 七個必備欄位、攻擊路徑、可達性硬要求
-│   ├── false-positive.md         ★ 對抗式驗證、六種易誤判情況、不重工 Sonar
+│   ├── false-positive.md         ★ 對抗式驗證、六種易誤判情況、**防線有效性三問**、不重工 Sonar
 │   ├── report-standard.md        報告八章、修復方向可執行、優先序四象限、交接
 │   └── scan-workflow.md          四階段、三種模式、OQ 兩條硬規則
 ├── references/
-│   ├── threat-model.md           包網威脅模型：資產、攻擊者、六條信任邊界
+│   ├── threat-model.md           包網威脅模型：資產、攻擊者、六條信任邊界、**已知事故**
 │   ├── scan-axes.md              七條軸各自的判準與誤報陷阱
 │   └── severity-rubric.md        嚴重度 × 信心 × 修復成本
-├── agents/                       9 個：recon + 6 auditor + verifier + report-writer
+├── agents/                       10 個：recon + 7 auditor + verifier + report-writer
 ├── skills/                       /sec-scan /sec-quick /sec-verify /strategic-compact
 ├── templates/                    finding 與 report 範本
 └── settings.json                 唯讀權限、禁網路與 DB 指令（**唯一進版控的檔案**）

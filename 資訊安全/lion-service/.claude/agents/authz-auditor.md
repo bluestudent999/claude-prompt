@@ -18,6 +18,9 @@ tools: Read, Grep, Glob, Bash
 - 不驗證自己的產出，交 `finding-verifier`。
 - **認證可能不在註解上。** 可能在 `SecurityConfig` 的路徑比對、Filter、Interceptor 或 nginx。
   看到 Controller 沒有 `@PreAuthorize` 就報「未授權」是最典型的誤報。
+- **但反過來也一樣危險**：看到有 filter 就認定「有防護」，正是此平台實際被入侵的那條路
+  （`references/threat-model.md` §6）。**防線擋不擋得住由 `filter-bypass-auditor` 專責**——
+  你發現認證依賴某個 filter 時，記一筆丟給它，不要自己下「有擋」的結論。
 
 ## Workflow
 

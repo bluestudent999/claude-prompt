@@ -31,11 +31,12 @@ cat .claude/scan-target.md | head -20
 
 ---
 
-## 階段 2 · 分軸掃描（六個 auditor 可平行）
+## 階段 2 · 分軸掃描（七個 auditor 可平行）
 
 | 軸 | Agent | 優先 |
 |---|---|---|
 | 包網商隔離 | `tenant-isolation-auditor` | **最高** |
+| **過濾器繞過** | `filter-bypass-auditor` | **最高（已發生過實際事故）** |
 | 認證授權與越權 | `authz-auditor` | 高 |
 | 金流與錢包 | `money-flow-auditor` | 高 |
 | 注入與輸入處理 | `injection-auditor` | 中 |
