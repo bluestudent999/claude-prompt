@@ -55,7 +55,7 @@ die()   { printf '%s✗ %s%s\n' "$RED" "$*" "$RST" >&2; exit 1; }
 
 # ---- 列出可用範本（掃描含 .claude 的目錄，深度 1~2）------------------------
 list_templates() {
-  info "${BOLD}可用範本${RST}（範本庫：$DIM$TEMPLATES_ROOT$RST）"
+  info "${BOLD}可用範本${RST}（範本庫：$DIM$TEMPLATES_ROOT${RST}）"
   local found=0
   while IFS= read -r d; do
     local rel="${d#"$TEMPLATES_ROOT"/}"; rel="${rel%/.claude}"
@@ -105,7 +105,7 @@ TARGET="$(cd "$TARGET" && pwd)"
 
 # 禁止部署到範本庫自己身上（避免覆蓋範本）
 case "$TARGET/" in
-  "$TEMPLATES_ROOT"/*) die "目標位於範本庫內（$TARGET），拒絕在範本庫上部署。請 cd 到真正的專案目錄再執行。" ;;
+  "$TEMPLATES_ROOT"/*) die "目標位於範本庫內（${TARGET}），拒絕在範本庫上部署。請 cd 到真正的專案目錄再執行。" ;;
 esac
 
 DEST_CLAUDE="$TARGET/.claude"

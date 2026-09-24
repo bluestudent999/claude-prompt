@@ -42,7 +42,7 @@ errors=()
 while IFS= read -r f; do
   [[ -n "$f" ]] || continue
   count=$(grep -c "⏳ 待決" "$f" 2>/dev/null || echo 0)
-  errors+=("OQ 未決議：$f（$count 個 ⏳ 待決）")
+  errors+=("OQ 未決議：${f}（$count 個 ⏳ 待決）")
 done < <(grep -l "⏳ 待決" upgrade/*-plan.md 2>/dev/null || true)
 
 if [[ ${#errors[@]} -eq 0 ]]; then
