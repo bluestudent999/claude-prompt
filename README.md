@@ -64,13 +64,13 @@ claude                        # 3. 啟動 Claude Code，範本自動生效
 **方式 A：symlink 到 PATH（推薦，改腳本免重裝）**
 
 ```bash
-ln -sf /Users/joel_java/Documents/claude-prompt/bin/prompt-setup ~/.local/bin/prompt-setup
+ln -sf /Users/raphael_java/workspace/claude-prompt/bin/prompt-setup ~/.local/bin/prompt-setup
 ```
 
 **方式 B：加 alias 到 shell 設定**
 
 ```bash
-echo 'alias prompt-setup="/Users/joel_java/Documents/claude-prompt/bin/prompt-setup"' >> ~/.zshrc
+echo 'alias prompt-setup="/Users/raphael_java/workspace/claude-prompt/bin/prompt-setup"' >> ~/.zshrc
 source ~/.zshrc
 ```
 
@@ -224,9 +224,10 @@ prompt-setup 版本管理 --dir ~/work/legacy-app --dry-run
 |------|--------|
 | `routing` | 全部 `CLAUDE.md` 的職責路由表是否逐字一致（以多數份為基準，逐列指出差異） |
 | `self-row` | 「你在這裡…**表格第 N 列**」的 N 與該範本指令在表中的實際列號相符 |
-| `shared` | 標記為 `<!-- shared:<id> -->` … `<!-- /shared -->` 的區塊跨檔案未漂移 |
+| `shared` | 標記為 `<!-- shared:<id> -->` … `<!-- /shared -->` 的區塊跨檔案未漂移（掃 `*.md` 與 `*.sh`） |
 | `links` | Markdown 連結與反引號路徑指向的 `.claude` 內部檔案存在 |
 | `json` | `.claude` 下所有 `*.json` 格式合法 |
+| `root-mirror` | 根 `CLAUDE.md` 與 `.agents/rules/claude-prompt.md`（去掉 frontmatter）逐字一致 |
 
 離開碼 `0` = 全數通過、`1` = 有問題、`2` = 用法錯誤，可直接掛 CI 或 pre-commit。
 
@@ -241,7 +242,9 @@ prompt-setup 版本管理 --dir ~/work/legacy-app --dry-run
 
 含 `*` `<` `>` 的萬用/佔位路徑與 `settings.local.json`（部署時才生成）自動略過。
 
-> **`shared` 標記怎麼用：** 目前有 5 個——`test-branch-one-way`（**測試分支單向流動**紅線，見下），落在 6 套開發／維護範本的 `rules/git-workflow.md`；`claude-local-only`（**Claude Code 設定不進版控**紅線，`settings.json` 除外），落在全部範本的 `CLAUDE.md`；`next-step-closing`（**收尾必寫「下一步執行」**），同樣落在全部範本的 `CLAUDE.md`；`oq-plain-language`（**OQ 要國中生讀得懂、且沒問題不要硬生問題**），落在全部範本負責 OQ 的那份 rule，並由各範本的 planner 類 agent 於檔首指向它；`no-emoji-in-code`（**程式碼、註解、設定檔禁止 emoji**，說明文件與前端不受限），落在 8 套有程式碼的範本的 `rules/coding-style.md`。若日後又有某段規範必須在多個範本間逐字一致，把它包進 `<!-- shared:<id> -->` … `<!-- /shared -->`，`prompt-lint` 就會盯住它不漂移——**不需要建組裝機制，也不影響部署**。
+> **`shared` 標記怎麼用：** 目前有 6 個——`test-branch-one-way`（**測試分支單向流動**紅線，見下），落在 6 套開發／維護範本的 `rules/git-workflow.md`；`claude-local-only`（**Claude Code 設定不進版控**紅線，`settings.json` 除外），落在全部範本的 `CLAUDE.md`；`next-step-closing`（**收尾必寫「下一步執行」**），同樣落在全部範本的 `CLAUDE.md`；`oq-plain-language`（**OQ 要國中生讀得懂、且沒問題不要硬生問題**），落在全部範本負責 OQ 的那份 rule，並由各範本的 planner 類 agent 於檔首指向它；`no-emoji-in-code`（**程式碼、註解、設定檔禁止 emoji**，說明文件與前端不受限），落在 8 套有程式碼的範本的 `rules/coding-style.md`；`suggest-compact`（**工具呼叫計數提醒 `/compact` 的 hook 腳本**），落在 8 套掛了該 hook 的範本的 `skills/strategic-compact/suggest-compact.sh`——標記以 `#` 註解包住，整支腳本都是 shared 區塊。若日後又有某段規範必須在多個範本間逐字一致，把它包進 `<!-- shared:<id> -->` … `<!-- /shared -->`，`prompt-lint` 就會盯住它不漂移——**不需要建組裝機制，也不影響部署**。
+>
+> **哪些重複檔是「刻意不同」的：** 不是每個同名檔都該一致。`hooks/check-oq-on-commit.sh`、`hooks/check-oq-pending-session.sh` 與 `skills/strategic-compact/SKILL.md` 在各範本間**本來就不同**——plan 目錄名（`plan/`、`specs/`、`upgrade/`）、額外檢查（維護範本多一道 L 層佔位符檢查）與各範本專屬的壓縮時機都是在地化內容，**不要為了「看起來一樣」去對齊它們**。判準：只有「改了 A 範本就必須同步改 B 範本」的內容才包 `shared`；其餘差異視為正常。
 
 ---
 
@@ -259,6 +262,7 @@ prompt-setup 版本管理 --dir ~/work/legacy-app --dry-run
 | 檔案 | 用途 |
 |------|------|
 | [`bin/prompt-setup`](bin/prompt-setup) | 一鍵部署指令 |
-| [`bin/prompt-lint`](bin/prompt-lint) | 範本庫一致性檢查（路由表 / 列號 / shared 區塊 / 連結 / JSON） |
+| [`bin/prompt-lint`](bin/prompt-lint) | 範本庫一致性檢查（路由表 / 列號 / shared 區塊 / 連結 / JSON / 根規範鏡像） |
 | [`CLAUDE.md`](CLAUDE.md) | 本範本庫自身的 AI Agent 規範（Prompt Architect 角色） |
+| `.agents/rules/claude-prompt.md` | 同一份規範給其他 agent 工具讀的鏡像（多一段 frontmatter）；`prompt-lint` 的 `root-mirror` 會盯住兩者一致 |
 | `<範本>/.claude/` | 各階段的規範範本本體 |

@@ -59,7 +59,7 @@ Prompt 必須貼合實際工程場景。必須先釐清：專案目標、執行�
 
 ### Principle 5：AI 能力適配
 必須考量目標模型的智力與 Context Window。
-高能力模型（如 Claude 3.5 Sonnet / Opus）可給予目標與決策權；低能力或專精模型（如 Flash/輕量模型）必須給予嚴格的 Step-by-Step 流程與格式鎖定。
+高能力模型（如 Claude Opus 4.x / Sonnet）可給予目標與決策權；低能力或專精模型（如 Haiku 等輕量模型）必須給予嚴格的 Step-by-Step 流程與格式鎖定。
 
 ### Principle 6：資料契約與狀態管理 (Data Contract & State)
 在多 Agent 協作中，必須明確定義 Agent 之間的「上下文交接（Context Transfer）」機制。強制規定資料的輸入與輸出介面（如 JSON Schema、Markdown 結構塊），確保資訊在工作流中不遺失、不幻覺。

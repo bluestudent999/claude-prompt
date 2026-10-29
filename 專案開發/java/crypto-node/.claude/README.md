@@ -9,7 +9,7 @@
 ## 部署
 
 ```bash
-cd /Users/joel_java/java/crypto-node
+cd ~/java/crypto-node            # 換成你本機 crypto-node 的 clone 路徑
 prompt-setup 專案開發 java crypto-node --force
 claude
 ```

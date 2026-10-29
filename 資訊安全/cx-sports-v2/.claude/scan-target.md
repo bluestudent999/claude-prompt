@@ -7,7 +7,7 @@
 | 項目 | 值 |
 |---|---|
 | **專案** | `cx-sports-v2` |
-| **本機路徑** | `/Users/joel_java/java/cx-sports-v2` |
+| **本機路徑** | `~/java/cx-sports-v2`（填你本機的 clone 路徑） |
 | **業務型態** | **體育投注主業務** monorepo；多平台（包網）架構，一套系統服務多個平台 |
 | **技術棧** | Java 8 ／ Spring Boot **2.7.11** ／ Spring Cloud 2021.0.5 ／ MySQL 5.7 + ShardingSphere 4.0.0-RC2 ／ MyBatis ／ Redis + Zookeeper ／ Elasticsearch 6.8 + 7.17 並用 ／ **Kafka 走 Spring Cloud Stream**（非 spring-kafka） |
 | **後端模組** | `cx-sport-app-service`（主業務）、`cx-sport-single-wallet-service`（單一錢包）、`cx-sport-memdb-service`、`cx-sport-mq-collector-service`、`cx-sport-websocket-service`、`manage-center/manage-service`（總控制中心） |

@@ -7,7 +7,7 @@
 | 項目 | 值 |
 |---|---|
 | **專案** | `lion-service` |
-| **本機路徑** | `/Users/joel_java/java/lion-service` |
+| **本機路徑** | `~/java/lion-service`（填你本機的 clone 路徑） |
 | **業務型態** | 包網（白標）博弈平台後端 —— 一套系統服務多家包網商 |
 | **技術棧** | Java 8 ／ Spring Boot 2.0.2.RELEASE ／ Spring Cloud Finchley ／ MySQL + ShardingSphere 4.0.1 ／ MyBatis ／ Redis ／ Elasticsearch 6.8 + 7.17 |
 | **模組** | `cp-service`（CP 主業務）、`single-wallet-service`（單一錢包）、`collector-service`（資料收集）、`upload-service`（上傳）、`cp-flyway`（DB 遷移） |

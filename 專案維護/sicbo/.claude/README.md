@@ -7,7 +7,7 @@
 ## 部署
 
 ```bash
-cd /Users/joel_java/python/detector/sicbo
+cd ~/python/detector/sicbo       # 換成你本機 sicbo 的 clone 路徑
 prompt-setup 專案維護 sicbo
 claude
 ```

@@ -7,9 +7,10 @@ prompt-lint — 範本庫一致性檢查（只檢查，不改檔）
 檢查項：
     routing   跨範本路由表逐字一致（全部 CLAUDE.md 的職責路由表）
     self-row  「表格第 N 列為本職」的 N 與實際列號相符
-    shared    <!-- shared:<id> --> 區塊跨檔案未漂移
+    shared    <!-- shared:<id> --> 區塊跨檔案未漂移（掃 *.md 與 *.sh）
     links     Markdown 內指向 .claude 內部的檔案連結存在
     json      .claude 下所有 *.json 格式合法
+    root-mirror  根 CLAUDE.md 與 .agents/rules/claude-prompt.md（去掉 frontmatter）逐字一致
 
 選項：
     -o, --only <check>   只跑指定檢查（可重複；名稱見上）
@@ -35,7 +36,7 @@ if sys.stdout.isatty():
 else:
     BOLD = DIM = RED = GRN = YLW = CYN = RST = ""
 
-CHECKS = ["routing", "self-row", "shared", "links", "json"]
+CHECKS = ["routing", "self-row", "shared", "links", "json", "root-mirror"]
 
 problems = []   # (check, 相對路徑, 訊息)
 
@@ -68,6 +69,14 @@ def md_files(claude_dir):
     for dp, _, fs in os.walk(claude_dir):
         for f in fs:
             if f.endswith(".md"):
+                yield os.path.join(dp, f)
+
+
+def shared_files(claude_dir):
+    """shared 標記可放在 Markdown 或 shell 腳本（以 # 註解包住標記）。"""
+    for dp, _, fs in os.walk(claude_dir):
+        for f in fs:
+            if f.endswith((".md", ".sh")):
                 yield os.path.join(dp, f)
 
 
@@ -172,7 +181,7 @@ SHARED_RE = re.compile(
 def check_shared(tpls):
     blocks = defaultdict(list)   # id -> [(內容, 檔案)]
     for _, claude in tpls:
-        for f in md_files(claude):
+        for f in shared_files(claude):
             text = open(f, encoding="utf-8").read()
             for sid, body in SHARED_RE.findall(text):
                 blocks[sid].append((body.strip(), f))
@@ -254,6 +263,32 @@ def check_json(tpls):
                     fail("json", rel(p), f"JSON 解析失敗：{e}")
 
 
+# ---- 6. 根規範鏡像 -----------------------------------------------------------
+ROOT_PROMPT = os.path.join(ROOT, "CLAUDE.md")
+ROOT_MIRROR = os.path.join(ROOT, ".agents", "rules", "claude-prompt.md")
+FRONTMATTER_RE = re.compile(r"\A---\n.*?\n---\n", re.S)
+
+
+def check_root_mirror():
+    """根 CLAUDE.md（Claude Code 讀）與 .agents/rules/claude-prompt.md（其他 agent 工具讀）
+    是同一份 Prompt Architect 規範的兩個入口；後者多一段 frontmatter，其餘必須逐字一致。"""
+    for p in (ROOT_PROMPT, ROOT_MIRROR):
+        if not os.path.isfile(p):
+            fail("root-mirror", rel(p), "檔案不存在")
+            return
+    src = open(ROOT_PROMPT, encoding="utf-8").read().strip()
+    mirror = FRONTMATTER_RE.sub("", open(ROOT_MIRROR, encoding="utf-8").read(), count=1).strip()
+    if src == mirror:
+        return
+    a, b = src.splitlines(), mirror.splitlines()
+    first = next((i for i in range(max(len(a), len(b)))
+                  if i >= len(a) or i >= len(b) or a[i] != b[i]), None)
+    fail("root-mirror", rel(ROOT_MIRROR),
+         f"與 {rel(ROOT_PROMPT)} 不一致（首個差異在 CLAUDE.md 第 {first + 1} 行）：\n"
+         f"      CLAUDE.md：{a[first] if first < len(a) else '（缺這一行）'}\n"
+         f"      鏡像    ：{b[first] if first < len(b) else '（缺這一行）'}")
+
+
 # ---- 主流程 -----------------------------------------------------------------
 def main(argv):
     only, quiet = [], False
@@ -307,6 +342,8 @@ def main(argv):
         check_links(tpls)
     if "json" in run:
         check_json(tpls)
+    if "root-mirror" in run:
+        check_root_mirror()
 
     by_check = defaultdict(list)
     for c, p, m in problems:
