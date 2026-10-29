@@ -1,0 +1,11 @@
+{
+  "_README": "此檔案不提交到 git。複製為 .claude/settings.local.json 並填入實際值。變數名以 repo 根目錄 .mcp.json 的 ${...} 佔位符為準。",
+  "env": {
+    "GITLAB_TOKEN": "glpat-xxx",
+    "GITLAB_URL": "https://gitlab.example.com/api/v4",
+    "JIRA_URL": "your-atlassian-site（站台名稱，例：cat-teams；不是完整網址）",
+    "JIRA_USER_EMAIL": "you@example.com",
+    "JIRA_API_TOKEN": "your_jira_api_token"
+  },
+  "enableAllProjectMcpServers": true
+}

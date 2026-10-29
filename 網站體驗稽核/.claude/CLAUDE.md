@@ -40,6 +40,7 @@
 | YUMMY 老虎機開發（Java 21 / Boot 3.5 + H5 遊戲前端，複製既有玩法） | 開發 | `prompt-setup 專案開發 java slots` |
 | lion-service 包網平台資安掃描（原始碼與設定靜態稽核，只產報告不改 code） | 資訊安全 | `prompt-setup 資訊安全 lion-service` |
 | cx-sports-v2 體育投注主業務資安掃描（原始碼與設定靜態稽核，只產報告不改 code） | 資訊安全 | `prompt-setup 資訊安全 cx-sports-v2` |
+| 既有包網彩票平台維護 / 修 bug（lion-service，Java 8 / Boot 2.0） | 維護 | `prompt-setup 專案維護 lion-service` |
 
 > **你在這裡：網站體驗稽核**（表格第 7 列為本職，不適用切換）。
 > 切換提示範例：「你要的是**動手把這些 UX 建議實作進 code**，本稽核範本只產報告不改產品程式碼；請切到 `prompt-setup 專案維護 cx-sports`（或對應開發範本），並把本次 `report.md` 當作需求輸入。」

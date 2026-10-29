@@ -1,0 +1,79 @@
+{
+  "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "echo '=== Memory ===' && cat \"$HOME/.claude/projects/$(echo $CLAUDE_PROJECT_DIR | tr '/' '-')/memory/MEMORY.md\" 2>/dev/null || echo 'No memory'"
+          },
+          {
+            "type": "command",
+            "command": "bash \"$CLAUDE_PROJECT_DIR/.claude/hooks/check-oq-pending-session.sh\" 2>/dev/null || true"
+          }
+        ]
+      }
+    ],
+    "PreToolUse": [
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash \"$CLAUDE_PROJECT_DIR/.claude/skills/strategic-compact/suggest-compact.sh\" 2>/dev/null || true",
+            "async": true
+          },
+          {
+            "type": "command",
+            "command": "bash \"$CLAUDE_PROJECT_DIR/.claude/hooks/block-i18n-direct-edit.sh\""
+          }
+        ]
+      },
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash \"$CLAUDE_PROJECT_DIR/.claude/hooks/check-oq-on-commit.sh\""
+          },
+          {
+            "type": "command",
+            "command": "bash \"$CLAUDE_PROJECT_DIR/.claude/hooks/block-claude-dir-staging.sh\""
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Write|Edit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "echo \"$CLAUDE_FILE\" | grep -q 'specs/.*\\.md$' && [ -f \"$CLAUDE_PROJECT_DIR/scripts/index-specs.py\" ] && python3 \"$CLAUDE_PROJECT_DIR/scripts/index-specs.py\" 2>&1 | tail -3 || true",
+            "async": true
+          }
+        ]
+      }
+    ]
+  },
+  "autoMode": {
+    "allow": [
+      "讀取專案內任何檔案",
+      "搜尋程式碼（Grep、Glob）",
+      "執行 mvn compile / mvn test / mvn -pl <module> -am compile",
+      "執行 git status、git diff、git log、git branch",
+      "建立和編輯 .claude/ 目錄下的設定檔"
+    ],
+    "soft_deny": [
+      "刪除檔案或目錄",
+      "執行 git commit（Claude 不自行 commit，須使用者當前訊息明確指示）",
+      "執行 git add -A、git add .、git add .claude、git add CLAUDE.md（.claude/ 與根 CLAUDE.md 是團隊追蹤檔，不得提交本機範本）",
+      "執行 git push、git reset --hard、git rebase",
+      "修改 cp-flyway/src/main/resources/db/migrations/ 既有 V*.sql 或 cp-flyway/src/main/resources/application.yml",
+      "修改各模組 src/main/resources/application*.yml 中的生產 datasource / redis / kafka 設定",
+      "修改任何 *Filter.java 的放行分支或放行清單設定（須先經使用者確認）",
+      "執行 rm -rf"
+    ]
+  },
+  "_comment_mcp": "MCP server 設定在 repo 根目錄 .mcp.json（團隊進版控：code-review-graph / context7 / gitlab / jira）。個人 token 放 settings.local.json 的 env 區段，並設 enableAllProjectMcpServers；不要寫進本檔（會替整個團隊預設信任）。"
+}

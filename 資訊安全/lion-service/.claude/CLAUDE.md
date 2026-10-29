@@ -48,10 +48,11 @@
 | YUMMY 老虎機開發（Java 21 / Boot 3.5 + H5 遊戲前端，複製既有玩法） | 開發 | `prompt-setup 專案開發 java slots` |
 | lion-service 包網平台資安掃描（原始碼與設定靜態稽核，只產報告不改 code） | 資訊安全 | `prompt-setup 資訊安全 lion-service` |
 | cx-sports-v2 體育投注主業務資安掃描（原始碼與設定靜態稽核，只產報告不改 code） | 資訊安全 | `prompt-setup 資訊安全 cx-sports-v2` |
+| 既有包網彩票平台維護 / 修 bug（lion-service，Java 8 / Boot 2.0） | 維護 | `prompt-setup 專案維護 lion-service` |
 
 > **你在這裡：資訊安全 · lion-service 資安掃描**（表格第 11 列為本職，不適用切換）。
 > **本範本的產出邊界：只交付報告。**
-> - **不改 lion-service 的任何程式碼**（唯一可寫的是 `sec-reports/`）。修復走 lion-service 自己的開發流程。
+> - **不改 lion-service 的任何程式碼**（唯一可寫的是 `sec-reports/`）。修復走 lion-service 自己的開發流程（`prompt-setup 專案維護 lion-service`，把報告當工單輸入）。
 > - 使用者要求「順便幫我修」→ 說明稽核者不該同時是修復者（自己審自己，報告就沒意義了），
 >   並把報告當作工單輸入交回去。
 > - 依賴升級屬 `prompt-setup 版本管理`；本範本只標版本與風險，不改 `pom.xml`。

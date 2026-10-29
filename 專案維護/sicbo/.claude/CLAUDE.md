@@ -69,6 +69,7 @@
 | YUMMY 老虎機開發（Java 21 / Boot 3.5 + H5 遊戲前端，複製既有玩法） | 開發 | `prompt-setup 專案開發 java slots` |
 | lion-service 包網平台資安掃描（原始碼與設定靜態稽核，只產報告不改 code） | 資訊安全 | `prompt-setup 資訊安全 lion-service` |
 | cx-sports-v2 體育投注主業務資安掃描（原始碼與設定靜態稽核，只產報告不改 code） | 資訊安全 | `prompt-setup 資訊安全 cx-sports-v2` |
+| 既有包網彩票平台維護 / 修 bug（lion-service，Java 8 / Boot 2.0） | 維護 | `prompt-setup 專案維護 lion-service` |
 
 > **你在這裡：維護 · sicbo（骰寶辨識）**（表格第 8 列為本職，不適用切換）。
 > 切換提示範例：「這是 `baccarat_3type`（百家樂牌型）的維護，本範本是 sicbo，兩者是同 repo 的**不同子專案**，模型與管線不共用；請另開對應範本或明確指定要改 baccarat。」「這是一段全新需求（新遊戲類型 / 新輸出協議），請先 `prompt-setup 專案企劃` 收斂範圍。」
