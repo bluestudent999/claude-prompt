@@ -1,0 +1,27 @@
+{
+  "_README": "此檔案不提交到 git。複製為 .claude/settings.local.json 並填入實際值。變數名對應 configs/application*.yaml 的 ${...} 佔位符。THESPORTS_* 只給 collector profile 讀取（I7），api / realtime 不得設定。",
+  "env": {
+    "MYSQL_HOST": "localhost",
+    "MYSQL_PORT": "3306",
+    "MYSQL_USER": "root",
+    "MYSQL_PASSWORD": "lion",
+    "MYSQL_DB": "score_pulse",
+    "REDIS_ADDR": "localhost:6379",
+    "REDIS_PASSWORD": "lion",
+    "KAFKA_BROKERS": "localhost:9092",
+    "THESPORTS_USER": "only-for-collector-profile",
+    "THESPORTS_SECRET": "only-for-collector-profile",
+    "THESPORTS_MQTT_URL": "wss://mq.thesports.com:443",
+    "THESPORTS_HTTP_URL": "https://api.thesports.com",
+    "FIREBASE_CREDENTIALS_FILE": "/opt/conf/score-pulse/firebase-service-account.json",
+    "SMS_PROVIDER": "mock",
+    "SMTP_HOST": "smtp.example.com",
+    "SMTP_PORT": "587",
+    "SMTP_USER": "alerts@example.com",
+    "SMTP_PASSWORD": "xxx",
+    "ADMIN_TOTP_ISSUER": "ScorePulse",
+    "GITLAB_TOKEN": "glpat-xxx",
+    "GITLAB_URL": "https://gi88995.kxcodes.com/api/v4"
+  },
+  "enableAllProjectMcpServers": true
+}

@@ -1,0 +1,120 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(go:*)",
+      "Bash(golangci-lint:*)",
+      "Bash(make:*)",
+      "Bash(docker compose:*)",
+      "Bash(docker:*)",
+      "Bash(migrate:*)",
+      "Bash(swag:*)",
+      "Bash(npm:*)",
+      "Bash(npx vitest:*)",
+      "Bash(npx openapi-typescript:*)",
+      "Bash(bash .claude/skills/*)",
+      "Bash(ls:*)",
+      "Bash(wc:*)",
+      "Bash(grep:*)",
+      "Bash(rg:*)",
+      "Bash(find:*)",
+      "Bash(git status:*)",
+      "Bash(git diff:*)",
+      "Bash(git log:*)"
+    ]
+  },
+  "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "echo '=== score-pulse 開工提醒 ===' && echo '1) 版本基準：Go 1.23 + sp-framework 鎖 tag（go.mod replace 指向 tag，禁 go.work 同層 checkout）' && echo '2) 每一個 API（REST handler / WS 訂閱 action / Kafka consumer）都必須有單元測試，含越權與未登入案例；沒有就 block' && echo '3) 整合測試一律雙租戶 fixture（op-a / op-b）— 隔離 bug 在單租戶下 100% 測不出來' && echo '4) 10 條不變量 I1~I10 是正確性定義：租戶隔離 / 單場順序 / compare-and-set / 覆寫優先 / 賠率歷史只增 / 事件不刪 / 憑證只在 collector / 停更不誤判 / 快照只讀 Redis / 記錄 append-only' && echo '5) H5 與 App 畫面在另一部門：契約（docs/contract）是交付物，改契約是雙邊變更' && echo '--- 不做：拆服務 / sp-common / Ignite / ES / Redis Pub-Sub 扇出 / protobuf（第一期）/ 結算 / 以比分大小過濾更新 / 改 spec ---'"
+          },
+          {
+            "type": "command",
+            "command": "bash \"$CLAUDE_PROJECT_DIR/.claude/hooks/check-oq-pending-session.sh\" 2>/dev/null || true"
+          }
+        ]
+      }
+    ],
+    "PreToolUse": [
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash \"$CLAUDE_PROJECT_DIR/.claude/skills/strategic-compact/suggest-compact.sh\" 2>/dev/null || true",
+            "async": true
+          }
+        ]
+      },
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash \"$CLAUDE_PROJECT_DIR/.claude/hooks/check-oq-on-commit.sh\""
+          },
+          {
+            "type": "command",
+            "command": "bash \"$CLAUDE_PROJECT_DIR/.claude/hooks/block-claude-dir-staging.sh\""
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "[ -f Makefile ] && make -s arch-check || true"
+          }
+        ]
+      }
+    ]
+  },
+  "autoMode": {
+    "allow": [
+      "讀取專案內任何檔案",
+      "搜尋程式碼（Grep、Glob）",
+      "執行 go build、go vet、go test、golangci-lint run、make 目標",
+      "執行 git status、git diff、git log",
+      "執行 docker compose ps、docker compose up -d（本機測試環境）",
+      "讀取 plan/on-sports-lite/ 下的 ticket 全文與 Required Spec Sections 指定的 spec 節",
+      "執行 .claude/skills 下的檢查腳本（arch-check、contract-export）"
+    ],
+    "soft_deny": [
+      "在 go.work 指向同層 sp-framework checkout，或把 go.mod 的 sp-framework 從固定 tag 改成分支或路徑（D2a）",
+      "import sp-common、引入 Ignite 或 Elasticsearch（D2、D6）",
+      "新增 cmd/<service> 目錄或把 api / collector / realtime 拆成獨立 repo 或 binary（D3）",
+      "實作結算、投注、盤口邏輯，或在程式碼出現 settle / bet / stake 等字眼（D3）",
+      "用 redis.Subscribe / Pub-Sub 做 WebSocket 扇出取代框架的 Kafka websocket topic（D4）",
+      "以 protobuf 或 .proto 定義對前端訊息；或在 gateway 做按場動態 Redis 訂閱（D5，第一期不做）",
+      "用 JWT 擋匿名的比賽訂閱，或要求未登入使用者登入才能看比分（D7）",
+      "以「比分只能變大」或分數大小過濾供應商更新（D16、I3）",
+      "對 odds_history、admin_audit、redirect_click、redirect_impression、visit_log 做 UPDATE 或 DELETE（I5、I10）",
+      "刪除 match_event 的列而不是標 cancelled（I6）",
+      "讓 api 或 realtime 角色載入 TheSports 憑證，或把憑證寫進 log、錯誤訊息、Kafka 訊息（I7）",
+      "REST 首屏或重連快照從 MySQL 讀即時比分、狀態、事件而不是 Redis（I9）",
+      "查詢租戶表卻不經 tenant.Scope；或接受呼叫端帶入的 operator_id / platform code 當租戶範圍（I1）",
+      "Emit 到 match.live 或 odds.change 不用 match_id 當 key（I2）",
+      "在單租戶 fixture 上撰寫整合測試，或租戶端點的測試沒有 OtherTenant / Unauthorized 案例",
+      "新增或修改 REST handler、WebSocket 訂閱 action、Kafka consumer 卻沒有對應的 _test.go",
+      "跳過 plan §8 完成紀錄或 ticket 狀態欄的回填（DoD 第 7 條）",
+      "修改 plan/on-sports-lite/ 下的 spec、backlog、brief、master-plan，或修改 ticket 檔狀態欄以外的內容",
+      "為 H5 或 App 撰寫畫面、元件或頁面；或在 API 裡預設 OQ-63 / OQ-62 / OQ-32a 的答案",
+      "片面變更 /api/front/** 或 WebSocket 契約的欄位、路徑、語意、錯誤碼，未走 api-contract.md §3 的破壞性變更流程",
+      "在 internal/ 使用 os.Getenv、gin.New / gin.Default、gorm.Open、redis.NewClient、cron.New、websocket.Upgrader（繞過 sp-framework）",
+      "在 handler 用 c.JSON 回錯誤或 return err，而不是 panic(runtime.BusinessError)",
+      "Kafka consumer 對資料錯誤回 error 導致分區卡住，或 persist group 在批次 flush 前 commit offset",
+      "修改已套用的 migration，或在 up.sql 內 DROP 既有表",
+      "升級或降級 sp-framework、Go 版本",
+      "（後台）使用 Vue 2 寫法：Options API、element-ui、vuex、filters、$listeners、.sync；或直接複製 cx-sports / lion-* / crypto-payment 的 Vue 2 元件",
+      "（後台）把 session token 寫入 localStorage / sessionStorage / 網址 / log",
+      "（後台）把 API 取得失敗渲染成空清單，或只在前端隱藏按鈕就當授權完成",
+      "（後台）後台介面接 5 語系翻譯（後台只做中文）",
+      "提交 .claude/ 或 CLAUDE.md 進版控"
+    ]
+  }
+}

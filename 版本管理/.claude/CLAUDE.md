@@ -39,6 +39,7 @@
 | lion-service 包網平台資安掃描（原始碼與設定靜態稽核，只產報告不改 code） | 資訊安全 | `prompt-setup 資訊安全 lion-service` |
 | cx-sports-v2 體育投注主業務資安掃描（原始碼與設定靜態稽核，只產報告不改 code） | 資訊安全 | `prompt-setup 資訊安全 cx-sports-v2` |
 | 既有包網彩票平台維護 / 修 bug（lion-service，Java 8 / Boot 2.0） | 維護 | `prompt-setup 專案維護 lion-service` |
+| score-pulse 比分平台後端與後台開發（Go / sp-framework / MySQL / Kafka） | 開發 | `prompt-setup 專案開發 go score-pulse` |
 
 > **你在這裡：版本管理 · 升級遷移**（表格第 6 列為本職，不適用切換）。切換提示範例：「此工作是新增功能而非行為等價遷移，違反升級紅線；請 `prompt-setup 專案開發 <java|ai-ux-agent>` 後再進行」「這是新需求規劃，請先 `prompt-setup 專案企劃`」。
 

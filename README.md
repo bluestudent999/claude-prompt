@@ -37,6 +37,7 @@
 | `prompt-setup 資訊安全 lion-service` | 資安稽核 | lion-service 包網平台資安掃描（原始碼與設定靜態稽核，**只產報告不改 code**） | 純文件（標的為 Java 8 / Spring Boot 2.0.2） |
 | `prompt-setup 資訊安全 cx-sports-v2` | 資安稽核 | cx-sports-v2 體育投注主業務資安掃描（多平台隔離 + 賠率結算軸，**只產報告不改 code**） | 純文件（標的為 Java 8 / Spring Boot 2.7.11） |
 | `prompt-setup 專案維護 lion-service` | 維運 | lion-service 包網彩票平台維護（包網商隔離 / filter 防線 / 賠率與開獎三條紅線） | Java 8 / Spring Boot 2.0.2 |
+| `prompt-setup 專案開發 go score-pulse` | 新開發（Go） | score-pulse 比分平台後端 API 與兩套後台（多業主、TheSports 即時資料、Kafka 推送；**H5／App 畫面由另一部門負責**） | Go 1.23 / sp-framework / MySQL 8 + Redis + Kafka ｜ 後台 Vue 3 |
 
 > 隨時用 `prompt-setup --list` 查看實際可用範本。
 
@@ -100,6 +101,7 @@ prompt-setup 專案維護 cx-sports       # → 專案維護/cx-sports/.claude
 prompt-setup 專案維護 crypto-payment  # → 專案維護/crypto-payment/.claude
 prompt-setup 專案維護 sicbo          # → 專案維護/sicbo/.claude
 prompt-setup 專案維護 lion-service   # → 專案維護/lion-service/.claude
+prompt-setup 專案開發 go score-pulse # → 專案開發/go/score-pulse/.claude
 prompt-setup 版本管理            # → 版本管理/.claude
 prompt-setup 專案企劃            # → 專案企劃/.claude
 prompt-setup 網站體驗稽核        # → 網站體驗稽核/.claude
