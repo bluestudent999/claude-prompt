@@ -114,7 +114,7 @@ func (h *RealtimeCoreHandler) AcceptMessage(ctx context.Context, msg *sarama.Con
 | 推送 | `api` 側注入 `*wss.WebSocketEmitter`，`SendWsMessage(&wss.WebsocketMessage{Destinations: []string{...}, Data: json})`；realtime 側由框架 `WebsocketListener` 收 Kafka 後 `NotifyByDestination` |
 | 連線上限 | `websocket.max-connections`（預設 2500／實例）；`websocket.pong-timeout` 30 秒；`websocket.write-timeout` 2 秒 |
 | 跨域 | `websocket.allow-cross-origin` 預設 **true**，prod 改 false 並在握手檢 Origin |
-| 反壓 | 待驗證（tech-decisions §6 第 7 項）：框架每連線寫入是否有界、滿了是否斷線。bootstrap 時驗，不是就在 `internal/realtime` 包一層 |
+| 反壓 | **已驗證（2026-11-01，B-10）：框架語意是「阻塞」不是「滿了斷線」** —— 慢連線會把同分區所有推送卡住最多 `write-timeout`（探針最大延遲 2.25s），且關閉慢連線時框架 `send on closed channel` panic、該則訊息對其他 client 遺失。**所以本 repo 必須包一層每連線有界佇列（P-17）**：所有對 client 的推送只走 `internal/realtime` 的佇列層，非阻塞入列、滿了記 metric 並主動斷線、單獨 writer goroutine、關閉先 `active=false` 再關佇列。**不得直接呼叫框架 `Client.SendData`**。P-17 未到位前不開 `internal/realtime` 的 ticket |
 
 ---
 

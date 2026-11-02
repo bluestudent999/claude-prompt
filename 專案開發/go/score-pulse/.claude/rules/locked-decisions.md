@@ -32,7 +32,7 @@
 | **D3** | 單 binary 多角色 | `cmd/score-pulse` 一個 binary，`--active=<profile>` 選角色：`api`、`collector`、`realtime`。`api` 內兩個 consumer group：`realtime-core`、`persist`；流量上來時 `persist` 可成第四個 profile，零程式碼改動 |
 | **D3a** | 包結構 | **依業務功能分包**：`internal/{operator,match,odds,member,notify,admin,collector,realtime}`，包內 `controller/ service/ dao/ model/ dto/ inject.go`；共用放 `internal/platform`。規則見 `architecture.md` |
 | **D4** | 訊息 | **Kafka**。業務 topic 以 **`match_id` 當 partition key**；`match.live` **24 個分區**（建立後不改）；業務 topic 保留 **7 天**；`websocket` topic 保留 **10 分鐘**、consumer **`latest-offset: true`**。topic 表見 `realtime-contract.md` |
-| **D5** | 即時推送 | 框架 WebSocket 協定；JSON、短欄位名、delta；每場 `seq` 單調遞增；三個時間戳；合流在 `api` 的 `realtime-core` 做一次（離散事件零延遲、賠率與統計 1 秒 Last-Write-Wins）；首屏與重連快照只讀 Redis；心跳 30 秒；慢連線滿佇列即斷線；斷線退回 10 秒輪詢 |
+| **D5** | 即時推送 | 框架 WebSocket 協定；JSON、短欄位名、delta；每場 `seq` 單調遞增；三個時間戳；合流在 `api` 的 `realtime-core` 做一次（離散事件零延遲、賠率與統計 1 秒 Last-Write-Wins）；首屏與重連快照只讀 Redis；心跳 30 秒；**慢連線滿佇列即斷線 —— 框架本身是阻塞語意，由 P-17 的有界佇列層實現**（`framework-conventions.md` §6）；斷線退回 10 秒輪詢 |
 | **D6** | 儲存 | **MySQL 8**（gorm + gorm/gen）唯一主庫；**Redis** 熱狀態、快照、鎖。賠率歷史 append-only、按月分區、只存變動、第一期不刪 |
 | **D6a** | Migration | **golang-migrate**，SQL 檔，時間戳版本。規則見 `db-migration.md` |
 | **D7** | 多業主 | 單庫，租戶表帶 `operator_id`；Host → operator 放 context；gorm callback 強制過濾；測試一律雙租戶。規則見 `tenant-isolation.md` |
@@ -63,3 +63,5 @@
 | 首屏 REST 讀 MySQL 取即時比分 | D5、I9 |
 | `websocket.allow-cross-origin: true` 留在 prod profile | D7 |
 | `settle`、`settlement`、`bet`、`stake` 等字眼出現在程式碼 | D3 |
+| `internal/realtime` 之外對 client 寫 socket，或直接呼叫框架 `Client.SendData` 繞過有界佇列 | D5、P-17 |
+| 在 `main`／`developing` 上 commit，或從 `main` 切 feature | git-workflow §1（使用者 2026-11-02 指定） |

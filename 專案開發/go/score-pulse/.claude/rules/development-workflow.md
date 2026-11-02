@@ -27,19 +27,26 @@ plan/on-sports-lite/master-plan.md         ← 波次、里程碑、外部等待
 
 ## 三類工作（同一套流程，驗收依據不同）
 
-| 類 | 什麼 | 怎麼認 | 驗收依據 |
+> **部門分工 v4（2026-11-02）**：總控與業主後台的全部畫面歸後端部門 = 本 repo；前端部門只做 H5 與 App。判定只看 ticket 的「部門分工」段：**後端條目寫的全是我們的**（含畫面），**前端條目全是另一部門的**。
+
+| 類 | 什麼 | 怎麼認（看 ticket「部門分工」段） | 驗收依據 |
 |----|------|--------|---------|
-| **A · 後端 API** | 資料、API、Kafka、Redis、推送、排程、collector | ticket 主責「後端」；或主責「前端」但畫面在 H5／App（只做後端部分） | AC + `testing.md` §1 的 API 測試 + 不變量測試 |
-| **B · 後台前端** | `web/admin` 的總控與業主後台畫面 | ticket 主責「前端」且畫面在總控或業主後台（S4、S5 多數；S1-T6、S1-T10 等） | AC + 畫面三態 + 對應後端 API 測試 |
+| **A · 後端 API** | 資料、API、Kafka、Redis、推送、排程、collector、環境 | 後端條目的非畫面部分 | AC + `testing.md` §1 的 API 測試 + 不變量測試 |
+| **B · 後台前端** | `web/admin` 的總控與業主後台畫面 | 後端條目含畫面字樣（頁、表單、列表、匯出、預覽…）；S4 全部 22 張、S5 的後台部分、S1 的總控／業主頁。混合 ticket（S1-T3、S1-T5、S1-T6、S5-T15、S5-T16、S5-T19）前台欄歸前端部門、後台欄歸我們 | AC + 畫面三態 + 對應後端 API 測試 |
 | **C · 契約交付** | OpenAPI、realtime 契約、給另一部門的文件 | 任何 A 類 ticket 動到 `/api/front/**` 或 WebSocket | `/contract-export` 產出 + `contract-reviewer` |
 
-判定寫在 plan §0。**H5／App 畫面不在本 repo**：ticket 的「前端」分工若是 H5／App，plan 裡標「畫面：另一部門」，本 repo 只交 API 與契約。
+判定寫在 plan §0。**H5／App 畫面不在本 repo**：ticket 的「前端」條目一律標「畫面：另一部門」，本 repo 只交 API 與契約。
+
+**先做哪張**（總計畫 v4.3，後端是唯一瓶頸）：① M1 的 9 張（S1-T1～T3、S4-T1～T4、S2-T1）插隊優先 → ② 關鍵路徑（§2.2）→ ③ 回歸第 1 組基準（S2-T1～T4、S3-T5～T7、S3-T18）→ ④ 其餘依波次。`internal/realtime` 的第一張 ticket 前必須先做完 **P-17**（有界佇列）。
 
 ---
 
 ## Step -1：Preflight（每個 session 第一次動工前）
 
 ```bash
+git rev-parse --abbrev-ref HEAD | grep -Eq '^(main|master|developing)$' && echo "[preflight] 在鎖定／集成分支上，先切 feature 分支（git-workflow §1.1）"
+git rev-parse --abbrev-ref HEAD | grep -Eq '^feature/(S[1-6]-T|B-|P-|hotfix)' || echo "[preflight] 分支名不符 feature/<ticket-id>-<slug>"
+git ls-remote --heads origin developing | grep -q developing || echo "[preflight] origin/developing 不存在 — 停手回報，不要用 main 代替"
 go version | grep -E "go1\.2[3-9]" || echo "[preflight] Go 版本不符"
 grep -n "sp-framework" go.mod | grep -E "v[0-9]+\.[0-9]+\.[0-9]+" || echo "[preflight] sp-framework 未鎖 tag（D2a）"
 test -f go.work && grep -q "sp-framework" go.work && echo "[preflight] go.work 指向同層 checkout（D2a 禁止）"
@@ -49,6 +56,7 @@ docker compose -f deploy/docker-compose.yml ps 2>/dev/null | grep -q mysql || ec
 
 | 失敗 | 處置 |
 |------|------|
+| 在 main／developing 上、分支名不符、developing 不存在 | **先處理分支，不動工**（`git-workflow.md` §1.1） |
 | Go 版本不符、框架未鎖 tag、go.work 違規 | **必修，不動工** |
 | 編譯失敗 | **必修** —— HEAD 本身壞掉，疊上去的改動無效 |
 | compose 未起 | 可做單元層；整合測試前要起 |
@@ -140,6 +148,7 @@ go test -tags=integration ./test/...                        # 動到 dao／consu
    > ⚠ 企劃的 `_generate.py` 重跑會覆蓋開發 ticket 的狀態欄（它只保護 prep ticket）。已回報 PM 改腳本；在那之前，**plan 檔的 §8 是進度的真相**，ticket 狀態欄是副本。
 3. 確認 `plan/` 無「⏳ 待決」OQ（否則 git hook 攔截）。
 4. Commit（`git-workflow.md`）；**不加 `.claude/` 與 `CLAUDE.md`**（hook 會攔）。
+5. `git rebase origin/developing` → 重跑單元測試 → `git push --force-with-lease` → 開 MR 到 `developing`（描述照 `git-workflow.md` §4）。**不在本機 merge 進 developing／main。**
 
 > **回填是 DoD 第 7 條。** 沒回填 = 未完成，不要跳到下一張。
 

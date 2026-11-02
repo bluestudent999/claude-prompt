@@ -15,11 +15,13 @@ claude
 
 **部署前必知：**
 
-1. `.claude/` 與根 `CLAUDE.md` **不進版控**（score-pulse 的 `.gitignore` 已排除）。hook `block-claude-dir-staging.sh` 會擋 `git add -A` / `git add .` / `git add .claude`。
+1. `.claude/` 與根 `CLAUDE.md` **不進版控**（score-pulse 的 `.gitignore` 已排除）。hook `block-claude-dir-staging.sh` 會擋 `git add -A` / `git add .` / `git add .claude`；`block-protected-branch.sh` 會擋在 `main`／`developing` 上 commit、push 到 main、從 main 切分支。
 2. 同一個 repo 裡 **PM 在自己機器上保留企劃範本**（`prompt-setup 專案企劃`），開發者部署本範本，互不干擾。`--force` 只清你本機的 `.claude/`。
 3. 企劃產出全在 `plan/on-sports-lite/`，**是版控的一部分**。本範本只回填 `plan/task-*-plan.md` 與 ticket 的狀態欄，不改 spec。
 
 ---
+
+> **分支**：部署範本不影響分支。開工前先 `git fetch origin && git switch -c feature/<ticket-id>-<slug> origin/developing`；`main` 鎖定、`developing` 只收 MR（`rules/git-workflow.md` §1）。
 
 ## 前置條件
 
@@ -54,13 +56,15 @@ claude
 
 ### 三類工作
 
+看 ticket 的「部門分工」段：**後端條目全是我們的（含總控與業主後台畫面，部門分工 v4）**，**前端條目全是另一部門的（H5、App）**。
+
 | 類 | 認法 | 驗收 |
 |----|------|------|
-| **A · 後端 API** | ticket 主責後端；或主責前端但畫面在 H5／App（只做後端部分） | AC + **每個 API 的單元測試** + 不變量測試 |
-| **B · 後台前端** | 畫面在總控或業主後台（`web/admin`） | AC + 畫面三態 + 後端 API 測試 |
+| **A · 後端 API** | 後端條目的資料、API、推送、排程 | AC + 每個 API 的單元測試 + 不變量 |
+| **B · 後台前端** | 後端條目含後台畫面（`web/admin`） | AC + 畫面三態 + 後端 API 測試 |
 | **C · 契約交付** | 動到 `/api/front/**`、WebSocket、Kafka 封包 | `/contract-export` + `contract-reviewer` |
 
----
+混合 ticket（S1-T3、S1-T5、S1-T6、S5-T15、S5-T16、S5-T19）：前台欄歸前端部門，後台欄歸我們。
 
 ## 架構一頁圖
 
@@ -124,10 +128,14 @@ claude
 
 ---
 
-## 第一週該做什麼（2026-11-09 開工）
+## 第一週該做什麼（2026-11-09 開工；總計畫 v4.3）
 
-1. **`/bootstrap` B-01 ～ B-10**（約 3 人日，含 thesports-sim 最小版與框架反壓驗證）。十項全綠前不開 ticket。
-2. **W1 的 ticket**（總計畫 §3）：
+> **2026-11-02 兩個變動**：① 部門分工 v4：總控與業主後台的全部畫面歸後端部門 = 本 repo（前端部門只做 H5 與 App），後端成為唯一瓶頸；② 分支規則：`main` 鎖定、`developing` 只收 MR、每張 ticket 從 `origin/developing` 切 `feature/<ticket-id>-<slug>`。
+
+1. **分支**：確認 `origin/developing` 存在（沒有 → 請 release 負責人建立並設保護）；每張 ticket、每個 bootstrap 步驟都開 feature 分支，完成後 MR 到 `developing`。hook 會擋在 `main`／`developing` 上 commit。
+2. **`/bootstrap` B-00 ～ B-10**。B-10 的反壓驗證已做完（結論：框架阻塞），後續是 **P-17**（`internal/realtime` 有界佇列），realtime 第一張 ticket 前要到位。
+3. **排序**：M1 的 9 張（S1-T1～T3、S4-T1～T4、S2-T1）**插隊優先**，其餘 W1～W3 後端 ticket 與 App 平台端排後面（總計畫 §9.4）。
+4. **W1 的 ticket**：
    | ticket | 本 repo 做什麼 |
    |---|---|
    | S1-T1 總控建立業主 | A + B（總控畫面） |
@@ -135,7 +143,7 @@ claude
    | S4-T2 帳號與驗證器 | A + B |
    | S3-T5 設定項（語言、賠率格式、時區、日夜） | **只做後端**（偏好儲存 API）；畫面在另一部門 |
    | S6-T1 App 殼、S6-T7 H5 下載提示條 | **不在本 repo** |
-3. **外部等待**：E1 TheSports 憑證（用模擬器先做）、第二台 collector IP 進白名單、sp-framework tag（B-02 前要有）。
+5. **外部等待**：E1 TheSports 憑證（用模擬器先做）、第二台 collector IP 進白名單、sp-framework tag（B-02 前要有）。
 
 ---
 

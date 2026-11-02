@@ -14,6 +14,12 @@ description: 執行 plan/on-sports-lite/tickets/ 的某一張 ticket——Prefli
 ## Step 0 · Preflight（每個 session 第一次動工前）
 
 ```bash
+# 分支（使用者 2026-11-02 指定：main 鎖定、每張 ticket 從 developing 切分支）
+B=$(git rev-parse --abbrev-ref HEAD)
+echo "$B" | grep -Eq '^(main|master|developing)$' && echo "[preflight] 在 $B 上 — 先切分支：git fetch origin && git switch -c feature/<ticket-id>-<slug> origin/developing"
+echo "$B" | grep -Eq '^feature/' || echo "[preflight] 分支名不是 feature/<ticket-id>-<slug>"
+git ls-remote --heads origin developing | grep -q developing || echo "[preflight] origin/developing 不存在 — 停手回報"
+# 環境
 go version | grep -E "go1\.2[3-9]" || echo "[preflight] Go 版本不符"
 grep -n "sp-framework" go.mod | grep -E "v[0-9]+\.[0-9]+\.[0-9]+" || echo "[preflight] sp-framework 未鎖 tag（D2a）"
 test -f go.work && grep -q "sp-framework" go.work && echo "[preflight] go.work 指向同層 checkout（D2a 禁止）"
@@ -21,7 +27,14 @@ go build ./... || echo "[preflight] HEAD 編譯失敗 — 必修"
 docker compose -f deploy/docker-compose.yml ps 2>/dev/null | grep -q mysql || echo "[preflight] 整合環境未起（整合測試會跳過）"
 ```
 
-Go 版本、框架 tag、go.work、編譯失敗 → **必修，不動工**。compose 未起 → 單元層可做。
+分支不對 → **先切分支，不動工**：
+
+```bash
+T=S2-T8; SLUG=live-score
+git fetch origin && git switch -c feature/$T-$SLUG origin/developing && git push -u origin feature/$T-$SLUG
+```
+
+Go 版本、框架 tag、go.work、編譯失敗 → **必修，不動工**。compose 未起 → 單元層可做。`internal/realtime` 的 ticket → 先確認 `plan/on-sports-lite/tickets/prep/P-17.md` 狀態為「已到位」。
 
 ---
 
@@ -124,6 +137,12 @@ grep -n "^| 狀態 |" plan/on-sports-lite/tickets/$T.md
 > 企劃的 `_generate.py` 重跑會覆蓋開發 ticket 的狀態欄；**plan 檔 §8 是進度真相**，狀態欄是副本。
 
 3. 確認 `plan/` 無「⏳ 待決」OQ；與程式碼**同一個 commit** 提交；不加 `.claude/`、`CLAUDE.md`。
+4. 推分支、開 MR 到 `developing`（**不在本機 merge**）：
+
+```bash
+git rebase origin/developing && go test ./internal/... && git push --force-with-lease
+# 之後在 GitLab 開 MR：來源 feature/<ticket-id>-<slug> → 目標 developing，描述照 rules/git-workflow.md §4
+```
 
 ---
 

@@ -5,17 +5,46 @@
 
 ---
 
-## 1. 分支策略
+## 1. 分支策略（2026-11-02 使用者指定：master 鎖定、每張 ticket 從 developing 切分支）
 
-| 分支 | 用途 | 規則 |
-|------|------|------|
-| `main` | 穩定生產 | 只收 `developing` 的 release merge |
-| `developing` | 集成主線 | 功能分支的 MR 目標 |
-| `developing_test` | 測試環境 | **只收 merge、不回流**（下方紅線） |
-| `feature/<ticket-id>-<desc>` | 一張 ticket 一條 | 從 `developing` 切出；例 `feature/S2-T8-live-score`、`feature/B-03-profiles`（bootstrap 步驟） |
-| `hotfix/<desc>` | 緊急修復 | 從 `main` 切出，回 `main` 與 `developing` |
+| 分支 | 用途 | 誰能動 | 規則 |
+|------|------|--------|------|
+| `main`（= master） | **鎖定**：正式版 | 只有 release 負責人經 MR | **不得 commit、不得 push、不得從它切 feature**。只收 `developing` 的 release MR |
+| `developing` | 集成主線 | 只收 MR | **不得直接 commit**；feature 與 planning 的 MR 目標；CI 綠才可合 |
+| `planning/<專案>` | 企劃文件（PM） | PM | `plan/` 的變更在這裡；要讓開發讀到新版 ticket → 開 MR 進 `developing` |
+| `feature/<ticket-id>-<slug>` | **一張 ticket 一條** | 開發者 | **只能從 `developing` 切出**；例 `feature/S2-T8-live-score`、`feature/B-03-profiles`（bootstrap）、`feature/P-17-ws-bounded-queue`（開發端前置） |
+| `developing_test` | 測試環境 | CI | **只收 merge、不回流**（下方紅線） |
+| `hotfix/<slug>` | 正式版緊急修復 | 開發者 | 從 `main` 切出，MR 進 `main` **與** `developing` 各一 |
 
-一條功能分支只做一張 ticket；ticket 完成（DoD 七條）才開 MR。
+### 1.1 開始一張 ticket 的固定動作
+
+```bash
+git fetch origin
+git switch -c feature/S2-T8-live-score origin/developing     # 一定從 origin/developing，不從 main、不從別的 feature
+git push -u origin feature/S2-T8-live-score                   # 早 push、早開 Draft MR
+```
+
+- `developing` 不存在 → **停手回報**（第一次由 release 負責人從 `main` 建立並設保護）；不要自己用 `main` 代替。
+- 一條分支只做一張 ticket。ticket 沒做完想做下一張 → 另開分支，不疊在同一條上。
+- 分支落後 `developing` 時用 `git rebase origin/developing`（在 feature 分支上），不要把 `developing` merge 進 feature。
+
+### 1.2 完成一張 ticket 的固定動作
+
+1. DoD 七條全過（`testing.md` §8）、plan §8 與 ticket 狀態已回填。
+2. `git rebase origin/developing` → 跑一次 `go test ./internal/...` → `git push --force-with-lease`。
+3. 開 MR：**目標 `developing`**，描述照 §4 格式；指派 reviewer；合併後刪除 feature 分支。
+4. **絕不** 在本機把 feature merge 進 `developing` 或 `main` 再 push。
+
+### 1.3 hook 會擋的動作（`hooks/block-protected-branch.sh`）
+
+| ❌ 動作 | 為什麼 |
+|---|---|
+| 在 `main`／`master` 上 `git commit`、`git merge`、`git push` | 鎖定分支 |
+| `git push origin main`（任何形式把 main 推上去） | 同上 |
+| 在 `developing` 上 `git commit`／`merge`／`rebase main` | 集成分支只收 MR |
+| `git switch -c X main`、`git checkout -b X main`、`git branch X main` | feature 必須從 `developing` 切 |
+
+被攔到時不要找繞法（`--no-verify`、先改名分支再推）。那是在規避規則，回報使用者。
 
 <!-- shared:test-branch-one-way -->
 ### 測試分支單向流動（紅線）
@@ -84,6 +113,7 @@
 |------|--------|
 | `check-oq-on-commit.sh` | `plan/` 下仍有「⏳ 待決」OQ → 攔 commit；先決議並回寫 plan |
 | `block-claude-dir-staging.sh` | `git add -A`、`git add .`、`git add .claude`、`git add CLAUDE.md`、`git commit -a`、`git add -f` 命中範本路徑 → 攔；改為指名檔案 `git add internal/...` |
+| `block-protected-branch.sh` | 在 `main`／`master`／`developing` 上 commit、push 到 main、從 main 切分支 → 攔；照 §1.1 從 `origin/developing` 切 feature 分支 |
 
 `.claude/` 與 `CLAUDE.md` 是本機範本，**永遠不提交**。`git status` 看不到它們是正常的（已 ignore）。
 

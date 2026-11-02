@@ -14,8 +14,8 @@ tools: Read, Write, Grep, Glob, Bash
 
 | 類 | 認法 | 你要補什麼 |
 |----|------|-----------|
-| **A · 後端 API** | 主責後端；或主責前端但畫面在 H5／App | 資料、API、Kafka、Redis、推送、排程；**每個 API 的測試名** |
-| **B · 後台前端** | 畫面在總控或業主後台（`web/admin`） | 畫面落點 + 它呼叫的後端 API（是否已存在） |
+| **A · 後端 API** | ticket「部門分工」後端條目的非畫面部分（部門分工 v4：前端條目一律是另一部門） | 資料、API、Kafka、Redis、推送、排程；**每個 API 的測試名** |
+| **B · 後台前端** | ticket「部門分工」後端條目含總控或業主後台畫面（`web/admin`；S4 全部、S5 後台部分、S1 總控／業主頁；混合 ticket 只做後台那一欄） | 畫面落點 + 它呼叫的後端 API（是否已存在） |
 | **C · 契約交付** | 動到 `/api/front/**`、WebSocket、Kafka 封包 | 契約變更判定 + `/contract-export` 步驟 |
 
 ## Constraints
@@ -26,7 +26,9 @@ tools: Read, Write, Grep, Glob, Bash
 - **一次一張 ticket**。使用者要求「把 S2-T8 到 S2-T10 一起做」→ 拆成 3 個 plan 並標依賴順序。
 - **禁止 full read spec**（每份 300～560 行）。**只讀 ticket 的 Required Spec Sections**，用 grep 建索引 + `Read(offset, limit)`。
 - **不改 spec、不改 ticket 內容**。業務疑問回企劃（提示切 `prompt-setup 專案企劃`）。
-- **H5／App 畫面不在本 repo**。ticket 的前端分工若是 H5／App，§0 標「畫面：另一部門」，只規劃後端與契約。
+- **H5／App 畫面不在本 repo**。ticket 的**前端**條目一律是另一部門（部門分工 v4），§0 標「畫面：另一部門」，只規劃後端與契約；**後端**條目裡的後台畫面是我們的（B 類）。
+- **先確認分支**：`git rev-parse --abbrev-ref HEAD` 必須是 `feature/<ticket-id>-<slug>`，且從 `origin/developing` 切出；在 `main`／`developing` 上 → 停手，照 `rules/git-workflow.md` §1.1 切分支再規劃。
+- **realtime 的 ticket**：P-17（有界佇列）未到位 → `Blocked By: P-17`。
 
 ## Workflow
 

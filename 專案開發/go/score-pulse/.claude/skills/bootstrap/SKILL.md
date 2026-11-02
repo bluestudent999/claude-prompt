@@ -11,6 +11,24 @@ description: W1 開工骨架 B-01 ～ B-10——repo 初始化、sp-framework �
 
 ---
 
+## B-00 · 分支與 .gitignore（使用者 2026-11-02 指定）
+
+```bash
+git ls-remote --heads origin developing | grep -q developing || echo "developing 不存在：請 release 負責人從 main 建立並在 GitLab 設保護（main 鎖定、developing 只收 MR）；開發端不自行建立"
+git fetch origin && git switch -c feature/B-01-skeleton origin/developing      # bootstrap 每一項也走 feature 分支 + MR
+cat >> .gitignore <<'EOG'
+# build / run artifacts
+bin/
+logs/
+*.log
+test/scenario/logs/
+web/admin/node_modules/
+web/admin/dist/
+EOG
+```
+
+完成判準：`origin/developing` 存在；目前在 `feature/B-*` 分支；`git status` 看不到 bin/、logs/、node_modules。
+
 ## B-01 · module 與目錄骨架
 
 ```bash
@@ -115,6 +133,9 @@ bash .claude/skills/contract-export/contract-export.sh
 完成判準：`docs/contract/{openapi-front.yaml,openapi-admin.yaml,realtime.md,README.md,ws-client.example.ts,CHANGELOG.md}` 存在（內容可先是骨架）。
 
 ## B-10 · thesports-sim 最小版 + 框架反壓驗證
+
+> **反壓驗證已於 2026-11-01 做完**（`test/scenario/backpressure_result.txt`）：框架是「阻塞」語意，關閉慢連線時 `send on closed channel`。結論已寫成 **P-17**（`plan/on-sports-lite/tickets/prep/P-17.md`）：在 `internal/realtime` 包每連線有界佇列層。**B-10 的反壓部分視為完成，P-17 是後續 ticket**，realtime 第一張 ticket 前要做完。本節其餘（thesports-sim 最小版）照做。
+
 
 `cmd/thesports-sim`：內嵌 MQTT broker（`github.com/mochi-mqtt/server/v2`）、HTTP stub（gin）、`--scenario <file>` 重放 `test/fixtures/thesports/*.json`。最小版只需重放一個足球比分 fixture。設計要求見 `/sim-scenario`。
 

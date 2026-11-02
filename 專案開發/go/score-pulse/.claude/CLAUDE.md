@@ -21,15 +21,29 @@
 
 ### 0.1 三類工作怎麼認
 
+> **部門分工 v4（2026-11-02）：總控與業主後台的全部畫面歸後端部門，也就是本 repo。** 前端部門只做 H5 與 App。ticket 的「部門分工」段若在**後端**條目寫了畫面（頁、表單、列表、匯出按鈕…），那些畫面就是本 repo 要做的（`web/admin`）。
+
 | 類 | 認法 | 驗收 |
 |----|------|------|
-| **A · 後端 API** | ticket 主責後端；或主責前端但畫面在 H5／App（只做後端部分） | AC + 每個 API 的單元測試 + 不變量測試 |
-| **B · 後台前端** | 畫面在總控或業主後台（`web/admin`） | AC + 畫面三態 + 後端 API 測試 |
+| **A · 後端 API** | ticket「部門分工」的後端條目：資料、API、推送、排程、環境 | AC + 每個 API 的單元測試 + 不變量測試 |
+| **B · 後台前端** | ticket「部門分工」的後端條目含**總控或業主後台畫面**（S4 全部、S5 的後台部分、S1 的總控／業主頁；混合 ticket S1-T3、S1-T5、S1-T6、S5-T15、S5-T16、S5-T19 只做後台那一欄） | AC + 畫面三態 + 後端 API 測試 |
 | **C · 契約交付** | 動到 `/api/front/**`、WebSocket、Kafka 封包 | `/contract-export` + `contract-reviewer` |
+| **另一部門** | ticket「部門分工」的**前端**條目（H5 前台頁、App） | 本 repo 只交 API 與契約 |
 
 ### 0.2 開工前的骨架不是 ticket
 
-repo 初始化、框架 tag、三份 profile、docker-compose、migrate、swag、lint、CI、`thesports-sim` → `/bootstrap`（B-01 ～ B-10），W1 做完才開第一張 ticket。
+repo 初始化、框架 tag、三份 profile、docker-compose、migrate、swag、lint、CI、`thesports-sim` → `/bootstrap`（B-00 ～ B-10），W1 做完才開第一張 ticket。**P-17**（realtime 有界佇列，開發端補充的前置）要在 `internal/realtime` 第一張 ticket 前做完。
+
+### 0.3 分支鐵律（2026-11-02 使用者指定）
+
+- **`main`（master）是鎖定分支**：不 commit、不 push、不從它切分支。只收 `developing` 的 release MR。
+- **`developing` 只收 MR**，不直接 commit。
+- **每張 ticket 一條分支，從 `origin/developing` 切出**：`git fetch origin && git switch -c feature/<ticket-id>-<slug> origin/developing`。完成後 push 分支、開 MR 到 `developing`。
+- `hooks/block-protected-branch.sh` 會攔違規動作；被攔不要繞（`--no-verify`、改分支名），回報使用者。細則見 `rules/git-workflow.md` §1。
+
+### 0.4 先做哪張
+
+總計畫 v4.3（2026-11-02）結論：**後端是唯一瓶頸**。排序規則：① M1 的 9 張（S1-T1～T3、S4-T1～T4、S2-T1）**一律插隊優先**；② 關鍵路徑（`master-plan.md` §2.2）；③ 回歸第 1 組基準（S2-T1～T4、S3-T5～T7、S3-T18）；④ 其餘依波次。不確定先做哪張 → 看 `master-plan.md` §9.4 與 §3，不要自己挑順手的。
 
 ---
 
@@ -80,7 +94,9 @@ master-plan.md（波次、里程碑、外部等待）              ← 只決定
 - **工單：** `plan/on-sports-lite/tickets/README.md`（129 張總表）、`tickets/<id>.md`
 - **技術決策：** `plan/on-sports-lite/tech-decisions.md`（**衝突時以此為準**）
 - **業務規格：** `plan/on-sports-lite/spec/spec-{1,2a,2b,3,4,5,6}-*.md`（依 Required Spec Sections 分節讀，禁 full read）
-- **排程：** `plan/on-sports-lite/master-plan.md`（§3 波次、§1.2 M0 開工前置、§4 外部等待）
+- **排程：** `plan/on-sports-lite/master-plan.md`（v4.3：§3 波次、§1.2 M0 開工前置、§4 外部等待、§9.4 里程碑判定與 M1 插隊）
+- **部門分工：** `plan/on-sports-lite/dept-assignment.md`（v4：規則 13 後台畫面歸後端；附錄 B 每張 ticket 的部門欄）
+- **開發端前置：** `plan/on-sports-lite/tickets/prep/P-17.md`（realtime 有界佇列）、`plan/dev-bootstrap.md`（B-00～B-10 進度）
 
 ### 規範
 
@@ -111,6 +127,7 @@ master-plan.md（波次、里程碑、外部等待）              ← 只決定
 5. **已鎖定的架構決策不得自行推翻**（`rules/locked-decisions.md`）：不拆服務、不依賴 sp-common、不用 Redis Pub/Sub 扇出、第一期不用 protobuf、不以「比分只能變大」過濾、framework 鎖 tag。要翻案 → 停手回報。
 6. **sp-framework 的慣例不是建議**（`rules/framework-conventions.md`）：panic 走錯誤流程、`fx.In` 顯式結構、YAML key 小寫、Name() 對上 YAML 鍵、`EmitWithKey(match_id)`。寫錯會跑不起來或靜默失序。
 7. **範圍紀律**：只做 ticket 的 Scope「含」；不做「順便加的」功能；不為 H5／App 的畫面寫程式；不做結算。
+8. **分支紀律**：`main` 鎖定、`developing` 只收 MR、每張 ticket 從 `origin/developing` 切 `feature/<ticket-id>-<slug>`。違規 = hook 攔，不得繞過。
 
 ---
 
@@ -137,6 +154,7 @@ master-plan.md（波次、里程碑、外部等待）              ← 只決定
 4. 回填：plan §8 + ticket 狀態欄。
 5. 檢查 OQ：`plan/` 無「⏳ 待決」（否則 git hook 攔截）。
 6. Commit（Conventional Commits，scope = 功能包名）；**不加 `.claude/` 與 `CLAUDE.md`**。
+7. 確認在 `feature/<ticket-id>-<slug>` 分支上；`git rebase origin/developing` 後 `git push --force-with-lease`，開 MR 到 `developing`（`rules/git-workflow.md` §1.2）。
 
 ---
 

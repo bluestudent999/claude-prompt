@@ -19,7 +19,11 @@
       "Bash(find:*)",
       "Bash(git status:*)",
       "Bash(git diff:*)",
-      "Bash(git log:*)"
+      "Bash(git log:*)",
+      "Bash(git fetch:*)",
+      "Bash(git branch:*)",
+      "Bash(git switch:*)",
+      "Bash(git rev-parse:*)"
     ]
   },
   "hooks": {
@@ -28,7 +32,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "echo '=== score-pulse 開工提醒 ===' && echo '1) 版本基準：Go 1.23 + sp-framework 鎖 tag（go.mod replace 指向 tag，禁 go.work 同層 checkout）' && echo '2) 每一個 API（REST handler / WS 訂閱 action / Kafka consumer）都必須有單元測試，含越權與未登入案例；沒有就 block' && echo '3) 整合測試一律雙租戶 fixture（op-a / op-b）— 隔離 bug 在單租戶下 100% 測不出來' && echo '4) 10 條不變量 I1~I10 是正確性定義：租戶隔離 / 單場順序 / compare-and-set / 覆寫優先 / 賠率歷史只增 / 事件不刪 / 憑證只在 collector / 停更不誤判 / 快照只讀 Redis / 記錄 append-only' && echo '5) H5 與 App 畫面在另一部門：契約（docs/contract）是交付物，改契約是雙邊變更' && echo '--- 不做：拆服務 / sp-common / Ignite / ES / Redis Pub-Sub 扇出 / protobuf（第一期）/ 結算 / 以比分大小過濾更新 / 改 spec ---'"
+            "command": "echo '=== score-pulse 開工提醒 ===' && echo '1) 版本基準：Go 1.23 + sp-framework 鎖 tag（go.mod replace 指向 tag，禁 go.work 同層 checkout）' && echo '2) 每一個 API（REST handler / WS 訂閱 action / Kafka consumer）都必須有單元測試，含越權與未登入案例；沒有就 block' && echo '3) 整合測試一律雙租戶 fixture（op-a / op-b）— 隔離 bug 在單租戶下 100% 測不出來' && echo '4) 10 條不變量 I1~I10 是正確性定義：租戶隔離 / 單場順序 / compare-and-set / 覆寫優先 / 賠率歷史只增 / 事件不刪 / 憑證只在 collector / 停更不誤判 / 快照只讀 Redis / 記錄 append-only' && echo '5) H5 與 App 畫面在另一部門：契約（docs/contract）是交付物，改契約是雙邊變更' && echo '6) 分支：main/master 鎖定、developing 只收 MR；每張 ticket 從 origin/developing 切 feature/<ticket-id>-<slug>；後台畫面（web/admin）自部門分工 v4 起由本 repo 後端做' && echo '--- 不做：拆服務 / sp-common / Ignite / ES / Redis Pub-Sub 扇出 / protobuf（第一期）/ 結算 / 以比分大小過濾更新 / 改 spec ---'"
           },
           {
             "type": "command",
@@ -58,6 +62,10 @@
           {
             "type": "command",
             "command": "bash \"$CLAUDE_PROJECT_DIR/.claude/hooks/block-claude-dir-staging.sh\""
+          },
+          {
+            "type": "command",
+            "command": "bash \"$CLAUDE_PROJECT_DIR/.claude/hooks/block-protected-branch.sh\""
           }
         ]
       }
@@ -114,7 +122,9 @@
       "（後台）把 session token 寫入 localStorage / sessionStorage / 網址 / log",
       "（後台）把 API 取得失敗渲染成空清單，或只在前端隱藏按鈕就當授權完成",
       "（後台）後台介面接 5 語系翻譯（後台只做中文）",
-      "提交 .claude/ 或 CLAUDE.md 進版控"
+      "提交 .claude/ 或 CLAUDE.md 進版控",
+      "在 main／master／developing 分支上直接 commit、merge 或 push；從 main 切 feature 分支；用 --no-verify 或改分支名繞過 block-protected-branch hook",
+      "把 H5／App 的畫面或 OQ-63／OQ-62／OQ-32a 的答案寫進本 repo（另一部門職責）"
     ]
   }
 }
