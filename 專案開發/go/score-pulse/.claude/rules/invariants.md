@@ -8,7 +8,7 @@
 
 | # | 不變量 | 一句話 | 來源 |
 |---|--------|--------|------|
-| **I1** | 租戶隔離 | 業主 A 的任何請求取不到 B 的會員、收藏、通知、導流記錄、設定；範圍由 Host 與登入身分在伺服器端推導，**不接受呼叫端指定** | Spec-1 R28–R36；D7 |
+| **I1** | 租戶隔離 | 業主 A 的任何請求取不到 B 的會員、收藏、通知、導流記錄、設定；範圍由 Host 與登入身分在伺服器端推導，**不接受呼叫端指定**（業主後台與前台）；總控對全部業主（D24），指定單一業主須經伺服器驗證（`auth.ManageTarget`） | Spec-1 R28–R36；D7 |
 | **I2** | 單場順序 | 同一場比賽的比分、狀態、事件變動以收到的順序套用與推送；`match_id` 是 partition key；每場推送 `seq` 單調遞增 | Spec-2a R58–R60、AC-46；D4 |
 | **I3** | 套用冪等 | 每筆更新以供應商的版本或更新時間做 compare-and-set；重複與較舊的更新被丟棄；**比分變小是合法更新**，不得以分數大小過濾 | Spec-2a R59；D16 |
 | **I4** | 校正覆寫優先 | 總控對比分、狀態、事件的手動覆寫在解除前**永遠**優先於供應商資料；覆寫期間供應商更新照收、不套用到對外狀態 | Spec-2a R14、E23；Spec-4 |
@@ -17,7 +17,7 @@
 | **I7** | 憑證只在 collector | TheSports 憑證只載入 `collector` 角色；不進 log、不進錯誤訊息、不進 Kafka 訊息、不進任何 API 回應 | D15 |
 | **I8** | 停更與中斷不誤判 | 單場超過門檻無資料 → 標「資料暫停更新中」，**狀態不變、不標完場**；全站中斷 → 橫幅，恢復後補齊；比賽狀態只跟供應商（I4 覆寫除外） | Spec-2a R61–R63、E6、E21 |
 | **I9** | 快照一致 | 即時比分、狀態、事件的首屏與重連快照**只從 Redis 讀**；DB 可落後；`persist` 只在批次 flush 成功後 commit offset | D5、D16 |
-| **I10** | 記錄 append-only | 兩套後台的操作記錄、導流曝光與點擊記錄只 INSERT；每次點擊一筆（含未登入）；業主停用後入口不顯示、不記錄、不跳轉 | Spec-1 R24–R27、Spec-4 R15；Spec-1 R41 |
+| **I10** | 記錄 append-only | 兩套後台的操作記錄、登入記錄、導流曝光與點擊記錄只 INSERT；每次點擊一筆（含未登入）；業主停用後入口不顯示、不記錄、不跳轉 | Spec-1 R24–R27、Spec-4 R22、R23；Spec-1 R41 |
 
 ---
 
@@ -34,7 +34,7 @@
 | I7 | 以 `api` profile 啟動 → 憑證設定鍵不存在；log 掃描無 secret | `internal/collector/conf_test.go`、`/arch-check` |
 | I8 | 模擬器停送 70 秒 → 狀態仍「進行中」、標停更；恢復 → 標示消失並補齊 | `internal/collector/.../stall_test.go` |
 | I9 | 關掉 MySQL 寫入 → 首屏快照仍正確；`persist` flush 失敗 → offset 未前進 | `internal/match/controller/snapshot_test.go`、`internal/match/persist_test.go` |
-| I10 | 同一會員連點 5 次 → 5 筆；停用業主 → 0 筆且不跳轉；操作記錄表無 UPDATE／DELETE | `internal/operator/.../click_test.go`、`internal/admin/.../audit_test.go` |
+| I10 | 同一會員連點 5 次 → 5 筆；停用業主 → 0 筆且不跳轉；操作記錄與登入記錄表無 UPDATE／DELETE | `internal/platform/.../click_test.go`、`internal/manage/dao/backoffice_log_test.go`、`internal/manage/service/{login_log,operate_log}_test.go` |
 
 ---
 

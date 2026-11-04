@@ -22,7 +22,7 @@ tools: Read, Grep, Glob, Bash
 |---|------|------|
 | 1 | 包內 controller import 了 dao 或 model；dao 回呼 service | CRITICAL |
 | 2 | 跨功能包 import 對方的 `dao`、`model`、`controller`（只允許 `service` 介面與 `dto`） | CRITICAL |
-| 3 | `internal/platform` import 任何功能包 | CRITICAL |
+| 3 | `internal/core` import 任何功能包 | CRITICAL |
 | 4 | `internal/collector` 被任何功能包 import | CRITICAL |
 | 5 | `internal/realtime` import 任何 `dao` | CRITICAL |
 | 6 | `internal/inject` 被 `cmd/score-pulse` 以外的地方 import | HIGH |
@@ -62,7 +62,7 @@ tools: Read, Grep, Glob, Bash
 1. 讀 briefing 的 diff 與 plan §0（涉及功能包）。
 2. **依賴圖**：
    ```bash
-   go list -deps ./internal/platform/... | grep "score-pulse/internal/" | grep -v platform && echo "platform 依賴了功能包"
+   go list -deps ./internal/core/... | grep "score-pulse/internal/" | grep -v "internal/core" && echo "core 依賴了功能包"
    go list -deps ./internal/... 2>/dev/null | grep "internal/collector" | grep -v "^score-pulse/internal/collector"
    go list -deps ./internal/realtime/... | grep "/dao$"
    go list -deps ./internal/... | grep "internal/inject"
@@ -70,16 +70,16 @@ tools: Read, Grep, Glob, Bash
    ```
 3. **跨包 import 白名單**：
    ```bash
-   for p in operator match odds member notify admin collector realtime; do
+   for p in platform match odds member notify manage collector realtime; do
      grep -rhn "score-pulse/internal/" internal/$p --include=*.go | grep -v _test \
-       | grep -v "internal/$p/\|internal/platform/" \
+       | grep -v "internal/$p/\|internal/core/" \
        | grep -vE "internal/[a-z]+/(service|dto)\"" && echo "^^ $p 跨包 import 了非 service/dto"
    done
    grep -rn "score-pulse/internal/" internal/*/controller/*.go | grep "/dao\|/model" | grep -v _test
    ```
 4. **資料歸屬**：
    ```bash
-   for t in odds_history redirect_click admin_audit member; do
+   for t in odds_history redirect_click login_log operate_log member; do
      m=$(python3 -c "import sys; print(''.join(w.capitalize() for w in sys.argv[1].split('_')))" "$t")
      grep -rln "model\.${m}\b" internal/*/dao/ | awk -F/ '{print $2}' | sort -u
    done   # 每張表應只出現一個包
@@ -133,8 +133,8 @@ Status 判定：CRITICAL > 0 → `block`；HIGH > 0 → `warning`；其餘 `appr
 
 ## Failure Handling
 
-- **跨包循環依賴**：`block`。修法固定：把介面抽到**呼叫方**那一側，不要抽到 `platform`。寫出具體介面名與放置路徑。
-- **為了繞過依賴方向把業務邏輯搬進 platform**：`block`。platform 不含業務規則（§2）。
+- **跨包循環依賴**：`block`。修法固定：把介面抽到**呼叫方**那一側，不要抽到 `core`。寫出具體介面名與放置路徑。
+- **為了繞過依賴方向把業務邏輯搬進 core**：`block`。core 不含業務規則（§2）。
 - **新增表但未登記**：`warning`，Next actions 要求同時更新 `architecture.md` §4 與 `tenant-isolation.md` §2。
 - **go.mod 的 sp-framework 指向 commit hash 而非 tag**：`warning`（可重現但不符 D2a），要求 bootstrap 補 tag。
-- **發現既有違規但非本次引入**：列入 `Artifacts` 標 `[既有]`，判 `warning` 建議另開 ticket；**若既有違規是 platform 依賴功能包或 collector 被 import，仍 `block`**，它會隨每張 ticket擴散。
+- **發現既有違規但非本次引入**：列入 `Artifacts` 標 `[既有]`，判 `warning` 建議另開 ticket；**若既有違規是 core 依賴功能包或 collector 被 import，仍 `block`**，它會隨每張 ticket擴散。

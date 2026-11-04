@@ -1,7 +1,7 @@
 # Git 工作流與提交規範
 
-> 本文規範 score-pulse 的分支策略、Commit 訊息格式、Merge Request（MR）規範與本機範本不進版控的紀律。
-> 範本本身不進 git：`.claude/*` 與根 `CLAUDE.md` 已在 `.gitignore`，且 `hooks/block-claude-dir-staging.sh` 會攔 `git add -A` / `.` / `-f`。
+> 本文規範 score-pulse 的分支策略、Commit 訊息格式與 Merge Request（MR）規範。
+> 開發範本（`.claude/` 與根 `CLAUDE.md`）自 2026-11-02 起隨專案進版控；只排除 `.claude/settings.local.json` 與 `.claude/worktrees/`。範本改動另開 `chore` commit，不與 ticket 混在一起。
 
 ---
 
@@ -35,7 +35,7 @@ git push -u origin feature/S2-T8-live-score                   # 早 push、早�
 3. 開 MR：**目標 `developing`**，描述照 §4 格式；指派 reviewer；合併後刪除 feature 分支。
 4. **絕不** 在本機把 feature merge 進 `developing` 或 `main` 再 push。
 
-### 1.3 hook 會擋的動作（`hooks/block-protected-branch.sh`）
+### 1.3 hook 會擋的動作（`hooks/git-guard.sh` 的分支檢查）
 
 | ❌ 動作 | 為什麼 |
 |---|---|
@@ -90,7 +90,7 @@ git push -u origin feature/S2-T8-live-score                   # 早 push、早�
 | 項目 | 規則 |
 |------|------|
 | type | `feat`、`fix`、`refactor`、`test`、`chore`、`docs`、`perf` |
-| scope | **= 功能包名或層名**：`operator`、`match`、`odds`、`member`、`notify`、`admin`、`collector`、`realtime`、`platform`、`web`（`web/admin`）、`contract`（`docs/contract`）、`migration`、`sim`（`cmd/thesports-sim`）、`deploy` |
+| scope | **= 功能包名或層名**：`platform`（業主）、`match`、`odds`、`member`、`notify`、`manage`（總控）、`collector`、`realtime`、`core`（共用層）、`web`（`web/admin`）、`contract`（`docs/contract`）、`migration`、`sim`（`cmd/thesports-sim`）、`deploy` |
 | ticket id | **必含**，subject 開頭：`feat(match): S2-T8 apply score rollback with compare-and-set`；bootstrap 用 `B-03`；無 ticket 的雜務用 `chore(deploy): - bump sp-framework tag`（`-` 佔位） |
 | subject | 英文、祈使句、小寫、不加句點、≤ 72 字 |
 | body | 涉及不變量寫 `Invariants: I3, I9`；契約變更寫 `Contract: compatible` 或 `Contract: BREAKING (see docs/contract/CHANGELOG.md)` |
@@ -109,13 +109,14 @@ git push -u origin feature/S2-T8-live-score                   # 早 push、早�
 
 ## 3. 提交前 hook 會擋的事
 
-| hook | 擋什麼 |
-|------|--------|
-| `check-oq-on-commit.sh` | `plan/` 下仍有「⏳ 待決」OQ → 攔 commit；先決議並回寫 plan |
-| `block-claude-dir-staging.sh` | `git add -A`、`git add .`、`git add .claude`、`git add CLAUDE.md`、`git commit -a`、`git add -f` 命中範本路徑 → 攔；改為指名檔案 `git add internal/...` |
-| `block-protected-branch.sh` | 在 `main`／`master`／`developing` 上 commit、push 到 main、從 main 切分支 → 攔；照 §1.1 從 `origin/developing` 切 feature 分支 |
+兩項檢查都在同一支 `hooks/git-guard.sh`（PreToolUse Bash；指令沒有 `git` 字樣就直接放行，JSON 只解析一次）：
 
-`.claude/` 與 `CLAUDE.md` 是本機範本，**永遠不提交**。`git status` 看不到它們是正常的（已 ignore）。
+| 檢查 | 擋什麼 |
+|------|--------|
+| check-oq | `plan/` 下仍有「⏳ 待決」OQ → 攔 commit；先決議並回寫 plan |
+| protected-branch | 在 `main`／`master`／`developing` 上 commit、push 到 main、從 main 切分支 → 攔；照 §1.1 從 `origin/developing` 切 feature 分支 |
+
+`.claude/` 與 `CLAUDE.md` 是版控中的開發範本：改動它們等於改專案規範，另開 `chore(deploy)` commit 走 MR。PM 在本機部署企劃範本造成的覆蓋**不得提交**。
 
 ---
 
@@ -164,7 +165,7 @@ reviewer（人）以此對照 `testing.md` §8 的 DoD 七條；缺任一段退�
 
 1. plan §8 完成紀錄 → ticket 狀態欄。
 2. `git add <指名檔案>`（含測試、migration、gen、docs/contract）。
-3. `git diff --cached --name-only` 確認沒有 `.claude/`、`CLAUDE.md`、`node_modules/`、`dist/`。
+3. `git diff --cached --name-only` 確認沒有 `node_modules/`、`dist/`、`.claude/settings.local.json`；ticket commit 不夾帶範本（`.claude/`、`CLAUDE.md`）改動。
 4. commit → push → MR。
 
 ---
@@ -175,7 +176,7 @@ reviewer（人）以此對照 `testing.md` §8 的 DoD 七條；缺任一段退�
 |------|--------|
 | `git push --force` 到 `developing` / `main` | 改寫共用歷史 |
 | 在 `developing` 直接 commit | 一律走功能分支 + MR |
-| `git commit --no-verify` | 繞過 OQ 與範本攔截 |
+| `git commit --no-verify` | 繞過 OQ 與分支攔截 |
 | 把兩張 ticket 放同一條分支 | 回填與驗收粒度對不上 |
 | commit 裡修改已套用的 migration | `db-migration.md` §1 |
 | 契約改了但 `docs/contract/` 沒跟 | `api-contract.md` §4 |

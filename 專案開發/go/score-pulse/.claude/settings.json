@@ -12,8 +12,11 @@
       "Bash(npx vitest:*)",
       "Bash(npx openapi-typescript:*)",
       "Bash(bash .claude/skills/*)",
+      "Bash(bash scripts/*)",
       "Bash(ls:*)",
       "Bash(wc:*)",
+      "Bash(head:*)",
+      "Bash(sed -n:*)",
       "Bash(grep:*)",
       "Bash(rg:*)",
       "Bash(find:*)",
@@ -23,7 +26,8 @@
       "Bash(git fetch:*)",
       "Bash(git branch:*)",
       "Bash(git switch:*)",
-      "Bash(git rev-parse:*)"
+      "Bash(git rev-parse:*)",
+      "Bash(git ls-remote:*)"
     ]
   },
   "hooks": {
@@ -57,26 +61,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash \"$CLAUDE_PROJECT_DIR/.claude/hooks/check-oq-on-commit.sh\""
-          },
-          {
-            "type": "command",
-            "command": "bash \"$CLAUDE_PROJECT_DIR/.claude/hooks/block-claude-dir-staging.sh\""
-          },
-          {
-            "type": "command",
-            "command": "bash \"$CLAUDE_PROJECT_DIR/.claude/hooks/block-protected-branch.sh\""
-          }
-        ]
-      }
-    ],
-    "Stop": [
-      {
-        "matcher": "",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "[ -f Makefile ] && make -s arch-check || true"
+            "command": "bash \"$CLAUDE_PROJECT_DIR/.claude/hooks/git-guard.sh\""
           }
         ]
       }
@@ -90,7 +75,7 @@
       "執行 git status、git diff、git log",
       "執行 docker compose ps、docker compose up -d（本機測試環境）",
       "讀取 plan/on-sports-lite/ 下的 ticket 全文與 Required Spec Sections 指定的 spec 節",
-      "執行 .claude/skills 下的檢查腳本（arch-check、contract-export）"
+      "執行 scripts/ 下的檢查腳本（arch-check、tenant-check、contract-export）"
     ],
     "soft_deny": [
       "在 go.work 指向同層 sp-framework checkout，或把 go.mod 的 sp-framework 從固定 tag 改成分支或路徑（D2a）",
@@ -101,11 +86,11 @@
       "以 protobuf 或 .proto 定義對前端訊息；或在 gateway 做按場動態 Redis 訂閱（D5，第一期不做）",
       "用 JWT 擋匿名的比賽訂閱，或要求未登入使用者登入才能看比分（D7）",
       "以「比分只能變大」或分數大小過濾供應商更新（D16、I3）",
-      "對 odds_history、admin_audit、redirect_click、redirect_impression、visit_log 做 UPDATE 或 DELETE（I5、I10）",
+      "對 odds_history、login_log、operate_log、redirect_click、redirect_impression、visit_log 做 UPDATE 或 DELETE（I5、I10）",
       "刪除 match_event 的列而不是標 cancelled（I6）",
       "讓 api 或 realtime 角色載入 TheSports 憑證，或把憑證寫進 log、錯誤訊息、Kafka 訊息（I7）",
       "REST 首屏或重連快照從 MySQL 讀即時比分、狀態、事件而不是 Redis（I9）",
-      "查詢租戶表卻不經 tenant.Scope；或接受呼叫端帶入的 operator_id / platform code 當租戶範圍（I1）",
+      "查詢租戶表卻不經 tenant.Scope；或接受呼叫端帶入的 platform_code / platformCode 當租戶範圍（I1）",
       "Emit 到 match.live 或 odds.change 不用 match_id 當 key（I2）",
       "在單租戶 fixture 上撰寫整合測試，或租戶端點的測試沒有 OtherTenant / Unauthorized 案例",
       "新增或修改 REST handler、WebSocket 訂閱 action、Kafka consumer 卻沒有對應的 _test.go",
@@ -122,8 +107,7 @@
       "（後台）把 session token 寫入 localStorage / sessionStorage / 網址 / log",
       "（後台）把 API 取得失敗渲染成空清單，或只在前端隱藏按鈕就當授權完成",
       "（後台）後台介面接 5 語系翻譯（後台只做中文）",
-      "提交 .claude/ 或 CLAUDE.md 進版控",
-      "在 main／master／developing 分支上直接 commit、merge 或 push；從 main 切 feature 分支；用 --no-verify 或改分支名繞過 block-protected-branch hook",
+      "在 main／master／developing 分支上直接 commit、merge 或 push；從 main 切 feature 分支；用 --no-verify 或改分支名繞過 git-guard hook",
       "把 H5／App 的畫面或 OQ-63／OQ-62／OQ-32a 的答案寫進本 repo（另一部門職責）"
     ]
   }

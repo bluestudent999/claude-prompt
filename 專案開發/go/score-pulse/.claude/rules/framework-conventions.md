@@ -49,12 +49,13 @@ func NewMatchService(args MatchServiceArgs) *MatchService { return &MatchService
 |------|------|
 | Router | 實作 `web.Router` 介面：`Handle(engine *gin.Engine)`；用 `web.RegisterRouter(NewXxxRouter)` |
 | Handler 簽名 | 框架 `web.ContextWrapper` + 綁定好的 DTO，回傳 `*response.Object[T]`／`*response.Page[T]`；由 `web.Wrap(handler, web.HandlerMeta{Permissions: []string{...}})` 轉成 gin HandlerFunc |
+| 後台路由（D23） | `/api/manage/**`、`/api/platform/**` **一律經 `auth.RouteTable`**：`rt.Get／rt.Post(g, path, handler, auth.MustCode(scope, auth.PageXxx, auth.ActXxx)...)`（持有任一個代碼即可）；登入、驗證碼、登出、`me/permissions` 用 `rt.PublicGet／PublicPost`（固定白名單）。**不得**直接 `web.GET／POST` 或 gin 方法掛後台路由：框架只把 `Permissions` 閉包進 handler、沒宣告就不檢查、沒有 checker 就整站放行；啟動檢查 `auth.VerifyBackOfficeRoutes` 會讓服務起不來，arch-check 第 14 項也會 FAIL。匯出端點的路徑要有匯出段（以 export／download／csv／xlsx 開頭或以 .csv／.xlsx 結尾的段，不分大小寫；有這種段就算匯出路徑）、只宣告匯出代碼。後台路由前兩段不得是萬用字元；不准 `NoRoute`／`NoMethod`（含方法值）、`internal/` 不准 `.Use`（含方法值）、帶 middleware 的 `.Group(` 或 `.Group` 方法值、改寫或讀取 gin 的 `.Handlers`、`.Handler = …` 換掉 http.Server 的 Handler（middleware 一律經 `web.RegisterMiddleware`）。代碼總表 `docs/contract/admin-menu-codes.md` 只增不改（第 13 項） |
 | 綁參數 | `wrapper.Bind(&so)`（query/form）、`wrapper.BindBody(&so)`（JSON）；驗證用 `validator` tag |
-| Middleware | 實作 `web.Middleware`：`HandlerFunc(c *gin.Context)` + `Sort() int`；**數字小先跑**。本專案固定：100 tenant、200 auth、300 lang-override、900 audit |
+| Middleware | 實作 `web.Middleware`：`HandlerFunc(c *gin.Context)` + `Sort() int`；**數字小先跑**。本專案固定：100 tenant、**150 後台 IP 白名單（P-29）**、200 auth、250 身分橋接、300 lang-override、900 audit |
 | 錯誤流程 | **`panic(runtime.BusinessError(errCode, args...))`**，由框架 `RecoverMiddleware` 轉成 HTTP 回應。**不要 `return err` 到 handler 外**；不要自己 `c.JSON(400, ...)` |
-| 錯誤碼 | `*dto.ErrorCode{Code, Msg}`，集中在 `internal/platform/apierr`；Msg 是 i18n key 的 default |
+| 錯誤碼 | `*dto.ErrorCode{Code, Msg}`，集中在 `internal/core/apierr`；Msg 是 i18n key 的 default |
 | 其他錯誤建構子 | `runtime.ParameterError()`、`InvalidParameterError(msg)`、`UnauthorizedError()`、`PermissionError(msg)`、`TooManyRequestError()` |
-| context 值 | 框架已放：`constants.TraceId`、`constants.HeaderLang`（`x-lang`）、`constants.RealClientIp`。本專案再放：`tenant.CtxOperator`、`auth.CtxPrincipal` |
+| context 值 | 框架已放：`constants.TraceId`、`constants.HeaderLang`（`x-lang`）、`constants.RealClientIp`（**本專案不用它與 gin `c.ClientIP()` 做任何判斷**：兩者都相信可偽造的 `X-Real-Ip`／`X-Forwarded-For`；用戶端 IP 一律 `core/clientip`，P-29）。本專案再放：業主（`tenant.Platform`，經 `tenant.WithPlatform` 放入、`tenant.FromCtx` 讀）、後台身分（`auth.Principal`，經 `auth.WithPrincipal` 放入、`auth.FromCtx` 讀）。兩者的 ctx key 型別不匯出，**只能**經這兩個設定函式放入（只准直接呼叫，不得取方法值轉手），呼叫位置是 arch-check 第 15 項的檔案白名單；登入中途的 session 同理（`auth.WithSession`，只准 session middleware）。**不得宣告任何 `Value` 方法**（內嵌 `context.Context` 覆寫 `Value` 可偽造業主與身分；arch-check 15e）（`tenant-isolation.md` §3） |
 | 標頭常數 | `x-lang`、`x-trace-id`、`x-session-token`、`x-session-platform-code`（本專案**不用** platform-code，業主由 Host 決定） |
 | Ping／metrics | 框架自帶 `web.ping-path` 與 `/metrics`（`web.metrics.enabled`）；不要自己再寫 |
 | CORS | `web.allow-cors` 是全開，**prod 關掉**，由 Nginx 處理 |
@@ -70,8 +71,8 @@ func NewMatchService(args MatchServiceArgs) *MatchService { return &MatchService
 | 事務 | `mysql.Transactional(ctx, ds, func(tx *gorm.DB) error {...})`（框架 `transactional.go`）；service 層開，dao 層不開 |
 | model | `cmd/gen` 用 gorm/gen 產 `*.gen.go`，**不手改**；要加方法寫在同包另一個檔 |
 | 租戶表 | dao 查詢一律 `db.Scopes(tenant.Scope(ctx))`（`tenant-isolation.md`） |
-| Redis | 注入 `*v9.RedisDataSources`，`SelectDefault()` 回 `*redis.Client`；key 只能用 `platform/rediskey` 的函式產生 |
-| 本地快取 | 實作 `cache.AbstractCache` 並用 `fx.ResultTags(`group:"cache"`)` 註冊；失效靠 `cache` 模組的 Kafka 廣播（`cache.kafka-topic`） |
+| Redis | 注入 `*v9.RedisDataSources`，`SelectDefault()` 回 `*redis.Client`；key 只能用 `core/rediskey` 的函式產生 |
+| 本地快取 | 實作 `cache.AbstractCache` 並用 `fx.ResultTags(`group:"cache"`)` 註冊；失效靠 `cache` 模組的 Kafka 廣播（`cache.kafka-topic`）；**並在 `core/cachereg` 登記**：在該功能包自己的 `inject.go` 以 `cachereg.Register` 掛一個 `func() cachereg.Entry`，緊鄰它的 `cache.RegisterCache`（只有 core 的快取——core 沒有 inject.go——才在 `inject/api.go` 登記）；沒登記 api 起不來（P-27）。可整批刪除的 Redis 快取同樣登記，前綴加進 `rediskey.CachePrefixes()` |
 | 時間 | DB 與 Redis 一律 UTC；YAML `mysql.locale` 不要改 |
 | 金額／賠率 | `shopspring/decimal`，不用 float64 |
 
@@ -96,7 +97,7 @@ func (h *RealtimeCoreHandler) AcceptMessage(ctx context.Context, msg *sarama.Con
 |----|------|
 | `Name()` 與 YAML 鍵對不上 | 啟動 `log.Fatal`：「kafka producer not exists」。鍵一律小寫連字號 |
 | 分區 key | **`EmitWithKey(matchID, ...)`**，不要 `Emit`（隨機分區會破壞 I2） |
-| 序列化 | 框架 `SerializationHandler` 用 sonic JSON；訊息結構放 `platform/envelope`，欄位用短名（`realtime-contract.md`） |
+| 序列化 | 框架 `SerializationHandler` 用 sonic JSON；訊息結構放 `core/envelope`，欄位用短名（`realtime-contract.md`） |
 | 回傳 error | `AcceptMessage` 回 error = **不 commit、重試**。只有「可重試的基礎設施錯誤」才回 error；資料錯誤要 log + metric + 回 nil，否則卡死分區 |
 | offset | `persist` group：批次 flush 成功後才回 nil（I9）。`websocket` consumer：YAML `latest-offset: true` + `reset-offset: true` |
 | 預設 group | 不設 `group` 時框架用 `GetUniqName()`（主機名 + 實例號）= **每實例獨立**，這正是 realtime 扇出要的；業務 consumer **一定要明寫 group** |
@@ -110,7 +111,7 @@ func (h *RealtimeCoreHandler) AcceptMessage(ctx context.Context, msg *sarama.Con
 |------|------|
 | 協定 | 二進位 frame：第 1 byte opcode（client `0` ping、`S` subscribe、`U` unsubscribe、`M` message；server `1` pong、`p` push、`e` error），第 2 byte destination 長度，接 destination，接 payload |
 | 訂閱 action | 實作 `wss.WebSocketSubscriptionAction`：`SubscribePath() string`（支援 `$param` 樣式）+ `Subscribe(params map[string]string, body []byte) ([]byte, error)`；回傳的 `[]byte` 是**訂閱當下的快照**（從 Redis 讀，I9）。用 `wss.RegisterWebsocketSubscribe` |
-| 握手 | 實作 `wss.HandshakeHandler`，用 `wss.RegisterHandshakeHandler`；在這裡做 Host → operator、Origin 白名單、每 IP 連線數（D7） |
+| 握手 | 實作 `wss.HandshakeHandler`，用 `wss.RegisterHandshakeHandler`；在這裡做 Host → 業主代碼、Origin 白名單、每 IP 連線數（D7） |
 | 推送 | `api` 側注入 `*wss.WebSocketEmitter`，`SendWsMessage(&wss.WebsocketMessage{Destinations: []string{...}, Data: json})`；realtime 側由框架 `WebsocketListener` 收 Kafka 後 `NotifyByDestination` |
 | 連線上限 | `websocket.max-connections`（預設 2500／實例）；`websocket.pong-timeout` 30 秒；`websocket.write-timeout` 2 秒 |
 | 跨域 | `websocket.allow-cross-origin` 預設 **true**，prod 改 false 並在握手檢 Origin |
@@ -123,7 +124,7 @@ func (h *RealtimeCoreHandler) AcceptMessage(ctx context.Context, msg *sarama.Con
 | 慣例 | 寫法 |
 |------|------|
 | Job | 內嵌 `*job.AbstractJob`，實作 `Name()`、`Cron()`（6 欄，含秒）、`Execute(ctx, *job.Task) error`；`Partition()` 預設 1 |
-| 分散式鎖 | 框架 `Scheduler` 介面；預設 `EmptyScheduler`（**不鎖**）。本專案 `collector` 與 `api` 都多實例，**必須注入 Redis 版 Scheduler**（`platform/job`），否則排程每台都跑 |
+| 分散式鎖 | 框架 `Scheduler` 介面；預設 `EmptyScheduler`（**不鎖**）。本專案 `collector` 與 `api` 都多實例，**必須注入 Redis 版 Scheduler**（`core/job`），否則排程每台都跑 |
 | 註冊 | `job.RegisterJob(NewXxxJob)`；`job.namespace` 用角色名 |
 
 ---
@@ -152,4 +153,5 @@ func (h *RealtimeCoreHandler) AcceptMessage(ctx context.Context, msg *sarama.Con
 | `websocket.Upgrader{` 在業務包 | 沒走框架 wss |
 | `cron.New(` | 沒走框架 job |
 | `float64` 存賠率 | 用 decimal |
+| `c.ClientIP()`、`constants.RealClientIp` 拿來做授權或白名單判斷 | 可被偽造；用 `core/clientip`（P-29） |
 | handler 沒有 `_test.go` | 違反 testing.md §1 |

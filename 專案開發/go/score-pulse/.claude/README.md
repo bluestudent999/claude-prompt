@@ -9,14 +9,16 @@
 
 ```bash
 cd ~/workspace/score-pulse         # 換成你本機 score-pulse 的 clone 路徑
-prompt-setup 專案開發 go score-pulse --force
+git switch developing && git pull  # 範本已在版控裡，拉下來就有
 claude
 ```
 
-**部署前必知：**
+**範本庫與 repo 的關係：** 本目錄（`claude-prompt/專案開發/go/score-pulse/.claude`）是 score-pulse repo 內 `.claude/` 的**鏡像**，以 repo 為準。要把範本庫的改動帶進 repo：在 feature 分支把檔案複製過去（`.claude/CLAUDE.md` 放到 repo 根目錄 `CLAUDE.md`），另開 `chore(deploy): - ...` commit 走 MR；**不要用 `prompt-setup ... --force`**。repo 裡改了範本，也要同步回這裡（2026-11-04 已同步到 P-31）。
 
-1. `.claude/` 與根 `CLAUDE.md` **不進版控**（score-pulse 的 `.gitignore` 已排除）。hook `block-claude-dir-staging.sh` 會擋 `git add -A` / `git add .` / `git add .claude`；`block-protected-branch.sh` 會擋在 `main`／`developing` 上 commit、push 到 main、從 main 切分支。
-2. 同一個 repo 裡 **PM 在自己機器上保留企劃範本**（`prompt-setup 專案企劃`），開發者部署本範本，互不干擾。`--force` 只清你本機的 `.claude/`。
+**必知：**
+
+1. 自 2026-11-02 起，`.claude/` 與根 `CLAUDE.md` **隨 score-pulse 進版控**：clone 專案、切到 `developing` 即取得本範本，**不需要再跑 `prompt-setup`**。只排除 `.claude/settings.local.json`（複製 `.example` 填本機值）與 `.claude/worktrees/`。`hooks/git-guard.sh` 會擋在 `main`／`developing` 上 commit、push 到 main、從 main 切分支。
+2. **PM 部署企劃範本**（`prompt-setup 專案企劃`）會覆蓋版控中的 `.claude/` 與 `CLAUDE.md`：不得提交這些改動，建議 PM 另開一份 clone 專做企劃。不要再對開發者的工作目錄執行 `prompt-setup ... --force`，它會清掉版控中的範本（可用 `git checkout -- .claude CLAUDE.md` 復原）。
 3. 企劃產出全在 `plan/on-sports-lite/`，**是版控的一部分**。本範本只回填 `plan/task-*-plan.md` 與 ticket 的狀態欄，不改 spec。
 
 ---
@@ -42,7 +44,7 @@ claude
 
 ```
 /bootstrap                 ← W1 骨架 B-01 ~ B-10（module、框架 tag、三份 profile、三角色空殼、compose、migrate、gen、lint/CI、swag、thesports-sim + 反壓驗證）
-/ticket-run S1-T1          ← 執行一張 ticket：讀 ticket → planner → 實作 → 驗收 → 審查 → 回填
+/ticket-run S1-T1          ← 執行一張 ticket：Preflight → planner（讀 ticket 與指定 spec 節）→ 實作 → 驗收 → 審查 → 回填
 /arch-check                ← 依賴方向、禁用相依、租戶 Scope、append-only、每個 handler 有測試
 /tenant-check              ← 動到租戶表時的過濾盤點
 /contract-export           ← 產 OpenAPI 與 realtime 契約、判斷契約是否變更
@@ -88,7 +90,7 @@ claude
     v       v                      v
  MySQL 8   Redis            H5 / App / 兩套後台（web/admin）
                      ^
-              Nginx + ACME（業主域名 -> Host -> operator）
+              Nginx + ACME（業主域名 -> Host -> 業主代碼）
 ```
 
 **同一個 binary**（`cmd/score-pulse --active=<api|collector|realtime>`），角色只差 YAML 的 `modules.enable-list`。`api` 內兩個 consumer group：`realtime-core`（套用、快照、合流、推送）與 `persist`（批次落庫、賠率歷史）。推導見 `plan/on-sports-lite/tech-decisions.md`。
@@ -101,29 +103,29 @@ claude
 .claude/
 ├── CLAUDE.md                  ticket 驅動運作模式、三類工作、路由表、指路、紅線、提交前固定動作
 ├── README.md                  本檔
-├── settings.json              權限、SessionStart 提醒、OQ 與 .claude 攔截 hook、Stop 跑 arch-check、autoMode
+├── settings.json              權限、SessionStart 提醒、git-guard hook、autoMode（arch-check 只在 /ticket-run Step 3 驗收跑，不掛 Stop）
 ├── settings.local.json.example 本機環境變數範本
 ├── rules/
-│   ├── development-workflow.md  Preflight → 讀 ticket → planner → 實作 → 驗收 → 審查 → 回填
-│   ├── locked-decisions.md      D1~D17 執行版 + 不做清單 + 「看到這些就停手」
+│   ├── development-workflow.md  Preflight → planner（含讀 ticket）→ 實作 → 驗收 → 審查 → 回填
+│   ├── locked-decisions.md      D1~D27 執行版 + 不做清單 + P-20/24/26/27 規則 + 「看到這些就停手」
 │   ├── invariants.md            10 條不變量與驗證方式
 │   ├── architecture.md          單 binary 多角色、功能分包、依賴方向、表歸屬、fx 組裝
 │   ├── framework-conventions.md sp-framework 慣例（panic 錯誤流程、fx.In、YAML 小寫、Name() 對 YAML、EmitWithKey）
-│   ├── tenant-isolation.md      Host → operator、gorm Scope/callback、租戶表清單、雙租戶測試
+│   ├── tenant-isolation.md      Host → 業主代碼、gorm Scope/callback、租戶表清單、雙租戶測試
 │   ├── api-contract.md          OpenAPI、錯誤格式、相容規則、交付另一部門的流程
 │   ├── realtime-contract.md     Kafka topics、封包短名、WebSocket frame/destination、合流、SLO
-│   ├── thesports-ingest.md      MQTT/HTTP 接入、補齊、停更與中斷偵測、主備
-│   ├── i18n.md                  資料名稱回退、分類名稱自譯、通知與簡訊 5 語系、後台只中文
-│   ├── db-migration.md          golang-migrate、時間戳、分區、gen 重產
-│   ├── coding-style.md          Go 風格、error wrapping、context、decimal、UTC、log
+│   ├── thesports-ingest.md      MQTT/HTTP 接入、補齊、停更與中斷偵測、主備（paths: internal/collector、cmd/thesports-sim）
+│   ├── i18n.md                  資料名稱回退、分類名稱自譯、通知與簡訊 5 語系、後台只中文（paths: platform/i18n、notify、member、match/service）
+│   ├── db-migration.md          golang-migrate、時間戳、分區、gen 重產（paths: migrations、cmd/gen）
+│   ├── coding-style.md          Go 風格、error wrapping、context、decimal、UTC、log（paths: **/*.go）
 │   ├── testing.md               每個 API 必有單元測試、雙租戶 fixture、模擬器、AC 對映、DoD 七條
-│   ├── web-frontend.md          Vue 3 + Element Plus + Pinia、防 Vue 2、三態、權限
+│   ├── web-frontend.md          Vue 3 + Element Plus + Pinia、防 Vue 2、三態、權限（paths: web/admin）
 │   └── git-workflow.md          分支、Conventional Commits、測試分支單向流動
 ├── agents/                    planner、code-reviewer、arch-guard、tenant-isolation-reviewer、
 │                              contract-reviewer、data-pipeline-reviewer、web-reviewer、build-error-resolver
 ├── skills/                    ticket-run、bootstrap、arch-check、tenant-check、contract-export、
 │                              sim-scenario、db-migrate、vue3-console、strategic-compact
-└── hooks/                     check-oq-on-commit、check-oq-pending-session、block-claude-dir-staging
+└── hooks/                     git-guard（OQ 未決、分支規則二合一，指令沒有 git 字樣直接放行）、check-oq-pending-session
 ```
 
 ---
@@ -131,6 +133,7 @@ claude
 ## 第一週該做什麼（2026-11-09 開工；總計畫 v4.3）
 
 > **2026-11-02 兩個變動**：① 部門分工 v4：總控與業主後台的全部畫面歸後端部門 = 本 repo（前端部門只做 H5 與 App），後端成為唯一瓶頸；② 分支規則：`main` 鎖定、`developing` 只收 MR、每張 ticket 從 `origin/developing` 切 `feature/<ticket-id>-<slug>`。
+> **2026-11-04 提速修改（planner 慢的 9 項）**：讀 ticket 與 spec 只由 planner 做一次（決策 A）；拿掉 Stop hook 的 arch-check（只在驗收跑）；五份只跟特定目錄有關的規則改成 `paths:` 按需載入；planner 查證合併成一段 bash、計畫範本分小／大尺寸；兩支 git hook 合成 `hooks/git-guard.sh`（`.claude` 已進版控，原本擋 `git add .claude` 的 hook 不再需要）；`head`、`sed -n`、`git ls-remote` 進免確認名單。**改完先拿一張實際 ticket 跑一次 `/ticket-run`，記 planner 耗時與改前比。**
 
 1. **分支**：確認 `origin/developing` 存在（沒有 → 請 release 負責人建立並設保護）；每張 ticket、每個 bootstrap 步驟都開 feature 分支，完成後 MR 到 `developing`。hook 會擋在 `main`／`developing` 上 commit。
 2. **`/bootstrap` B-00 ～ B-10**。B-10 的反壓驗證已做完（結論：框架阻塞），後續是 **P-17**（`internal/realtime` 有界佇列），realtime 第一張 ticket 前要到位。
@@ -165,7 +168,7 @@ claude
 | ticket 的「前端」分工要不要做？ | 看畫面在哪：總控／業主後台 → 做（B 類）；H5／App → 不做，plan §0 標「畫面：另一部門」 |
 | spec 有錯或 AC 不合理 | 列 OQ 標明屬企劃職責，提示使用者切 `prompt-setup 專案企劃`；本 repo 不改 spec |
 | `_generate.py` 重跑把我回填的 ticket 狀態洗掉了 | 已知，PM 要改腳本；**plan 檔 §8 是進度真相** |
-| 框架有 bug | 先繞過（在 `platform` 包一層），開一張補充任務記錄；不自行升級框架版本（D2a） |
+| 框架有 bug | 先繞過（在 `core` 包一層），開一張補充任務記錄；不自行升級框架版本（D2a） |
 | 想用 Redis Pub/Sub、protobuf、動態訂閱 | 第一期不做，各有量測觸發點（`rules/locked-decisions.md` D4、D5） |
 | 想拆 persist 成獨立部署 | 加一份 `application_persist.yaml` 即可，零程式碼改動（`rules/architecture.md` §1） |
 | TheSports 憑證還沒來 | `cmd/thesports-sim` 重放 fixture；plan §8 標 `待外部：E1` |

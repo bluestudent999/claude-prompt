@@ -33,8 +33,8 @@ AC 就是完成的定義，也是 `web-reviewer` 的依據。只讀指定的 spe
 
 | ticket 說的 | 落點 | 路由前綴 | API 前綴 | 登入身分 |
 |------|------|---------|---------|---------|
-| 總控、平台人員、「管理全部業主／僅指派的業主」 | 總控後台 | `/admin/**` | `/api/admin/**` | 總控帳號 + TOTP |
-| 業主、「自己的站點」、業主後台 | 業主後台 | `/operator/**` | `/api/operator/**` | 業主後台帳號 + TOTP |
+| 總控、平台人員 | 總控後台 | `/manage/**` | `/api/manage/**` | 總控帳號 + TOTP |
+| 業主、「自己的站點」、業主後台 | 業主後台 | `/platform/<業主代碼>/**` | `/api/platform/**` | 業主後台帳號 + TOTP |
 | 兩套都有（角色權限、帳號、操作記錄） | 共用元件 + 兩條路由 | 兩者 | 兩者 | 各自 |
 
 後台介面**只做中文**（dept-assignment 預設 1），不接 5 語系；會員看得到的內容（App 更新說明、熱門清單名稱）是**資料**不是介面字串。
@@ -57,13 +57,13 @@ AC 就是完成的定義，也是 `web-reviewer` 的依據。只讀指定的 spe
 
 ```bash
 cd web/admin && npx vitest run src/views/<page>/   # 三態 + AC
-cd - && ls internal/admin/controller/*_test.go      # 後端 API 測試存在
+cd - && ls internal/manage/controller/*_test.go      # 後端 API 測試存在
 ```
 
 ## Step 6 · 重產 TypeScript client（API 變更後）
 
 ```bash
-bash .claude/skills/contract-export/contract-export.sh
+bash scripts/contract-export.sh
 cd web/admin && npx openapi-typescript ../../docs/contract/openapi-admin.yaml -o src/api/schema.d.ts
 ```
 

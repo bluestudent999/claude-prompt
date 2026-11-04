@@ -46,7 +46,8 @@ plan/on-sports-lite/master-plan.md         ← 波次、里程碑、外部等待
 ```bash
 git rev-parse --abbrev-ref HEAD | grep -Eq '^(main|master|developing)$' && echo "[preflight] 在鎖定／集成分支上，先切 feature 分支（git-workflow §1.1）"
 git rev-parse --abbrev-ref HEAD | grep -Eq '^feature/(S[1-6]-T|B-|P-|hotfix)' || echo "[preflight] 分支名不符 feature/<ticket-id>-<slug>"
-git ls-remote --heads origin developing | grep -q developing || echo "[preflight] origin/developing 不存在 — 停手回報，不要用 main 代替"
+# origin/developing 是否存在只在要切新分支時才查（git ls-remote 要連遠端）：
+#   git ls-remote --heads origin developing | grep -q developing || echo "[preflight] origin/developing 不存在 — 停手回報，不要用 main 代替"
 go version | grep -E "go1\.2[3-9]" || echo "[preflight] Go 版本不符"
 grep -n "sp-framework" go.mod | grep -E "v[0-9]+\.[0-9]+\.[0-9]+" || echo "[preflight] sp-framework 未鎖 tag（D2a）"
 test -f go.work && grep -q "sp-framework" go.work && echo "[preflight] go.work 指向同層 checkout（D2a 禁止）"
@@ -63,29 +64,17 @@ docker compose -f deploy/docker-compose.yml ps 2>/dev/null | grep -q mysql || ec
 
 ---
 
-## Step 0：讀 ticket 與研究（禁 full read）
+## Step 0：讀 ticket 與研究（由 planner 執行，禁 full read）
 
-```bash
-T=S2-T8   # 換成實際編號
-sed -n 1,40p plan/on-sports-lite/tickets/$T.md                 # 整張 ticket 都要讀（它本來就短）
-grep -n "^## 只讀這幾節" -A 2 plan/on-sports-lite/tickets/$T.md  # Required Spec Sections
-grep -nE "^#{2,4} " plan/on-sports-lite/spec/spec-2a-match-live.md   # 先建索引，再 Read(offset, limit) 讀指定節
-```
-
-1. **讀整張 ticket**：Scope 含／不含、Depends On、跨 Backlog 前置、AC、部門分工。
-2. **只讀 Required Spec Sections**。spec 每份 300～560 行，**禁止通讀**。發現自己在讀不相干的節，就是沒照做。
-3. **確認前置 ticket 已完成**（看前置 ticket 檔的「狀態」）；未完成 → 停手回報 `Blocked By: <ticket>`。標「（驗收）」的前置只卡驗收，可開工。
-4. **查已鎖定決策與不變量**：這張會碰到哪些 D、哪些 I？（`locked-decisions.md`、`invariants.md`）
-5. **查租戶資料類**：碰到的表在 `tenant-isolation.md` §2 哪一欄？
-6. **查契約影響**：會不會新增或改 `/api/front/**`、WebSocket destination、Kafka 封包？
+**由 planner 執行，見 `agents/planner.md` Workflow**（2026-11-04 決策 A：讀 ticket 與 Required Spec Sections、查前置狀態、對照 D／I／租戶表／契約影響，全專案只做一次）。主流程 Preflight 過了就直接呼叫 planner，**不自己先讀 ticket**；讀檔一律用 Read 工具，不經 Bash。spec 每份 300～560 行，**禁止通讀**。
 
 ---
 
 ## Step 1：規劃（planner）
 
-產出 `plan/task-<ticket>-plan.md`（例：`plan/task-S2-T8-plan.md`），**必含** `agents/planner.md` 的 §0～§8。重點：
+主流程只給 planner ticket 編號；planner 產出 `plan/task-<ticket>-plan.md`（例：`plan/task-S2-T8-plan.md`），**必含** `agents/planner.md` 的 §0～§8，並**回傳含 §0 元資料的摘要**（尺寸、類別、畫面在哪、不變量、租戶表、契約影響、前置狀態、OQ 數）——主流程靠這段摘要認識 ticket，不重讀。重點：
 
-- **§0** 工作類別 A／B／C、涉及不變量、租戶表、契約影響、前置狀態。
+- **§0** 尺寸（小／大）、工作類別 A／B／C、涉及不變量、租戶表、契約影響、前置狀態。小 ticket（只碰一個功能包、不動契約、不碰租戶表）用精簡範本。
 - **§2 變更檔案清單**是單一事實來源；§4 **逐一列出每個新增或修改的 API 的測試函式名**（`testing.md` §1）。
 - **OQ 硬規則**：可用 grep／Read／跑測試驗證的 → planner 自答；需要判斷的 → 列 OQ，**未解答前禁止寫業務程式碼**；決議回寫 plan（原文加刪除線 + ✅）。業務疑問 → 回企劃。
 - **本專案典型必問**：停更門檻實際值（R62 要回填）、簡訊供應商介面（P-06 到位前只能 mock）、推播在中國大陸 Android 的處理（tech-decisions §6 第 2 項）、影片套餐是否可用（第 4 項）。
@@ -130,7 +119,7 @@ go test -tags=integration ./test/...                        # 動到 dao／consu
 |------|---------|
 | 一律 | `code-reviewer` |
 | 動到包結構、新增包、跨包 import、引入相依、角色組裝 | + `arch-guard` |
-| 動到租戶表查詢、認證、Host 解析、總控指派範圍、WebSocket 握手 | + `tenant-isolation-reviewer` |
+| 動到租戶表查詢、認證、Host 解析、總控指定業主（`ManageTarget`）、業主後台業主注入（`MustPlatform`）、WebSocket 握手 | + `tenant-isolation-reviewer` |
 | 動到 `/api/front/**`、WebSocket destination 或訊息、Kafka 封包 | + `contract-reviewer` |
 | 動到 collector、`realtime-core`、`persist`、合流、快照、賠率歷史 | + `data-pipeline-reviewer` |
 | 動到 `web/admin` | + `web-reviewer` |
@@ -147,7 +136,7 @@ go test -tags=integration ./test/...                        # 動到 dao／consu
 2. **回填 ticket 狀態**：把 `plan/on-sports-lite/tickets/<id>.md` 的 `| 狀態 | 待開工 |` 改為 `| 狀態 | 已完成（<日期>） |`；阻塞時改 `阻塞：<原因>`；進行中改 `實作中`。**只改這一格**，其他內容不動。
    > ⚠ 企劃的 `_generate.py` 重跑會覆蓋開發 ticket 的狀態欄（它只保護 prep ticket）。已回報 PM 改腳本；在那之前，**plan 檔的 §8 是進度的真相**，ticket 狀態欄是副本。
 3. 確認 `plan/` 無「⏳ 待決」OQ（否則 git hook 攔截）。
-4. Commit（`git-workflow.md`）；**不加 `.claude/` 與 `CLAUDE.md`**（hook 會攔）。
+4. Commit（`git-workflow.md`）；指名檔案 `git add`，範本（`.claude/`、`CLAUDE.md`）改動另開 `chore` commit。
 5. `git rebase origin/developing` → 重跑單元測試 → `git push --force-with-lease` → 開 MR 到 `developing`（描述照 `git-workflow.md` §4）。**不在本機 merge 進 developing／main。**
 
 > **回填是 DoD 第 7 條。** 沒回填 = 未完成，不要跳到下一張。

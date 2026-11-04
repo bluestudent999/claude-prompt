@@ -17,7 +17,7 @@ description: cmd/thesports-sim 的設計要求與必備情境腳本——同場�
 | **可重放** | fixture 是**錄製**的真實回傳（`test/fixtures/thesports/*.json`，含 MQTT 訊息與 HTTP 回應），**不手編**——手編的資料會剛好符合自己的實作 |
 | **雙通道** | 內嵌 MQTT broker（`mochi-mqtt`，topic：score、stats、incidents、tlive）+ HTTP stub（diary、detail_live、odds/live、odds/history、lineup、highlight） |
 | **可注入故障** | 逾時、連線拒絕、HTTP 429、5xx、格式異常（缺欄位、型別錯、空陣列 vs null）、MQTT 斷線 N 秒 |
-| **確定性** | 同一腳本跑兩次結果相同；時間用腳本內的虛擬時鐘（`platform/clock`），不用真實 sleep |
+| **確定性** | 同一腳本跑兩次結果相同；時間用腳本內的虛擬時鐘（`core/clock`），不用真實 sleep |
 | **可斷言** | 能列出收到的訂閱與 HTTP 呼叫次數（驗證補齊只打必要的 API） |
 | **可打時間戳** | 每則送出帶 `tp`，供 `sp_e2e_latency_seconds` 計算 |
 

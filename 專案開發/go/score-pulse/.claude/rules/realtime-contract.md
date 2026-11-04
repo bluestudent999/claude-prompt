@@ -1,7 +1,7 @@
 # 即時資料契約：Kafka topics 與 WebSocket（D4、D5、D17）
 
 > 兩個受眾：本 repo 的 `collector` → `api` → `realtime` 三個角色之間（內部契約），以及 H5／App 部門的 WebSocket client（對外契約）。
-> 對外部分與 `api-contract.md` 同級：**不可片面變更**。內部部分改了要同時改 `platform/envelope` 與本文。
+> 對外部分與 `api-contract.md` 同級：**不可片面變更**。內部部分改了要同時改 `core/envelope` 與本文。
 
 ---
 
@@ -12,13 +12,13 @@
 | `match.live` | `match_id` | **24** | 7 天 | collector | api `realtime-core`、api `persist` | 一個 topic 承載 `score`、`status`、`event`、`stat`、`lineup` 五種 kind；同場同分區，順序有保證（I2） |
 | `odds.change` | `match_id` | 24 | 7 天 | collector | api `realtime-core`、api `persist` | 每一筆變盤；`persist` 是 `odds_history` 的唯一寫入者（I5） |
 | `source.health` | 資料項名 | 3 | 1 天 | collector | api `monitor` | 各資料項狀態、延遲、每場最後收到時間（Spec-4 R49–R52） |
-| `notify.trigger` | `operator_id` | 6 | 1 天 | api `realtime-core` | api `notify` | 「比分變動／狀態變動／事件新增取消」三種觸發（Spec-2a R64） |
+| `notify.trigger` | `platform_code` | 6 | 1 天 | api `realtime-core` | api `notify` | 「比分變動／狀態變動／事件新增取消」三種觸發（Spec-2a R64） |
 | `websocket` | destination | 12 | **10 分鐘** | api `realtime-core` | realtime（每實例獨立 group，`latest-offset: true`） | 框架 `WebsocketMessage{destinations, data}`；data 已合流 |
 | `cache-refresh` | — | 1 | 10 分鐘 | api | api | 框架本地快取失效廣播 |
 
 **分區數建立後不改**（改了會破壞單場順序）。topic 由框架依 YAML 自動建立；YAML 裡要寫 `partitions` 與 `retention-ms`。
 
-### 1.1 `match.live` 封包（`platform/envelope.MatchLive`）
+### 1.1 `match.live` 封包（`core/envelope.MatchLive`）
 
 ```json
 {
@@ -60,7 +60,7 @@
 
 ### 2.1 連線與握手
 
-- URL：`wss://<業主域名>/api/ws`。Host 決定業主；業主不存在或已停用 → HTTP 403，不升級。
+- URL：`wss://<業主域名>/api/ws`。Host 決定業主（platform，以業主代碼識別，D20）；業主不存在或已停用 → HTTP 403，不升級。
 - Origin：必須在該業主域名白名單（App 的 WebView 無 Origin 時放行，但要帶 `x-client`）。
 - 匿名可連；會員相關 destination 訂閱時帶 token（見 2.3）。
 - 每 IP 最多 20 條連線；每連線最多 50 個訂閱；超過回 `e` frame 並斷線。
@@ -88,8 +88,8 @@ subscribe 成功後 server **立即推一則該 destination 的快照**（`"snap
 | `/match/list/{sport}/{date}` | 匿名 | 該日列表級 delta：`score`、`status`（含分鐘基準、停更旗標） | Redis `match:list:{sport}:{date}` |
 | `/match/{matchId}` | 匿名 | 詳情級：`score`、`status`、`event`、`stat`、`lineup`、媒體可播放狀態 | Redis `match:{id}:snapshot` |
 | `/match/{matchId}/odds` | 匿名 | 合流後的賠率（每公司每玩法 1 秒一筆） | Redis `match:{id}:odds` |
-| `/site/notice` | 匿名 | 全站中斷橫幅、恢復（Spec-2a R63） | Redis `site:{op}:notice` |
-| `/operator/{op}/member/{memberId}/notice` | payload `{"token": "..."}`；`{op}` 必須等於握手業主、`memberId` 必須等於 token 主體 | 站內通知、未讀數 | Redis `member:{op}:{id}:notice` |
+| `/site/notice` | 匿名 | 全站中斷橫幅、恢復（Spec-2a R63） | Redis `site:{code}:notice`（`{code}` = 業主代碼） |
+| `/platform/{code}/member/{memberId}/notice` | payload `{"token": "..."}`；`{code}` 必須等於握手時由 Host 解析的業主代碼（大小寫敏感比對；client 取得 `{code}` 的前台欄位另行交付）、`memberId` 必須等於 token 主體 | 站內通知、未讀數（尚未實作） | Redis `member:{code}:{id}:notice` |
 
 ### 2.4 推送訊息
 

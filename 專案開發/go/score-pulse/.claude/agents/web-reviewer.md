@@ -71,7 +71,7 @@ grep -rn "export default {" --include=*.vue web/admin/src/ | head     # Options 
 | 1 | 授權判定**只在前端**（隱藏按鈕、藏選單），後端對應 API 沒有重新判定權限與租戶範圍 | CRITICAL | `web-frontend.md`、`tenant-isolation.md` §1 |
 | 2 | 無權限模組：直接開網址未顯示「你沒有這個模組的權限」；或選單仍顯示 | HIGH | Spec-4 R1–R8、AC-11 |
 | 3 | 有查看無管理：可操作欄位（含匯出）未顯示鎖頭或仍可操作 | HIGH | Spec-4 AC-11、AC-18 |
-| 4 | 總控「管理全部／僅指派」與業主後台的 scope 切換：前端把 `operatorId` 當查詢參數送後端 | CRITICAL | `tenant-isolation.md` §1 鐵律 |
+| 4 | 總控與業主後台的 scope 切換：前端把 `platformCode` 當查詢參數送後端 | CRITICAL | `tenant-isolation.md` §1 鐵律 |
 | 5 | 「取得失敗」被渲染成**空清單**（會被誤讀為沒有資料）；三態（載入／空／錯誤）缺任一 | HIGH | `web-frontend.md` |
 | 6 | session token 明文進 localStorage／sessionStorage／網址／log／Pinia 持久化 —— **自檢：重新整理後還拿得到嗎** | CRITICAL | `web-frontend.md` |
 | 7 | 對「結果未知」的變更操作自動重送（含全域 retry 攔截器） | HIGH | `web-frontend.md` |
@@ -82,7 +82,7 @@ grep -rn "export default {" --include=*.vue web/admin/src/ | head     # Options 
 
 ```bash
 grep -rn "localStorage\|sessionStorage" web/admin/src/ | grep -iv "theme\|collapse\|tab\|lang"
-grep -rn "operatorId\|operator_id" web/admin/src/api/ web/admin/src/stores/ | head
+grep -rn "platformCode\|platform_code" web/admin/src/api/ web/admin/src/stores/ | head   # 回應型別欄位可以，請求參數不行
 grep -rn "retry\|Retry" web/admin/src/api/ | head
 grep -rn "i18n\|\$t(" web/admin/src/ | head
 ```
@@ -92,7 +92,7 @@ grep -rn "i18n\|\$t(" web/admin/src/ | head
 ```bash
 ls web/admin/src/**/__tests__/ 2>/dev/null; find web/admin/src -name "*.spec.ts" -newer plan/task-$T-plan.md
 grep -rln "loading\|empty\|error" web/admin/src/**/*.spec.ts | head     # 三態測試
-grep -rn "func Test" internal/admin/controller/*_test.go internal/operator/controller/*_test.go | wc -l   # 對應後端 API 測試（testing.md §1）
+grep -rn "func Test" internal/manage/controller/*_test.go internal/platform/controller/*_test.go | wc -l   # 對應後端 API 測試（testing.md §1）
 ```
 
 - 每個新畫面至少一個 Vitest 元件測試覆蓋三態。
@@ -138,7 +138,7 @@ Status 判定：CRITICAL > 0 → `block`；HIGH > 0 → `warning`；其餘 `appr
 - [ ] **AC 覆蓋表逐條填完**，沒有「大致有做」
 - [ ] 「反例會不會被抓到」每條都回答了
 - [ ] 技術棧掃描實際跑過（Step 1），不是目視
-- [ ] 確認過前端沒有把 `operatorId` 當查詢參數送
+- [ ] 確認過前端沒有把 `platformCode` 當查詢參數送
 - [ ] 驗不到的部分明確列出
 - [ ] 沒有越界到後端 reviewer 的管轄
 - [ ] 沒有修改任何檔案

@@ -1,3 +1,9 @@
+---
+paths:
+  - "**/*.go"
+  - ".golangci.yml"
+---
+
 # Go 風格與例外規範（Go 1.23 + sp-framework）
 
 > 框架怎麼用在 `framework-conventions.md`；本文管「寫得像不像這個專案」：格式、錯誤、context、命名、log、設定鍵、大檔讀取、什麼時候抽介面。
@@ -37,7 +43,7 @@
 | 第一參數 | 所有 service、dao、外部呼叫、log 的第一參數是 `ctx context.Context` |
 | 必傳 | `log.Info(ctx, ...)`、`db.WithContext(ctx)`、`rdb.Get(ctx, ...)`、`resty ... SetContext(ctx)`；不傳 = trace id 與租戶會丟 |
 | 不存進 struct | struct 欄位不放 ctx；長生命週期物件（consumer、job）每次處理從框架拿新的 ctx |
-| 取值 | 只透過 `tenant.FromCtx`、`auth.FromCtx`、框架 `constants.*` 鍵；不自己 `ctx.Value("operator")` |
+| 取值 | 只透過 `tenant.FromCtx`、`auth.FromCtx`、框架 `constants.*` 鍵；不自己 `ctx.Value("platform")` |
 | 逾時 | 外部 HTTP 呼叫 `context.WithTimeout(ctx, 10*time.Second)`；DB 查詢靠連線池逾時，不另包 |
 
 ---
@@ -48,7 +54,7 @@
 |------|------|
 | 禁全域可變狀態 | 不用包級 `var cache = map...`；狀態放 struct、由 fx 注入單例。`sync.Once` 初始化的唯讀表可以 |
 | 賠率、金額 | `github.com/shopspring/decimal`；JSON 輸出字串；比較用 `.Equal`、`.Cmp` |
-| 時間 | 一律 UTC：`time.Now().UTC()` **只透過 `platform/clock.Clock` 注入**（測試可控）；對外毫秒 Unix；DB `DATETIME(3)` |
+| 時間 | 一律 UTC：`time.Now().UTC()` **只透過 `core/clock.Clock` 注入**（測試可控）；對外毫秒 Unix；DB `DATETIME(3)` |
 | id | `int64`；對外 JSON 字串化（`json:",string"` 或 dto 用 `string`） |
 | 並發 | 共享 map 用 `sync.RWMutex` 或框架 `cmap`；goroutine 必有退出條件與 `ctx.Done()` 監聽；不裸 `go func()` 在 handler 裡 |
 
@@ -65,7 +71,7 @@
 | handler | 動詞 + 名詞 | `GetMatchDetail`、`ListFavorites`、`SubscribeMatch` |
 | 測試 | `Test<Subject>_<Case>` | `TestGetMatchDetail_OtherTenant_NotFound` |
 | 常數 | 駝峰，不全大寫 | `maxSubscriptionsPerConn` |
-| Redis key | 只在 `platform/rediskey` 以函式產生 | `rediskey.MatchSnapshot(id)` |
+| Redis key | 只在 `core/rediskey` 以函式產生 | `rediskey.MatchSnapshot(id)` |
 | 設定鍵 | 小寫連字號、點分層 | `thesports.stall-threshold`、`websocket.max-connections` |
 
 ---
@@ -77,8 +83,8 @@
 | 英文 | 訊息英文、小寫開頭；中文只出現在業務字串資料裡 |
 | 結構化 | `log.Info(ctx, "match applied", log.Int64("match", id), log.String("kind", k))`；不用 `fmt.Sprintf` 拼進訊息 |
 | 帶 ctx | 一定帶，trace id 才會出現 |
-| 必帶欄位 | 比賽相關 `match`；租戶相關 `operator`；consumer `topic`、`partition`、`offset` |
-| 不進 log | TheSports 憑證、session token、簡訊驗證碼、手機號全碼（遮罩後四碼）、推播 token |
+| 必帶欄位 | 比賽相關 `match`；租戶相關 `platform`（業主代碼）；consumer `topic`、`partition`、`offset` |
+| 不進 log | TheSports 憑證、session token、**密碼、驗證器密鑰與驗證碼**、簡訊驗證碼、手機號全碼（遮罩後四碼）、推播 token |
 | 等級 | `Error` 只給需要人處理的；可預期失敗（429、供應商暫時錯）用 `Warn` + metric |
 | 不印整包 | 不 `log.Info(ctx, "msg", log.Any("payload", big))`；印 id 與長度 |
 
@@ -95,6 +101,18 @@
 | 測試輸出 | `go test ./... 2>&1 | tail -40`，不要整包餵進 context |
 
 ---
+
+## 0. 安全性第一（2026-11-03 使用者指定，最高優先）
+
+任何寫法選擇**以安全性為第一考量**，優先於方便、效能、開發速度與既有慣例（`CLAUDE.md` §2 第 9 條）。
+
+| 情境 | 要怎麼做 |
+|------|---------|
+| 兩種做法都能完成需求 | 選較安全的：預設拒絕（fail-closed）、最小權限、白名單優於黑名單、機密不落地也不進日誌 |
+| 較安全的做法代價很高 | 不自行取捨；把兩邊的風險與代價寫清楚，交使用者決定 |
+| 設計或流程本身有安全缺口（例：拿到密碼就能自行綁定驗證器） | 即使規格這樣寫，也要停手回報並提出較安全的替代做法 |
+| 審查 | 「比較方便」「別的專案也這樣寫」「暫時先這樣」都不是降低安全性的理由；降低安全性的改動一律標為需處理的問題 |
+| 預設值與範例 | 不放可用的預設密碼、金鑰、token；範例值必須是無法直接使用的空值或明顯的佔位字 |
 
 ## 8. 結構性設計 vs 投機性複雜度
 
@@ -114,7 +132,7 @@
 | 為單一實作抽 `XxxRepository` 介面 | 沒有變動源；只增加一層跳轉 |
 | Factory／Registry 在介面之上再疊一層 | 介面已是接縫 |
 | 為 Out of Scope 鋪路（結算、聊天、第二家資料源、Sportradar、帳號互通） | 留了就會有人來填 |
-| 「通用」工具包（`utils`）收納業務函式 | 業務函式回功能包；`platform` 只放跨包且無業務語意的東西 |
+| 「通用」工具包（`utils`）收納業務函式 | 業務函式回功能包；`core` 只放跨包且無業務語意的東西 |
 | 單一函式超過 gocyclo 15 | 拆函式，不是關 linter |
 
 ---

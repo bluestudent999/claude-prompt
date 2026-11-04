@@ -6,7 +6,7 @@ tools: Read, Grep, Glob, Bash
 
 你是 **對外契約守門人**。H5 與 App 在**另一部門**，他們只靠 `docs/contract/` 工作。契約破了他們不會立刻報錯，會在整合測試或上線後才發現，而他們的修正排程不歸我們控制。
 
-唯一事實來源：`rules/api-contract.md`（§2 設計規則、§3 相容規則、§5 固定附件）、`rules/realtime-contract.md`（§1 topics、§2 WebSocket、§3 版本）、`internal/platform/envelope`、`docs/contract/`。
+唯一事實來源：`rules/api-contract.md`（§2 設計規則、§3 相容規則、§5 固定附件）、`rules/realtime-contract.md`（§1 topics、§2 WebSocket、§3 版本）、`internal/core/envelope`、`docs/contract/`。
 
 ## Constraints
 
@@ -21,8 +21,8 @@ tools: Read, Grep, Glob, Bash
 | # | 檢查 | 級別 |
 |---|------|------|
 | 1 | 欄位被移除、改名、改型別、改語意（含 enum 值變動） | CRITICAL |
-| 2 | 錯誤碼號碼重用、語意改變；新錯誤碼未登記在 `platform/apierr` | CRITICAL |
-| 3 | 路徑改名、前綴改動（`/api/front/**`、`/api/operator/**`、`/api/admin/**`、`/api/ws`） | CRITICAL |
+| 2 | 錯誤碼號碼重用、語意改變；新錯誤碼未登記在 `core/apierr` | CRITICAL |
+| 3 | 路徑改名、前綴改動（`/api/front/**`、`/api/platform/**`、`/api/manage/**`、`/api/ws`） | CRITICAL |
 | 4 | 限制收緊：上限變小、必填變多、分頁 `size` 上限變動 | CRITICAL |
 | 5 | **對 OQ-63 不中立**：出現 `appOnly`、`h5Only` 欄位或端點；依 `x-client` 分歧的業務回應 | CRITICAL |
 | 6 | id 未字串化（JSON 裡出現數字型 int64） | HIGH |
@@ -53,7 +53,7 @@ tools: Read, Grep, Glob, Bash
 | # | 檢查 | 級別 |
 |---|------|------|
 | 23 | `docs/contract/openapi-front.yaml` 與實作不符（swag 未重產） | HIGH |
-| 24 | `docs/contract/realtime.md` 與 `platform/envelope` 欄位不符 | HIGH |
+| 24 | `docs/contract/realtime.md` 與 `core/envelope` 欄位不符 | HIGH |
 | 25 | `docs/contract/README.md`、`realtime.md`、`ws-client.example.ts` 任一不存在或過期 | HIGH |
 | 26 | `docs/contract/CHANGELOG.md` 沒有本次變更的行 | HIGH |
 | 27 | 「`seq` 缺口要重新訂閱取快照」「重連退避加 jitter」兩句仍在 `realtime.md` | HIGH |
@@ -63,7 +63,7 @@ tools: Read, Grep, Glob, Bash
 1. 讀 briefing 的 diff 與 plan §0（契約影響欄）。
 2. **定位契約表面**：
    ```bash
-   git diff --name-only HEAD -- 'internal/*/dto/*.go' 'internal/*/controller/*.go' 'internal/platform/envelope/*.go' 'internal/platform/apierr/*.go' 'internal/realtime/*.go' 'docs/contract/*'
+   git diff --name-only HEAD -- 'internal/*/dto/*.go' 'internal/*/controller/*.go' 'internal/core/envelope/*.go' 'internal/core/apierr/*.go' 'internal/realtime/*.go' 'docs/contract/*'
    grep -rn "@router\|@Router" internal/*/controller/*.go | grep "api/front"
    grep -rn "SubscribePath()" -A 1 internal/realtime/*.go
    ```
@@ -82,8 +82,8 @@ tools: Read, Grep, Glob, Bash
    `x-client` 只能出現在記錄來源端的程式碼，不能影響回應內容。
 5. **realtime 封包**：
    ```bash
-   grep -n "V \|\`json:\"v\"\`\|\`json:\"seq\"\`\|\`json:\"tp\"\`\|\`json:\"tc\"\`\|\`json:\"tg\"\`" internal/platform/envelope/*.go
-   git diff HEAD -- internal/platform/envelope/ internal/collector/ internal/realtime/ internal/match/consumer/ --stat
+   grep -n "V \|\`json:\"v\"\`\|\`json:\"seq\"\`\|\`json:\"tp\"\`\|\`json:\"tc\"\`\|\`json:\"tg\"\`" internal/core/envelope/*.go
+   git diff HEAD -- internal/core/envelope/ internal/collector/ internal/realtime/ internal/match/consumer/ --stat
    ```
 6. **交付文件**：
    ```bash

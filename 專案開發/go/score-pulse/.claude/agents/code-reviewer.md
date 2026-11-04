@@ -62,7 +62,7 @@ tools: Read, Grep, Glob, Bash
 | 23 | `_ = err`、空 `if err != nil {}`、`catch-all` 後吞掉 | CRITICAL |
 | 24 | 可預期失敗（MQTT 斷線、HTTP 429、Redis 逾時、Kafka 送出失敗）無 log 與 metric | HIGH |
 | 25 | TheSports 憑證、session token、簡訊驗證碼出現在 log、錯誤訊息、回應 | CRITICAL |
-| 26 | error log 無 context（match_id、operator_id、trace） | MEDIUM |
+| 26 | error log 無 context（match_id、platform_code、trace） | MEDIUM |
 | 27 | 錯誤碼直接寫數字而非 `apierr` 常數 | HIGH |
 
 ### E. 並發與資源

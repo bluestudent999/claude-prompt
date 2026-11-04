@@ -33,9 +33,9 @@ EOG
 
 ```bash
 go mod init score-pulse && go mod edit -go=1.23
-mkdir -p cmd/score-pulse cmd/thesports-sim cmd/gen configs migrations deploy/k8s docs/contract test/{integration,scenario,fixtures/thesports} web/admin
-mkdir -p internal/platform/{conf,tenant,auth,apierr,envelope,i18n,rediskey,clock,job}
-for p in operator match odds member notify admin collector realtime; do mkdir -p internal/$p/{controller,service,dao,model,dto}; done
+mkdir -p cmd/score-pulse cmd/thesports-sim cmd/gen configs migrations deploy docs/contract test/{integration,scenario,fixtures/thesports} web/admin
+mkdir -p internal/core/{conf,tenant,auth,apierr,envelope,i18n,rediskey,clock,job}   # P-19 前名為 internal/platform
+for p in platform match odds member notify manage collector realtime; do mkdir -p internal/$p/{controller,service,dao,model,dto}; done
 mkdir -p internal/inject
 ```
 
@@ -107,11 +107,11 @@ for r in api collector realtime; do (go run ./cmd/score-pulse --active=$r & slee
 
 ```bash
 go install -tags 'mysql' github.com/golang-migrate/migrate/v4/cmd/migrate@latest
-migrate create -ext sql -dir migrations -format 20060102150405 init_operator
+migrate create -ext sql -dir migrations -format 20060102150405 init_platform
 migrate -path migrations -database "mysql://$MYSQL_USER:$MYSQL_PASSWORD@tcp($MYSQL_HOST:3306)/$MYSQL_DB" up
 ```
 
-第一支含 `operator`、`operator_domain`（唯一鍵 `domain` 全平台唯一、不分大小寫）。完成判準：up/down 成對、`migrate version` 正確；兩張表已登記在 `rules/tenant-isolation.md` §2。
+第一支含 `platform`、`platform_domain`（唯一鍵 `domain` 全平台唯一、不分大小寫；P-19 起業主表名 `platform`、租戶鍵 `platform_code`）。完成判準：up/down 成對、`migrate version` 正確；兩張表已登記在 `rules/tenant-isolation.md` §2。
 
 ## B-07 · gorm/gen
 
@@ -127,7 +127,7 @@ migrate -path migrations -database "mysql://$MYSQL_USER:$MYSQL_PASSWORD@tcp($MYS
 
 ```bash
 go install github.com/swaggo/swag/cmd/swag@latest
-bash .claude/skills/contract-export/contract-export.sh
+bash scripts/contract-export.sh
 ```
 
 完成判準：`docs/contract/{openapi-front.yaml,openapi-admin.yaml,realtime.md,README.md,ws-client.example.ts,CHANGELOG.md}` 存在（內容可先是骨架）。
@@ -149,9 +149,9 @@ bash .claude/skills/contract-export/contract-export.sh
 
 | 包 | 最小內容 |
 |----|---------|
-| `platform/tenant` | `Operator` 結構、`FromCtx`／`MustFromCtx`、`Scope(ctx)`、Host 解析 middleware（Sort 100，查 `operator_domain` 經 Redis 快取）、gorm callback（租戶表無 `operator_id` 條件 → panic）、租戶表清單常數 |
-| `platform/job` | 實作框架 `job.Scheduler` 的 Redis 版（`AcquireLock` 用 `SET NX PX`），並在三角色組裝時注入取代 `EmptyScheduler` |
-| `platform/envelope` | `MatchLive`、`OddsChange`、`WsPush` 結構（短欄位名照 `rules/realtime-contract.md` §1.1、§2.4）、`Encode`／`Decode`、`seq` 產生器（Redis `INCR`） |
+| `core/tenant` | `Platform` 結構（以業主代碼識別）、`FromCtx`／`MustFromCtx`、`Scope(ctx)`、Host 解析 middleware（Sort 100，查 `platform_domain` 經 Redis 快取）、gorm callback（租戶表無 `platform_code` 條件 → panic）、租戶表清單常數 |
+| `core/job` | 實作框架 `job.Scheduler` 的 Redis 版（`AcquireLock` 用 `SET NX PX`），並在三角色組裝時注入取代 `EmptyScheduler` |
+| `core/envelope` | `MatchLive`、`OddsChange`、`WsPush` 結構（短欄位名照 `rules/realtime-contract.md` §1.1、§2.4）、`Encode`／`Decode`、`seq` 產生器（Redis `INCR`） |
 
 ---
 

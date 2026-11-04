@@ -1,3 +1,9 @@
+---
+paths:
+  - "migrations/**"
+  - "cmd/gen/**"
+---
+
 # DB migration（golang-migrate，D6a）
 
 > MySQL 8 是唯一主庫。schema 的唯一真相是 `migrations/`；gorm model 由 schema 反向產生（`cmd/gen`），**不是**反過來。
@@ -9,8 +15,8 @@
 
 ```
 migrations/
-├── 20261109100000_create_operator.up.sql
-├── 20261109100000_create_operator.down.sql
+├── 20261109100000_create_platform.up.sql
+├── 20261109100000_create_platform.down.sql
 ├── 20261109101500_create_match.up.sql
 ├── 20261109101500_create_match.down.sql
 └── ...
@@ -23,7 +29,7 @@ migrations/
 | 一檔一事 | 一張表、或一組相關索引、或一次資料修正；不要一個檔建五張表 |
 | 描述 | 動詞開頭：`create_`、`add_column_`、`add_index_`、`alter_`、`seed_`；**不出現 ticket 編號**（ticket 編號寫在檔頭註解） |
 | 檔頭 | `-- ticket: S1-T1` + 一行目的 |
-| 已套用的 migration **不可改** | 要修就新開一個版本；改了已套用的檔，別人的 DB 與你的會永久分岔 |
+| 已套用的 migration **不可改** | 要修就新開一個版本；改了已套用的檔，別人的 DB 與你的會永久分岔。例外：D22（P-22）、D26（P-30）、D27（P-31）皆為第一次部署前直接改基準（本機庫刪庫重建）；P-16 架設後不再有 |
 | down | 必須能真的回滾（`DROP TABLE IF EXISTS`、`DROP INDEX`、反向 `ALTER`）；資料修正類的 down 可以是 no-op，但要註明 |
 
 ---
@@ -32,7 +38,7 @@ migrations/
 
 | 問題 | 回寫到 |
 |------|--------|
-| 它是租戶表嗎（同一列會不會屬於不同業主）？ | `tenant-isolation.md` §2 的對應欄；租戶表第一欄是 `operator_id BIGINT NOT NULL` |
+| 它是租戶表嗎（同一列會不會屬於不同業主）？ | `tenant-isolation.md` §2 的對應欄；租戶表第一欄是 `platform_code VARCHAR(20) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NOT NULL`（業主代碼，D20；`platform` 表本身以 `code` 為租戶鍵） |
 | 哪個功能包擁有它（唯一的寫入者）？ | `architecture.md` §4 |
 | 它是 append-only 嗎（I5、I10）？ | 是 → 註解寫明，`/arch-check` 會掃 UPDATE／DELETE |
 
@@ -51,9 +57,9 @@ migrations/
 | 布林 | `TINYINT(1)`，欄位名 `is_*` |
 | 狀態 | `TINYINT` + 註解列出每個值；或 `VARCHAR(16)` 字串碼，**二選一全專案一致**（採用預設：字串碼，可讀） |
 | 外鍵 | **不建 FOREIGN KEY 約束**（公司慣例）；關聯完整性由應用層與測試保證；但要建對應索引 |
-| 索引 | 租戶表的複合索引**以 `operator_id` 開頭**：`idx_member_op_phone (operator_id, phone)`；唯一鍵同理 `uk_member_op_account (operator_id, account)` |
+| 索引 | 租戶表的複合索引**以 `platform_code` 開頭**：`idx_member_code_phone (platform_code, phone)`；唯一鍵同理 `uk_member_code_account (platform_code, account)`；租戶鍵欄一律 `utf8mb4_bin`（JOIN 與比對不混定序） |
 | 全平台唯一 | 只有真正全平台唯一的欄位（專屬域名）才是單欄唯一鍵 |
-| 軟刪除 | 預設不用；需要「停用」用狀態欄；真正要保留歷史的表（operator、member）用 `deleted_at` 且查詢經 gorm 預設 scope |
+| 軟刪除 | 預設不用；需要「停用」用狀態欄；真正要保留歷史的表（platform、member）用 `deleted_at` 且查詢經 gorm 預設 scope |
 | 註解 | 每欄 `COMMENT`，中文可 |
 | 保留字 | 不用 `match`、`order`、`key` 當表名或欄名 → 表名用 `match_info`（與 architecture §4 的 `match` 對應） |
 
@@ -84,13 +90,13 @@ CREATE TABLE odds_history (
 | 規則 | 說明 |
 |------|------|
 | 分區鍵 | `provider_ts` 按月 RANGE；主鍵必須含分區鍵 |
-| 新增分區 | `admin` 包的排程 job（每月 20 日）執行 `ALTER TABLE ... REORGANIZE PARTITION pmax INTO (p<下月>, pmax)`；job 有 Redis 鎖（`framework-conventions.md` §7） |
+| 新增分區 | `manage` 包的排程 job（每月 20 日）執行 `ALTER TABLE ... REORGANIZE PARTITION pmax INTO (p<下月>, pmax)`；job 有 Redis 鎖（`framework-conventions.md` §7） |
 | 只 INSERT | 無 UPDATE／DELETE 語句；`/arch-check` 掃 |
 | 只存變動 | `persist` consumer 比對同鍵上一筆值，無變動不寫（`realtime-contract.md` §1.2） |
 | 容量 | 總控監控頁顯示各分區列數與大小（`information_schema.PARTITIONS`）；第一期不刪 |
 | 查詢 | 走勢查詢一律帶 `provider_ts` 範圍讓分區裁剪生效 |
 
-其他大量寫入表（`redirect_click`、`redirect_impression`、`visit_log`、`admin_audit`）同樣按月分區，鍵是 `created_at`。
+其他大量寫入表（`redirect_click`、`redirect_impression`、`visit_log`、`login_log`、`operate_log`）同樣按月分區，鍵是 `created_at`。
 
 ---
 
@@ -123,7 +129,7 @@ migrate -path migrations -database "$DSN" down 1
 migrate -path migrations -database "$DSN" version
 
 # 新建一組檔（由 /db-migrate 包裝）
-migrate create -ext sql -dir migrations -format 20060102150405 create_operator
+migrate create -ext sql -dir migrations -format 20060102150405 create_platform
 ```
 
 DSN 放環境變數 `SP_MYSQL_DSN`；不寫進腳本。
@@ -137,10 +143,10 @@ DSN 放環境變數 `SP_MYSQL_DSN`；不寫進腳本。
 | 版本格式 | 檔名不符 `^\d{14}_[a-z0-9_]+\.(up|down)\.sql$` |
 | 成對 | 有 up 無 down 或反之 |
 | 遞增 | 新檔版本小於既有最大版本（時鐘錯或抄了舊檔名） |
-| 不改已套用 | `git diff origin/developing -- migrations/` 顯示既有檔被修改 |
+| 不改已套用 | `git diff origin/developing -- migrations/` 顯示既有檔被修改（例外：D22（P-22）、D26（P-30）、D27（P-31）第一次部署前直接改基準，見 §1） |
 | 無 DROP 既有表 | up 檔出現 `DROP TABLE`（非 `IF EXISTS` 於 down） |
 | 外鍵 | 出現 `FOREIGN KEY` |
-| 租戶表 | 表名在 `tenant-isolation.md` §2 租戶欄，但無 `operator_id` 欄或索引不以它開頭 |
+| 租戶表 | 表名在 `tenant-isolation.md` §2 租戶欄，但無 `platform_code` 欄或索引不以它開頭（`platform` 表例外：它的租戶鍵是自己的 `code`，要有 `uk_platform_code`、格式與保留字 CHECK） |
 | gen 同步 | `go run ./cmd/gen` 後 `*.gen.go` 有 diff |
 
 ---

@@ -1,3 +1,8 @@
+---
+paths:
+  - "web/admin/**"
+---
+
 # 後台前端規範（`web/admin`：總控後台 + 業主後台）
 
 > **本文管的是「怎麼工作」**：技術棧基準、兩套後台怎麼共存、去哪裡讀行為契約、agent 在這個專案容易犯的錯。
@@ -54,13 +59,14 @@ grep -rn "element-ui\|vuex\|new Vue(\|\$listeners\|filters:\|\.sync" --include=*
 
 | 項目 | 規則 |
 |------|------|
-| 路由前綴 | 總控 `/admin/**`，業主後台 `/operator/**`；登入頁各一（`/admin/login`、`/operator/login`） |
-| 登入 scope | 登入回應含 `scope: platform \| operator`；Pinia `useSession()` 依 scope 載入選單樹與權限表；**scope 錯的路由直接導回對應登入頁** |
-| API 前綴 | `/api/admin/**`、`/api/operator/**`；client 依 scope 選前綴，頁面程式碼不寫死 |
-| 共用 | 登入與驗證器綁定、角色權限、帳號管理、操作記錄的頁面元件**共用**（Spec-4 R1–R8 兩套後台規則相同），以 scope 參數化 |
-| 不共用 | 業務頁面各自獨立目錄：`src/views/admin/**`、`src/views/operator/**` |
+| 路由前綴 | 總控 `/manage/**`，業主後台 `/platform/<業主代碼>/**`（代碼大小寫敏感）；登入頁各一（`/manage/login`、`/platform/<業主代碼>/login`） |
+| 登入 scope | 登入回應含 `scope: manage \| platform`；Pinia `useSession()` 依 scope 載入選單樹與權限表；**scope 錯的路由直接導回對應登入頁** |
+| API 前綴 | `/api/manage/**`、`/api/platform/**`；client 依 scope 選前綴，頁面程式碼不寫死 |
+| 共用 | 登入（帳密 → 驗證碼）、角色權限、帳號管理、操作記錄的頁面元件**共用**（Spec-4 R1–R8 兩套後台規則相同），以 scope 參數化 |
+| 不共用 | 業務頁面各自獨立目錄：`src/views/manage/**`、`src/views/platform/**` |
 | 語言 | **只中文**（dept-assignment 預設 1）；不裝 i18n 套件；不送 `x-lang` |
-| 業主識別 | 業主後台**不帶** operator id 到任何請求（伺服器從 session 推導，`tenant-isolation.md` §1）；總控選單站時帶 `operatorId` 由後端驗證在指派範圍內 |
+| 保留代碼 | `login`、`logout`、`auth`、`admin`、`api`、`manage` 符合代碼格式但不是任何業主（撞網址固定段）：`/platform/login`、`/platform/<保留字>/**` 一律是專屬網址提示頁、不打 API；建立業主表單也擋（`RESERVED_PLATFORM_CODES` 與後端 `tenant.ReservedCodes` 同一份） |
+| 業主識別 | 業主後台**不帶**業主代碼到任何請求（登入那一支在路徑上除外）（伺服器從 session 推導，`tenant-isolation.md` §1）；總控針對單一業主的請求帶業主代碼，由後端驗證存在（D24） |
 
 ---
 
@@ -68,11 +74,11 @@ grep -rn "element-ui\|vuex\|new Vue(\|\$listeners\|filters:\|\.sync" --include=*
 
 | 規則 | 前端做什麼 | 後端做什麼 |
 |------|-----------|-----------|
-| 查看／管理兩級 | 無「查看」→ 選單不顯示該模組；有「查看」無「管理」→ 頁面唯讀、可操作欄位（含匯出）顯示鎖頭 | 每個端點標 `Permissions`，無權限回 403 |
-| 直接開網址 | 路由守衛檢查權限表 → 顯示「你沒有這個模組的權限」頁（不是 404、不是空白） | 403 |
+| 頁面 × 動作（D23） | 選單樹與本人代碼只來自 `GET {P}/me/permissions` 的 `menu`／`codes`（前端不抄一份選單或代碼）；選單底下沒有任何一頁「查看」→ 選單不顯示；頁面內的按鈕以 `session.can(選單鍵, 頁面鍵, 動作)` 判斷，沒有該動作（新增、編輯、刪除、審核、**匯出獨立**）→ 鎖頭 | 每個端點經 `auth.RouteTable` 宣告選單代碼（持有任一個即可），缺代碼回 403 + 40100 |
+| 直接開網址 | 路由守衛檢查權限表 → 顯示「你沒有這個頁面的權限」頁（不是 404、不是空白） | 403 |
 | 權限變更生效 | **每次路由切換重新拉權限表**（R8：下次載頁即生效，不需重登）；不快取超過一次導航 | 以 DB 為準 |
 | 下級角色 | 只能管自己的下級；同級／上級唯讀並顯示提示文案（AC-13） | 後端判定 |
-| 匯出 | 管理權限才可點；按鈕鎖頭是 UX，**後端 403 是授權** | 403 |
+| 匯出 | 有該頁的「匯出」代碼才可點（D23：匯出獨立於新增、編輯、刪除）；按鈕鎖頭是 UX，**後端 403 是授權** | 匯出端點只宣告匯出代碼，缺代碼回 403 + 40100 |
 
 **`v-if` 藏掉按鈕不是授權。** 每個會改資料的操作，後端都會重新判定權限與租戶範圍；前端的工作是不讓使用者看到做不到的事。
 
@@ -85,7 +91,7 @@ grep -rn "element-ui\|vuex\|new Vue(\|\$listeners\|filters:\|\.sync" --include=*
 | 狀態 | 呈現 | 來源 |
 |------|------|------|
 | 載入中 | Element Plus `v-loading` 或骨架 | 請求進行中 |
-| 空 | 空狀態文案（依 spec 的文案，例「你目前沒有負責的業主」） | `code=0` 且 `data` 為空 |
+| 空 | 空狀態文案（依 spec 的文案，例「目前沒有任何業主」） | `code=0` 且 `data` 為空 |
 | 錯誤 | 錯誤區塊 + 重試按鈕；顯示後端 `msg` | HTTP 非 2xx、`code≠0`、逾時、網路錯誤 |
 
 axios client 的錯誤攔截器**不得回空集合**；它要 reject，由頁面渲染錯誤態。
@@ -98,7 +104,7 @@ axios client 的錯誤攔截器**不得回空集合**；它要 reject，由頁�
 |------|------|
 | session cookie | 登入後由後端設 `HttpOnly; Secure; SameSite=Lax` cookie（框架 `x-session-token` 名稱）；**前端不接觸 token** |
 | 不落地 | 不用 localStorage／sessionStorage 存 token、權限表、租戶 id；Pinia 狀態重新整理後重新拉 |
-| 驗證器 | TOTP 綁定與驗證畫面只顯示 QR 與輸入框；secret 不寫 log、不進 URL |
+| 驗證器 | **登入不提供綁定**（D21、P-21）：登入第二步一律輸入驗證碼，帳號沒有驗證器 → 顯示後端 40208 的 msg、回步驟一。驗證器密鑰只在新增帳號／重置驗證器的那一次回應裡顯示給執行的管理者（S4-T3a），畫面在瀏覽器內畫 QR（`src/utils/qr.ts`，不用外部 QR 服務）；secret 不寫 log、不進 URL、不存任何儲存 |
 | 操作記錄 | **由後端寫**（Spec-4 R15）；前端不送「我做了什麼」 |
 | 匯出 | 後端產檔回下載 URL（短效）；前端不自己拼 CSV |
 | 自動重送 | 對結果未知的變更操作（提交、採用、停用）**不加全域 retry** |
@@ -137,7 +143,7 @@ axios client 的錯誤攔截器**不得回空集合**；它要 reject，由頁�
 | 每個頁面至少三態測試 | mock API 回成功、空、失敗各一，斷言畫面 |
 | 權限 | 無查看權限 → 選單無、路由到「沒有權限」頁；有查看無管理 → 按鈕鎖頭 |
 | 表單 | 必填缺一不可送出；錯誤碼顯示後端 `msg` |
-| 租戶 | 業主後台頁面的請求**不含** operator id 參數（斷言 axios mock 的 params） |
+| 租戶 | 業主後台頁面的請求**不含**業主代碼參數（斷言 axios mock 的 params） |
 | 不測 | Element Plus 內部行為、樣式 |
 | 命名 | `*.spec.ts` 與元件同目錄；`describe('<Page>')` + `it('shows error state when api fails')` |
 
@@ -151,7 +157,7 @@ axios client 的錯誤攔截器**不得回空集合**；它要 reject，由頁�
 |---|---------|------|
 | 1 | 把「取得失敗」和「確實沒有」都渲染成空清單 | §4 |
 | 2 | token 或權限表進了 localStorage —— 自檢：重新整理後還拿得到嗎？拿得到就違規 | §5 |
-| 3 | 業主後台請求帶 `operatorId` | §2、I1 |
+| 3 | 業主後台請求帶 `platformCode` | §2、I1 |
 | 4 | 以為 `v-if` 藏按鈕就是授權完成 | §3 |
 | 5 | 權限表快取到下次登入才更新 | Spec-4 R8 |
 | 6 | 抄了 cx-sports 的 Vue 2 元件 | §1 |
@@ -159,6 +165,7 @@ axios client 的錯誤攔截器**不得回空集合**；它要 reject，由頁�
 | 8 | 自己拼匯出 CSV、自己寫操作記錄 | §5 |
 | 9 | 把 id `Number()` 後比對 | §6 |
 | 10 | 後台頁面接 `x-lang` 做多語 | §2 |
+| 11 | 把 403／40401（IP 不在白名單）當成「沒有權限」頁或空清單（應導回登入頁；業主後台顯示中性文案） | P-29 |
 
 ---
 

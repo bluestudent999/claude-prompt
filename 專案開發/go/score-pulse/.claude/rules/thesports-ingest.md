@@ -1,3 +1,9 @@
+---
+paths:
+  - "internal/collector/**"
+  - "cmd/thesports-sim/**"
+---
+
 # TheSports 接入（D15、D16 的執行版）
 
 > 本文只管 `internal/collector` 包：怎麼連、怎麼補、怎麼判停更、怎麼發 Kafka。資料套用（compare-and-set）在 `api` 的 `realtime-core`，見 `realtime-contract.md` §1.2；封包欄位見 `realtime-contract.md` §1.1。

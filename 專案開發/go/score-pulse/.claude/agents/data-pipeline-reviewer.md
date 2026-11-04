@@ -128,7 +128,7 @@ tools: Read, Grep, Glob, Bash
    ```bash
    grep -rn "Conflat\|conflat\|window\|Ticker" internal/realtime/ | grep -v _test
    grep -rn "SetNX\|AcquireLock\|leader\|Leader" internal/collector/ | grep -v _test
-   grep -rn "tp\b\|tc\b\|tg\b" internal/platform/envelope/*.go
+   grep -rn "tp\b\|tc\b\|tg\b" internal/core/envelope/*.go
    ```
 7. **情境測試**：
    ```bash

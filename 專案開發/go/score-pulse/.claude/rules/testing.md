@@ -22,7 +22,8 @@
 | 正常路徑（200 / 快照 / 套用成功） | 必 | 必 | 必 |
 | 參數錯誤（400，含每個必填欄位缺一） | 必 | 必（destination 參數錯） | 必（封包壞 → 回 nil + metric） |
 | 未登入 / 無權限（401 / 403） | 需登入的必 | 會員 destination 必 | — |
-| **他租戶資源 → 404 或空**（I1） | 租戶表相關的必 | `{op}` 不符必 | — |
+| **他租戶資源 → 404 或空**（I1） | 租戶表相關的必 | `{code}` 不符必 | — |
+| **後台選單代碼**（D23）：有該端點宣告的代碼 → 200；只缺那一個（持有同頁其他全部代碼）→ 403 + 40100；只持有另一套後台同名頁的代碼 → 403 | `/api/manage/**`、`/api/platform/**` 每支必（白名單路由除外；命名 `Test<Handler>_Has<Act>Code_OK`、`_Missing<Act>Code_Forbidden_40100`／`_<其他動作>Only_Forbidden_40100`、`_OtherBackOfficeCode_Forbidden_40100`） | — | — |
 | 業務錯誤碼（每個 handler 會 panic 的每一個 `apierr`） | 必 | — | — |
 | 重複／較舊更新被丟棄（I3） | — | — | `realtime-core` 必 |
 
@@ -41,7 +42,7 @@
 | 單元 | `internal/**/ *_test.go` | §1 的 API 測試；service 規則；envelope 編解碼；合流；compare-and-set | 無外部依賴 | ✅ `go test ./internal/...` |
 | 整合 | `test/integration/*_test.go` | dao 對真實 MySQL；Kafka 兩 group 消費；Redis 快照；雙租戶越權 | `docker compose -f deploy/docker-compose.yml up -d mysql redis kafka` | ✅ `go test -tags=integration ./test/...` |
 | 情境 | `test/scenario/*_test.go` | 模擬器腳本：同時進球、回退、跨日、停更、中斷補齊、p95 量測 | 上述 + `cmd/thesports-sim` | ✅（夜間或 PR label） |
-| 架構 | `skills/arch-check` 腳本 | import 方向、禁用依賴、handler 有測試、租戶 dao 經 Scope | 無 | ✅ |
+| 架構 | `scripts/arch-check.sh` | import 方向、禁用依賴、handler 有測試、租戶 dao 經 Scope | 無 | ✅ |
 
 整合與情境測試用 build tag 分開，預設 `go test ./...` 只跑單元。
 
@@ -49,7 +50,7 @@
 
 ## 3. 雙租戶是預設 fixture（硬規則）
 
-`test/fixtures/tenants.go`：`op-a` / `op-b` 各一位業主、域名、會員、業主後台管理員；一位只指派 A 的總控人員。**所有**整合測試用這組；租戶端點的單元測試也用它的 id 與 Host。
+`test/fixtures/tenants.go`：`op-a` / `op-b` 各一位業主、域名、會員、業主後台管理員；一位非第 0 級的總控人員（ops）。**所有**整合測試用這組；租戶端點的單元測試也用它的 id 與 Host。
 
 必測越權情境與命名見 `tenant-isolation.md` §5。斷言的是「**取不到**」，不是「筆數對」。
 
@@ -106,7 +107,7 @@ TheSports 的 VAR 取消、狀態回退、中斷、跨日在真實環境**無法
 ## 9. 命名與慣例
 
 - `Test<Subject>_<Case>`；table-driven 時 `t.Run(name, ...)`，name 用英文句子。
-- 不用 `time.Now()` 直接比較；注入 `platform/clock`。
+- 不用 `time.Now()` 直接比較；注入 `core/clock`。
 - 不用 `sleep` 等非同步結果；用 channel 或 `require.Eventually`。
 - 測試資料的 id、域名用 fixture 常數，不寫魔術數字。
 - 一個測試只驗一件事；失敗訊息要能看出哪個 AC 掛了。

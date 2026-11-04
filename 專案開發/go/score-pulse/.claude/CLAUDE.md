@@ -12,10 +12,9 @@
 
 接到「做 S2-T8」這類指令時：
 
-1. **讀整張 ticket**（它很短）：Scope 含／不含、Depends On、AC、部門分工、**只讀這幾節（Required Spec Sections）**。
-2. **只讀指定的 spec 節**：spec 每份 300～560 行，**不要通讀**。企劃已經切好上下文，照著讀就不會爆。
-3. **planner 拆解**：產出 `plan/task-<ticket>-plan.md`，判定工作類別（A 後端 API／B 後台前端／C 契約交付），列出每個 API 的測試名，管理 `⏳ 待決` OQ。
-4. **實作 → 驗收 → 審查 → 回填**（`rules/development-workflow.md`）。
+1. **Preflight**（分支、Go 版本、框架 tag、編譯）過了就**直接呼叫 planner**。主流程**不自己讀 ticket 與 spec**（2026-11-04 決策 A：讀 ticket 這件事只做一次，由 planner 做）。
+2. **planner 拆解**：讀整張 ticket、只讀 Required Spec Sections（spec 每份 300～560 行，**不通讀**）、判定工作類別（A 後端 API／B 後台前端／C 契約交付）、列出每個 API 的測試名、管理 `⏳ 待決` OQ，產出 `plan/task-<ticket>-plan.md`，並回傳含 §0 元資料的摘要。
+3. **實作 → 驗收 → 審查 → 回填**（`rules/development-workflow.md`）。主流程對 ticket 的認識來自 planner 的摘要與 plan §0，不重讀。
 
 > **回填不是可選的。** plan §8 完成紀錄 + ticket 狀態欄；沒回填 = 未完成。
 
@@ -39,7 +38,7 @@ repo 初始化、框架 tag、三份 profile、docker-compose、migrate、swag�
 - **`main`（master）是鎖定分支**：不 commit、不 push、不從它切分支。只收 `developing` 的 release MR。
 - **`developing` 只收 MR**，不直接 commit。
 - **每張 ticket 一條分支，從 `origin/developing` 切出**：`git fetch origin && git switch -c feature/<ticket-id>-<slug> origin/developing`。完成後 push 分支、開 MR 到 `developing`。
-- `hooks/block-protected-branch.sh` 會攔違規動作；被攔不要繞（`--no-verify`、改分支名），回報使用者。細則見 `rules/git-workflow.md` §1。
+- `hooks/git-guard.sh` 會攔違規動作；被攔不要繞（`--no-verify`、改分支名），回報使用者。細則見 `rules/git-workflow.md` §1。
 
 ### 0.4 先做哪張
 
@@ -128,6 +127,7 @@ master-plan.md（波次、里程碑、外部等待）              ← 只決定
 6. **sp-framework 的慣例不是建議**（`rules/framework-conventions.md`）：panic 走錯誤流程、`fx.In` 顯式結構、YAML key 小寫、Name() 對上 YAML 鍵、`EmitWithKey(match_id)`。寫錯會跑不起來或靜默失序。
 7. **範圍紀律**：只做 ticket 的 Scope「含」；不做「順便加的」功能；不為 H5／App 的畫面寫程式；不做結算。
 8. **分支紀律**：`main` 鎖定、`developing` 只收 MR、每張 ticket 從 `origin/developing` 切 `feature/<ticket-id>-<slug>`。違規 = hook 攔，不得繞過。
+9. **安全性第一（2026-11-03 使用者指定）**：任何寫法、設計與流程的選擇，**以安全性為第一考量**，優先於方便、效能、開發速度與既有慣例。兩種做法都可行時選較安全的；較安全的做法代價過大時，停手把取捨寫清楚交使用者決定，不得自行為了方便選較不安全的一方。審查時「這樣比較方便」不是降低安全性的理由。細則見 `rules/coding-style.md` §0。
 
 ---
 
@@ -135,10 +135,10 @@ master-plan.md（波次、里程碑、外部等待）              ← 只決定
 
 - **自訂 Skills**：`/ticket-run <id>`、`/bootstrap`、`/arch-check`、`/tenant-check`、`/contract-export`、`/sim-scenario`、`/db-migrate`、`/vue3-console`、`/strategic-compact`
 - **Sub-agents**（依 `rules/development-workflow.md` Step 4 派工）：
-  - `planner`：ticket → `plan/task-<ticket>-plan.md`；判類別、標不變量與租戶表、列每個 API 的測試名、管 OQ。
+  - `planner`：ticket → `plan/task-<ticket>-plan.md`；**讀 ticket 與 Required Spec Sections 由它做（主流程不先讀）**；判尺寸與類別、標不變量與租戶表、列每個 API 的測試名、管 OQ，回傳含 §0 的摘要。
   - `code-reviewer`：Go 通用品質 + framework-conventions 掃描 + **API 無測試即 block**。
   - `arch-guard`：包依賴方向、角色組裝、禁用相依。
-  - `tenant-isolation-reviewer`：逐一盤點查詢的 operator 過濾、授權來源、雙租戶測試。
+  - `tenant-isolation-reviewer`：逐一盤點查詢的業主（platform_code）過濾、授權來源、雙租戶測試。
   - `contract-reviewer`：REST 與 WebSocket／Kafka 契約相容性、是否需通知另一部門。
   - `data-pipeline-reviewer`：collector、`realtime-core`、`persist`、合流、快照、賠率歷史的正確性。
   - `web-reviewer`：`web/admin` 的 Vue 2 混入、授權、三態、憑證不落地。
@@ -153,23 +153,26 @@ master-plan.md（波次、里程碑、外部等待）              ← 只決定
 3. 派 reviewer：`code-reviewer` 一律；其餘依 Step 4 表。
 4. 回填：plan §8 + ticket 狀態欄。
 5. 檢查 OQ：`plan/` 無「⏳ 待決」（否則 git hook 攔截）。
-6. Commit（Conventional Commits，scope = 功能包名）；**不加 `.claude/` 與 `CLAUDE.md`**。
+6. Commit（Conventional Commits，scope = 功能包名）；指名檔案 `git add`。範本（`.claude/`、`CLAUDE.md`）的改動另開 `chore` commit，不與 ticket 混在一起。
 7. 確認在 `feature/<ticket-id>-<slug>` 分支上；`git rebase origin/developing` 後 `git push --force-with-lease`，開 MR 到 `developing`（`rules/git-workflow.md` §1.2）。
 
 ---
 
-<!-- shared:claude-local-only -->
-## Claude Code 專案規範 / 範本 — 僅本機使用，不進版控（`settings.json` 除外）
+## Claude Code 開發範本 — 隨專案進版控（2026-11-02 起）
 
-`CLAUDE.md` 與 `.claude/` 是**本機開發輔助設定**，不隨專案進版控；唯一例外是 `.claude/settings.json`（團隊共用的 hook／權限設定）。部署本範本後，專案 `.gitignore` 須含：
+`CLAUDE.md` 與 `.claude/`（rules、agents、skills、hooks、`settings.json`）**隨 score-pulse 進版控**，團隊 clone 專案、切到 `developing` 即取得同一套開發範本與 hook，**不需要再跑 `prompt-setup`**。只排除個人檔案：
 
 ```gitignore
-# Claude Code 專案規範 / 範本 — 僅本機使用,不進版控(settings.json 除外)
-CLAUDE.md
-.claude/*
-!.claude/settings.json
+.claude/settings.local.json
+.claude/worktrees/
 ```
-<!-- /shared -->
+
+| 規則 | 說明 |
+|------|------|
+| 改範本 | 視同改專案規範：在 feature 分支另開 `chore(deploy): - ...` commit，經 MR 合進 `developing`；不與 ticket 程式碼混在同一個 commit |
+| 個人設定 | 複製 `.claude/settings.local.json.example` 為 `.claude/settings.local.json` 填本機值；它不進版控 |
+| 企劃範本 | PM 若在本機部署企劃範本（`prompt-setup 專案企劃`），會覆蓋版控中的 `.claude/` 與 `CLAUDE.md`：**不得提交這些改動**；建議 PM 另開一份 clone 專做企劃 |
+| 範本庫 | `claude-prompt` 範本庫的「專案開發／go／score-pulse」是本 repo `.claude/` 的鏡像；以本 repo 為準，範本庫需要時再同步（本段刻意與其他範本的共用區塊不同） |
 
 ---
 

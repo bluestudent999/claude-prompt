@@ -1,11 +1,13 @@
 ---
 name: contract-export
-description: 產出並檢查交付 H5／App 部門的契約——swag 產前台與後台 OpenAPI、比對 platform/envelope 與 realtime.md 的欄位短名、確認四份固定附件存在、以 git diff 判斷契約是否變更並提醒寫 CHANGELOG。任何 A 類 ticket 動到 /api/front/**、WebSocket 或 Kafka 封包後使用。
+description: 產出並檢查交付 H5／App 部門的契約——swag 產前台與後台 OpenAPI、比對 core/envelope 與 realtime.md 的欄位短名、確認四份固定附件存在、以 git diff 判斷契約是否變更並提醒寫 CHANGELOG。任何 A 類 ticket 動到 /api/front/**、WebSocket 或 Kafka 封包後使用。
 ---
 
 # contract-export — 契約產出與變更判定
 
-**用法：** `/contract-export`，或 `bash .claude/skills/contract-export/contract-export.sh`（`make contract-export` 同義）
+**用法：** `/contract-export`，或 `bash scripts/contract-export.sh`（`make contract-export` 同義）
+
+> 腳本在 repo 的 `scripts/`（進版控，CI 與 Makefile 同一份）；本目錄只放說明。改檢查規則請改 `scripts/` 並隨 ticket 提交。
 
 契約是交付物的一部分（`rules/api-contract.md`）。產出落在 `docs/contract/`，與程式碼**同一個 commit**。
 
@@ -14,15 +16,15 @@ description: 產出並檢查交付 H5／App 部門的契約——swag 產前台�
 ## Step 1 · 跑腳本
 
 ```bash
-bash .claude/skills/contract-export/contract-export.sh
+bash scripts/contract-export.sh
 ```
 
 腳本做五件事：
 
 | # | 做什麼 | 失敗代表 |
 |---|--------|---------|
-| 1 | `swag init` 兩組：前台（`--instanceName front`，掃 `internal/{match,odds,member,notify,operator}/controller`）、後台（`--instanceName admin`，掃 `internal/admin`、業主後台 controller）→ `docs/contract/openapi-{front,admin}.yaml` | swag 註解缺或壞；handler 沒有 `@router` |
-| 2 | 比對 `internal/platform/envelope/*.go` 的 json tag 與 `docs/contract/realtime.md` 出現的短名 | 新增或改了欄位沒更新文件 |
+| 1 | `swag init` 兩組，第一個 `--dir` 固定 `./cmd/score-pulse`（`-g main.go` 相對於它）、只掃有 Go 檔的目錄、以 `--tags` 分組：後台 `ADMIN_TAGS`（精確列舉，目前 `admin-platform,admin-role,admin-me,admin-auth`）、前台以 `!` 排除這些 tag → `docs/contract/openapi-{front,admin}.yaml`；之後斷言前台契約沒有 `/api/manage`、`/api/admin`（P-30 退役前綴）、`/api/platform` 路徑；並斷言 `realtime.md` 不含 P-19 前的舊業主路徑段（會員通知為 `/platform/{code}/member/{memberId}/notice`） | swag 註解缺或壞；handler 沒有 `@Router`；**新後台 tag 沒加進 `scripts/contract-export.sh` 的 `ADMIN_TAGS`** |
+| 2 | 比對 `internal/core/envelope/*.go` 的 json tag 與 `docs/contract/realtime.md` 出現的短名 | 新增或改了欄位沒更新文件 |
 | 3 | 檢查 `docs/contract/{README.md,realtime.md,ws-client.example.ts,CHANGELOG.md}` 存在 | 固定附件缺（`api-contract.md` §5） |
 | 4 | `git diff --stat -- docs/contract/` 判斷契約是否變更；變更而 `CHANGELOG.md` 無本次條目 → 警告 | 忘記寫變更紀錄 |
 | 5 | 輸出「契約有更新：<端點清單>」給回覆用 | — |

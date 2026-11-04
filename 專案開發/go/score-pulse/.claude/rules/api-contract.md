@@ -11,10 +11,12 @@
 |------|------|---------|---------|
 | REST（前台給 H5／App） | OpenAPI 3（swag 註解在 `dto` 與 `controller`） | `swag init` | `docs/contract/openapi-front.yaml` |
 | REST（兩套後台給 `web/admin`） | OpenAPI 3 | 同上，另一個 group | `docs/contract/openapi-admin.yaml`（內部，仍要產） |
-| WebSocket 與 Kafka 訊息 | `realtime-contract.md` + `docs/contract/realtime.md` | 手寫 + `/contract-export` 檢查欄位對照 `platform/envelope` | `docs/contract/realtime.md` |
+| WebSocket 與 Kafka 訊息 | `realtime-contract.md` + `docs/contract/realtime.md` | 手寫 + `/contract-export` 檢查欄位對照 `core/envelope` | `docs/contract/realtime.md` |
 | 變更紀錄 | `docs/contract/CHANGELOG.md` | 每次契約變更追加 | 同上 |
 
-路徑前綴固定：前台 `/api/front/**`、業主後台 `/api/operator/**`、總控 `/api/admin/**`、WebSocket `/api/ws`。
+路徑前綴固定：前台 `/api/front/**`、業主後台 `/api/platform/**`、總控 `/api/manage/**`、WebSocket `/api/ws`。
+
+命名（D20）：業主 = **platform**，以字串**業主代碼**（`platform_code`）識別；前台由 Host 推導業主，任何請求帶的業主代碼參數一律忽略。後台只有業主後台登入網址 `POST /api/platform/auth/{code}/login` 在路徑上帶代碼；WebSocket 會員通知 destination `/platform/{code}/…` 的 `{code}` 由伺服器比對握手業主，不一致即拒絕訂閱。保留代碼 `login`、`logout`、`auth`、`admin`、`api`、`manage` 不是任何業主。總控端點可在路徑帶 `{code}` 指定單一業主（伺服器以 `auth.ManageTarget` 驗證並確認存在，查無 404；D24）。
 
 ---
 
@@ -24,7 +26,7 @@
 |---|------|--------|
 | 1 | 前台 API **對 OQ-63 中立**：不出現「app only」「h5 only」的欄位或端點；來源端由 header `x-client: h5|ios|android` 帶，後端只記錄（Spec-6 R34） | 另一部門還沒決定 App 要不要另做畫面 |
 | 2 | 回應一律 `{ "code": 0, "msg": "", "data": ... }`（框架 `response.Object[T]`）；分頁用 `response.Page[T]`（`list`、`total`、`page`、`size`） | 框架既有，client 只寫一種解析 |
-| 3 | 錯誤碼是**數字 + 穩定語意**，集中在 `platform/apierr`；`msg` 依 `x-lang` 翻譯；**錯誤碼一旦發布不改語意、不重用號碼** | client 會對錯誤碼寫分支 |
+| 3 | 錯誤碼是**數字 + 穩定語意**，集中在 `core/apierr`；`msg` 依 `x-lang` 翻譯；**錯誤碼一旦發布不改語意、不重用號碼** | client 會對錯誤碼寫分支 |
 | 4 | 時間一律 **ISO-8601 UTC**（`2026-11-09T08:00:00Z`）；時區換算在 client（Spec-3 R68 時區設定是顯示層） | 一個真相 |
 | 5 | id 一律字串化的 int64（JSON 裡是字串），避免 JS 精度問題 | TheSports id 超過 2^53 |
 | 6 | 資料名稱（聯賽／球隊／球員）回應**已回退過的單一名稱** + `name_lang` 標明實際語言；不回整包多語 | 回退規則在後端（`i18n.md`），client 不重做 |
