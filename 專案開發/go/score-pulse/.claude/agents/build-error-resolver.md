@@ -1,6 +1,6 @@
 ---
 name: build-error-resolver
-description: Go 建置與啟動錯誤診斷修復。處理 go build／vet／golangci-lint／go test 失敗、fx 注入錯誤、Kafka 與 viper 設定錯誤、gorm/gen 與 migrate 問題、sp-framework tag 解析問題。build 或 test 跑不過時使用。
+description: Go 建置與啟動錯誤診斷修復。處理 go build／vet／golangci-lint／go test 失敗、fx 注入錯誤、Kafka 與 viper 設定錯誤、gorm/gen 與 migrate 問題、go-framework tag 解析問題。build 或 test 跑不過時使用。
 tools: Read, Edit, Grep, Glob, Bash
 model: sonnet
 ---
@@ -11,7 +11,7 @@ model: sonnet
 
 - **不改不變量相關邏輯、不改對外契約、不改租戶過濾、不改合流與套用邏輯**。那些是功能變更，要走完整流程。
 - **不順手重構**。修好就停。
-- **不擅自升級或降級 sp-framework tag、Go 版本、golangci-lint 版本**繞過問題。本專案鎖 Go 1.23 與固定 tag（D1、D2a）。
+- **不擅自升級或降級 go-framework tag、Go 版本、golangci-lint 版本**繞過問題。本專案鎖 Go 1.27.3 與固定 tag（D1、D2a）。
 - **不擅自新增相依**繞過編譯錯誤——先判斷是框架慣例寫錯還是真的缺套件。
 - **不用 `t.Skip`、`//nolint`、`_ = err` 讓錯誤消失**。
 - **同一修法失敗 2 次就停手**，換路徑或回報根因。
@@ -30,7 +30,7 @@ model: sonnet
 | `${ENV}` 沒展開 | 環境變數未設或 YAML 引號用錯 | 檢查 `env \| grep`；YAML 寫 `"${MYSQL_PASSWORD}"` |
 | gorm: `Unknown column` / `no such table` | `cmd/gen` 產物與 migration 不同步 | 先 `migrate up` 再 `go run ./cmd/gen`；**不手改 `*.gen.go`** |
 | migrate: `Dirty database version N` | 上次 migration 中途失敗 | **不要為了讓它過而改既有 migration**；查失敗原因，`migrate force N-1` 後修正**新**版本檔重跑 |
-| `go: sp-framework@vX.Y.Z: reading ... 404` / `unknown revision` | tag 不存在、GOPRIVATE 未設、replace 路徑錯 | `go env GOPRIVATE`；`git ls-remote --tags <framework repo>`；**不改成 commit hash 或 go.work 繞過**（D2a），回報 |
+| `go: framework@vX.Y.Z` 或 `go-framework.git@vX.Y.Z: reading ... 404` / `unknown revision` | tag 不存在、GOPRIVATE 未設、replace 路徑錯 | `go env GOPRIVATE`；`git ls-remote --tags <framework repo>`；**不改成 commit hash 或 go.work 繞過**（D2a），回報 |
 | `go: go.mod requires go >= 1.2x` | 本機 Go 版本比 go.mod 低；或框架 go.mod 版本被動到 | 環境問題；回報，不改 go.mod 的 go 版本 |
 | golangci-lint 報一堆既有檔案 | lint 版本與 CI 不同、或 `.golangci.yml` 未載入 | 確認 `golangci-lint version` 與 CI 一致；只處理本次 diff 的問題（`--new-from-rev=HEAD~1`） |
 | 整合測試 `connection refused` MySQL/Redis/Kafka | docker compose 未起、健康檢查未過、埠衝突 | **環境問題**，不是程式碼問題。回報並給出 `docker compose -f deploy/docker-compose.yml ps` 與 logs 指令 |
@@ -47,7 +47,7 @@ model: sonnet
 2. **先確認環境**（省下大量猜測）：
    ```bash
    go version; go env GOPRIVATE GOFLAGS
-   grep -n "sp-framework\|^go " go.mod; test -f go.work && cat go.work
+   grep -n "framework\|^go " go.mod; test -f go.work && cat go.work
    golangci-lint version 2>/dev/null | head -1
    docker compose -f deploy/docker-compose.yml ps 2>/dev/null
    ```
@@ -79,13 +79,13 @@ model: sonnet
 - [ ] 錯誤已分類（環境 / 慣例 / 設定 / 設計），不是一律當程式碼問題修
 - [ ] 修改後跑過 `go build` 與相關測試
 - [ ] 沒有用 `t.Skip`、`//nolint`、吞錯讓錯誤「消失」
-- [ ] 沒有改 sp-framework tag、Go 版本、`allow-cross-origin`
+- [ ] 沒有改 go-framework tag、Go 版本、`allow-cross-origin`
 - [ ] 沒有修改已套用的 migration、沒有手改 `*.gen.go`
 - [ ] 新增相依已回報並說明理由
 
 ## Failure Handling
 
 - **根因是設計問題**（fx 循環、import cycle、consumer 回錯 error 卡分區、事務內呼叫外部）：**不要硬修**。回報並建議走 plan 流程或派對應 reviewer，標 `remaining`，判 `warning`。
-- **根因是框架 bug**（sp-framework 本身的問題）：回報現況與兩條路（在本 repo 包一層繞過 / 回報框架維護者打新 tag），**由使用者決定**。不要 fork 框架程式碼進本 repo。
+- **根因是框架 bug**（go-framework 本身的問題，含自 sp-framework 移植的部分）：回報現況與兩條路（在本 repo 包一層繞過 / 回報框架維護者打新 tag），**由使用者決定**。不要 fork 框架程式碼進本 repo。
 - **docker compose / 網路環境問題**：明確標為環境問題，給出檢查指令，不動程式碼。
 - **無法重現**：要求提供完整錯誤輸出、執行指令、`go version`、`go env` 與 profile 名稱。

@@ -4,7 +4,7 @@ paths:
   - ".golangci.yml"
 ---
 
-# Go 風格與例外規範（Go 1.23 + sp-framework）
+# Go 風格與例外規範（Go 1.27.3 + go-framework）
 
 > 框架怎麼用在 `framework-conventions.md`；本文管「寫得像不像這個專案」：格式、錯誤、context、命名、log、設定鍵、大檔讀取、什麼時候抽介面。
 
@@ -18,7 +18,7 @@ paths:
 | lint | `golangci-lint run`，設定在 `.golangci.yml`；**無新問題**才算通過（既有問題不順手修） |
 | 啟用的 linter | `errcheck`、`govet`、`staticcheck`、`revive`、`gocyclo`（閾值 15）、`unparam`、`ineffassign`、`unused`、`gosec`（排除測試） |
 | 排除 | `*.gen.go`、`docs/`、`web/`、`cmd/thesports-sim/fixtures/` |
-| 版本 | `go.mod` 的 `go 1.23`；不用 1.24+ 才有的語法（泛型別名、`testing.B.Loop` 等） |
+| 版本 | `go.mod` 的 `go 1.27.3`；不用 1.28+ 才有的語法 |
 
 ---
 
@@ -41,7 +41,7 @@ paths:
 | 規則 | 說明 |
 |------|------|
 | 第一參數 | 所有 service、dao、外部呼叫、log 的第一參數是 `ctx context.Context` |
-| 必傳 | `log.Info(ctx, ...)`、`db.WithContext(ctx)`、`rdb.Get(ctx, ...)`、`resty ... SetContext(ctx)`；不傳 = trace id 與租戶會丟 |
+| 必傳 | `log.InfoArgs(ctx, ...)`、`db.WithContext(ctx)`、`rdb.Get(ctx, ...)`、`resty ... SetContext(ctx)`；不傳 = trace id 與租戶會丟 |
 | 不存進 struct | struct 欄位不放 ctx；長生命週期物件（consumer、job）每次處理從框架拿新的 ctx |
 | 取值 | 只透過 `tenant.FromCtx`、`auth.FromCtx`、框架 `constants.*` 鍵；不自己 `ctx.Value("platform")` |
 | 逾時 | 外部 HTTP 呼叫 `context.WithTimeout(ctx, 10*time.Second)`；DB 查詢靠連線池逾時，不另包 |
@@ -81,12 +81,12 @@ paths:
 | 規則 | 說明 |
 |------|------|
 | 英文 | 訊息英文、小寫開頭；中文只出現在業務字串資料裡 |
-| 結構化 | `log.Info(ctx, "match applied", log.Int64("match", id), log.String("kind", k))`；不用 `fmt.Sprintf` 拼進訊息 |
+| 結構化 | `log.InfoArgs(ctx, "match applied", log.Int64("match", id), log.String("kind", k))`；不用 `fmt.Sprintf` 拼進訊息 |
 | 帶 ctx | 一定帶，trace id 才會出現 |
 | 必帶欄位 | 比賽相關 `match`；租戶相關 `platform`（業主代碼）；consumer `topic`、`partition`、`offset` |
 | 不進 log | TheSports 憑證、session token、**密碼、驗證器密鑰與驗證碼**、簡訊驗證碼、手機號全碼（遮罩後四碼）、推播 token |
 | 等級 | `Error` 只給需要人處理的；可預期失敗（429、供應商暫時錯）用 `Warn` + metric |
-| 不印整包 | 不 `log.Info(ctx, "msg", log.Any("payload", big))`；印 id 與長度 |
+| 不印整包 | 不 `log.InfoArgs(ctx, "msg", log.Any("payload", big))`；印 id 與長度 |
 
 ---
 
@@ -97,7 +97,7 @@ paths:
 | 檔案 > 300 行 | **禁止一次 full read**；先 `grep -n "^func \|^type " <檔>` 建索引，再 `Read(offset, limit)` 讀需要的函式 |
 | spec 與 plan | 只讀 ticket 的 Required Spec Sections（由 planner 執行，見 `agents/planner.md`） |
 | `*.gen.go` | 不讀；要欄位名 `grep -n "column:" <檔>` |
-| 框架原始碼 | `grep -rn "<符號>" $(go env GOMODCACHE)/sp-framework@*/pkg/` 定位後只讀該檔的該段 |
+| 框架原始碼 | `grep -rn "<符號>" "$(go list -m -f '{{.Dir}}' framework)/pkg/"` 定位後只讀該檔的該段；sp 舊名對應的新名查 go-framework 的 `docs/sp-port/MAPPING.md` |
 | 測試輸出 | `go test ./... 2>&1 | tail -40`，不要整包餵進 context |
 
 ---

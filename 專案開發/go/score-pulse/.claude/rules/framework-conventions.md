@@ -5,11 +5,29 @@ paths:
   - "go.mod"
 ---
 
-# sp-framework 慣例（AI 最容易寫錯的地方）
+# go-framework 慣例（AI 最容易寫錯的地方）
 
-> sp-framework 是公司內部 Go 框架：gin + uber fx + gorm + go-redis v9 + sarama + gorilla websocket + robfig/cron + go-i18n + viper + prometheus + zap。
+> go-framework（`gi88995.kxcodes.com/game_hub/go-framework`，模組名 `framework`）是公司內部 Go 框架：gin + uber fx + gorm + go-redis v9 + sarama + gorilla websocket + robfig/cron + go-i18n + viper + prometheus + zap。
+> 本專案用到的模組系統、WebSocket、權限與路由登記、業務錯誤流程、快取登記、Redis 鎖排程，是 2026-11-05 從 sp-framework **只增不改**移植進 go-framework 的（D2），行為與 sp-framework 相同；go-framework 原有的同名但不同行為的 API **不要用**（見 §0）。
 > 它**不是**網路上任何一套教學的寫法。以下每一條都是讀過框架原始碼確認的；**憑印象寫會跑不起來**。
-> 不確定時：`grep -rn "<符號>" $(go env GOMODCACHE)/sp-framework@*/pkg/` 看定義，不要猜。
+> 不確定時：`grep -rn "<符號>" "$(go list -m -f '{{.Dir}}' framework)/pkg/"` 看定義，sp 舊名查 go-framework 的 `docs/sp-port/MAPPING.md`，不要猜。
+
+---
+
+## 0. sp-framework 舊名 → go-framework（移植時改名的只有這幾個）
+
+import 路徑一律 `"framework/pkg/<同一子路徑>"`（原 `"sp-framework/pkg/..."`）。其餘符號名稱不變。
+
+| 以前（sp-framework） | 現在（go-framework） | 為什麼不能用 go-framework 原有的同名 API |
+|------|------|------|
+| `web.GET`／`web.POST` | `web.InjectGET`／`web.InjectPOST`（業務碼不直接用，後台一律 `rt.Get／rt.Post`，見 §3） | go-framework 原有的 `web.GET` 是另一套 handler 型別 |
+| `web.Middleware`（介面） | `web.WebMiddleware` | go-framework 的 `web.Middleware` 是 `gin.HandlerFunc` 型別 |
+| `log.Info／Warn／Error／Debug(ctx, "msg {}", ...)` | `log.InfoArgs／WarnArgs／ErrorArgs／DebugArgs(ctx, ...)` | 原有的 `log.Info` 讀另一個 context key，**trace id 會不見** |
+| `log.FieldError(err)` | `log.FieldErrorStack(err)` | 原有的 `log.FieldError` 鍵名與格式不同 |
+| `log.InitLogger(base, logConf)` | `log.InitLoggerWithConf(base, logConf)` | — |
+| `response.StateSuccess`（值） | `response.StateSuccess()`（函式） | — |
+| `i18n.Index`／`i18n.LoadByLang` | `i18n.PrefixedIndex`／`i18n.LoadPrefixedByLang` | 原有的 Index 沒有 Prefix、語言 key 不同 |
+| `web.NewWebServer`、`web.Run` | **不用**；web 伺服器由 `module.GetInjectionsByModule` 依 `modules.enable-list` 組 | go-framework 原有的 `web.Run` **寫死 CORS 全開**，違反安全第一 |
 
 ---
 
@@ -18,7 +36,7 @@ paths:
 | 慣例 | 寫法 |
 |------|------|
 | 容器 | `ioc.NewIOC(baseInjects, rootInjects).Run()`；`module.GetInjectionsByModule(baseConf, projectInjects)` 依 YAML `modules.enable-list` 組基礎模組 |
-| 可用模組名 | `web`、`mysql`、`redis`、`kafka`、`cache`、`job`、`websocket-listener`（依賴 `web`）、`es`、`ignite`、`qqwry`。**本專案只用前七個** |
+| 可用模組名 | `web`、`mysql`、`redis`、`kafka`、`cache`、`job`、`websocket`、`websocket-listener`（依賴 `web`、`kafka`）、`websocket-emitter`（依賴 `kafka`）。`es`、`ignite`、`qqwry`、`notify` 沒有移植，**寫進 enable-list 服務起不來** |
 | 設定 | viper，**key 一律小寫、用連字號**（`kafka.binding.consumers.realtime-core.group`）。大寫 key 讀不到且不報錯 |
 | profile | `--active=api` 讀 `application_api.yaml` 疊在 `application.yaml` 上；`--instance=N` 同機多實例 |
 | 環境變數 | `BaseConf.GetString(key, default)`；機密以 `${ENV_NAME}` 寫在 YAML、由 BaseConf 展開，**不要在程式碼 `os.Getenv`** |
@@ -58,7 +76,7 @@ func NewMatchService(args MatchServiceArgs) *MatchService { return &MatchService
 | Handler 簽名 | 框架 `web.ContextWrapper` + 綁定好的 DTO，回傳 `*response.Object[T]`／`*response.Page[T]`；由 `web.Wrap(handler, web.HandlerMeta{Permissions: []string{...}})` 轉成 gin HandlerFunc |
 | 後台路由（D23） | `/api/manage/**`、`/api/platform/**` **一律經 `auth.RouteTable`**：`rt.Get／rt.Post(g, path, handler, auth.MustCode(scope, auth.PageXxx, auth.ActXxx)...)`（持有任一個代碼即可）；登入、驗證碼、登出、`me/permissions` 用 `rt.PublicGet／PublicPost`（固定白名單）。**不得**直接 `web.GET／POST` 或 gin 方法掛後台路由：框架只把 `Permissions` 閉包進 handler、沒宣告就不檢查、沒有 checker 就整站放行；啟動檢查 `auth.VerifyBackOfficeRoutes` 會讓服務起不來，arch-check 第 14 項也會 FAIL。匯出端點的路徑要有匯出段（以 export／download／csv／xlsx 開頭或以 .csv／.xlsx 結尾的段，不分大小寫；有這種段就算匯出路徑）、只宣告匯出代碼。後台路由前兩段不得是萬用字元；不准 `NoRoute`／`NoMethod`（含方法值）、`internal/` 不准 `.Use`（含方法值）、帶 middleware 的 `.Group(` 或 `.Group` 方法值、改寫或讀取 gin 的 `.Handlers`、`.Handler = …` 換掉 http.Server 的 Handler（middleware 一律經 `web.RegisterMiddleware`）。代碼總表 `docs/contract/admin-menu-codes.md` 只增不改（第 13 項） |
 | 綁參數 | `wrapper.Bind(&so)`（query/form）、`wrapper.BindBody(&so)`（JSON）；驗證用 `validator` tag |
-| Middleware | 實作 `web.Middleware`：`HandlerFunc(c *gin.Context)` + `Sort() int`；**數字小先跑**。本專案固定：100 tenant、**150 後台 IP 白名單（P-29）**、200 auth、250 身分橋接、300 lang-override、900 audit |
+| Middleware | 實作 `web.WebMiddleware`（sp 時代叫 `web.Middleware`）：`HandlerFunc(c *gin.Context)` + `Sort() int`；**數字小先跑**。本專案固定：100 tenant、**150 後台 IP 白名單（P-29）**、200 auth、250 身分橋接、300 lang-override、900 audit |
 | 錯誤流程 | **`panic(runtime.BusinessError(errCode, args...))`**，由框架 `RecoverMiddleware` 轉成 HTTP 回應。**不要 `return err` 到 handler 外**；不要自己 `c.JSON(400, ...)` |
 | 錯誤碼 | `*dto.ErrorCode{Code, Msg}`，集中在 `internal/core/apierr`；Msg 是 i18n key 的 default |
 | 其他錯誤建構子 | `runtime.ParameterError()`、`InvalidParameterError(msg)`、`UnauthorizedError()`、`PermissionError(msg)`、`TooManyRequestError()` |
@@ -140,8 +158,8 @@ func (h *RealtimeCoreHandler) AcceptMessage(ctx context.Context, msg *sarama.Con
 
 | 慣例 | 寫法 |
 |------|------|
-| i18n | `i18n.InitBundle(embedFS)` 載 `<lang>.json`；取字串 `i18n.LoadByLang(lang, &i18n.Index{Prefix, Key, Default, Args})`；語言從 context 的 `x-lang` 取。語言碼用框架常數：`zh`、`en`、`vi`、`tl`（繁中本專案自訂 `zht`，見 `i18n.md`） |
-| log | `log.Info(ctx, "msg {}", log.String("k", v))`；**一定帶 ctx**（trace id 才會出現）；敏感值不進 log（I7） |
+| i18n | `i18n.InitBundle(embedFS)` 載 `<lang>.json`；取字串 `i18n.LoadPrefixedByLang(lang, &i18n.PrefixedIndex{Prefix, Key, Default, Args})`；語言從 context 的 `x-lang` 取。語言碼用框架常數：`zh`、`en`、`vi`、`tl`（繁中本專案自訂 `zht`，見 `i18n.md`） |
+| log | `log.InfoArgs(ctx, "msg {}", log.String("k", v))`、錯誤用 `log.FieldErrorStack(err)`；**一定帶 ctx 且用 `*Args` 版**（trace id 才會出現）；敏感值不進 log（I7） |
 | metrics | `web.metrics.enabled: true` 自動暴露；自訂指標用 `prometheus/client_golang` 註冊到預設 registry |
 | 錯誤型別 | `runtime.CustomError{ErrType, Status, Code, DefaultMsg}`；判斷用 `errors.As` |
 
@@ -152,6 +170,9 @@ func (h *RealtimeCoreHandler) AcceptMessage(ctx context.Context, msg *sarama.Con
 | 看到 | 代表 |
 |------|------|
 | `gin.Default()`、`r := gin.New()` 在業務包 | 沒走框架 Router 介面 |
+| `web.Run(`、`web.NewWebServer(` | 用了 go-framework 原有的伺服器（CORS 全開）；本專案只走模組系統組的伺服器 |
+| `log.Info(ctx`、`log.Error(ctx`（沒有 `Args`） | go-framework 原有的 log API，trace id 會丟；用 `log.InfoArgs`／`log.ErrorArgs` |
+| `web.InjectGET(`、`web.InjectPOST(`、`web.GET(` 掛後台路徑 | 繞過 `auth.RouteTable`（arch-check 第 14 項會擋） |
 | `c.JSON(http.StatusBadRequest, ...)` | 沒走 panic 錯誤流程 |
 | `os.Getenv(` 在 `internal/` | 設定沒走 BaseConf |
 | `sarama.NewSyncProducer(` | 沒走框架 emitter |

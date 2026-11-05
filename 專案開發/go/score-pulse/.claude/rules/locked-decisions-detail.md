@@ -21,8 +21,8 @@ paths:
 
 | # | 決策 | 規格 |
 |---|------|------|
-| **D1** | 語言 | **Go**，版本與 sp-framework 一致（`go 1.23`），不自行升。本機 1.26 可編，CI 以 1.23 為準 |
-| **D2** | 框架 | **sp-framework**：gin + fx + gorm + go-redis v9 + sarama + gorilla websocket + cron + go-i18n + viper + prometheus + otp。慣例見 `framework-conventions.md` |
+| **D1** | 語言 | **Go**，版本與 go-framework 一致（`go 1.27.3`，2026-11-05 隨 D2 升），不自行升；Dockerfile 與 CI 映像為 golang:1.27.3 |
+| **D2** | 框架 | **go-framework**（模組名 `framework`；2026-11-05 取代 sp-framework，缺的機制以只增不改移植進 go-framework，對照表在 go-framework 的 `docs/sp-port/MAPPING.md`）：gin + fx + gorm + go-redis v9 + sarama + gorilla websocket + cron + go-i18n + viper + prometheus + otp。慣例見 `framework-conventions.md` |
 | **D2a** | 框架依賴 | **git tag 鎖版本**，`go.mod` 以 `replace` 或私有模組指向固定 tag；升級是一顆明確的 ticket |
 | **D3** | 單 binary 多角色 | `cmd/score-pulse` 一個 binary，`--active=<profile>` 選角色：`api`、`collector`、`realtime`。`api` 內兩個 consumer group：`realtime-core`、`persist`；流量上來時 `persist` 可成第四個 profile，零程式碼改動 |
 | **D3a** | 包結構 | **依業務功能分包**：`internal/{platform,match,odds,member,notify,manage,collector,realtime}`，包內 `controller/ service/ dao/ model/ dto/ inject.go`；共用放 `internal/core`（P-19／D20：業主功能包為 `internal/platform`；P-30／D26：總控功能包為 `internal/manage`）。規則見 `architecture.md` |

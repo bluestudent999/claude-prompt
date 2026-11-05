@@ -91,7 +91,7 @@ git push -u origin feature/S2-T8-live-score                   # 早 push、早�
 |------|------|
 | type | `feat`、`fix`、`refactor`、`test`、`chore`、`docs`、`perf` |
 | scope | **= 功能包名或層名**：`platform`（業主）、`match`、`odds`、`member`、`notify`、`manage`（總控）、`collector`、`realtime`、`core`（共用層）、`web`（`web/admin`）、`contract`（`docs/contract`）、`migration`、`sim`（`cmd/thesports-sim`）、`deploy` |
-| ticket id | **必含**，subject 開頭：`feat(match): S2-T8 apply score rollback with compare-and-set`；bootstrap 用 `B-03`；無 ticket 的雜務用 `chore(deploy): - bump sp-framework tag`（`-` 佔位） |
+| ticket id | **必含**，subject 開頭：`feat(match): S2-T8 apply score rollback with compare-and-set`；bootstrap 用 `B-03`；無 ticket 的雜務用 `chore(deploy): - bump go-framework tag`（`-` 佔位） |
 | subject | 英文、祈使句、小寫、不加句點、≤ 72 字 |
 | body | 涉及不變量寫 `Invariants: I3, I9`；契約變更寫 `Contract: compatible` 或 `Contract: BREAKING (see docs/contract/CHANGELOG.md)` |
 | 一個 commit 一件事 | 不把兩張 ticket 混在一個 commit |

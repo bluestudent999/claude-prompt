@@ -23,9 +23,9 @@ B=$(git rev-parse --abbrev-ref HEAD)
 echo "$B" | grep -Eq '^(main|master|developing)$' && echo "[preflight] 在 $B 上 — 先切分支：git fetch origin && git switch -c feature/<ticket-id>-<slug> origin/developing"
 echo "$B" | grep -Eq '^feature/' || echo "[preflight] 分支名不是 feature/<ticket-id>-<slug>"
 # 環境
-go version | grep -E "go1\.2[3-9]" || echo "[preflight] Go 版本不符"
-grep -n "sp-framework" go.mod | grep -E "v[0-9]+\.[0-9]+\.[0-9]+" || echo "[preflight] sp-framework 未鎖 tag（D2a）"
-test -f go.work && grep -q "sp-framework" go.work && echo "[preflight] go.work 指向同層 checkout（D2a 禁止）"
+go version | grep -Eq "go1\.(2[7-9]|[3-9][0-9])" || echo "[preflight] Go 版本不符（需 1.27.3+）"
+go list -m framework | grep -Eq " v[0-9]+\.[0-9]+\.[0-9]+$" || echo "[preflight] go-framework 未鎖 tag（D2a）"
+test -f go.work && grep -q "framework" go.work && echo "[preflight] go.work 指向同層 checkout（D2a 禁止）"
 go build ./... || echo "[preflight] HEAD 編譯失敗 — 必修"
 docker compose -f deploy/docker-compose.yml ps 2>/dev/null | grep -q mysql || echo "[preflight] 整合環境未起（整合測試會跳過）"
 ```

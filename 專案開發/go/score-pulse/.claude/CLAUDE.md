@@ -1,7 +1,7 @@
 # CLAUDE.md — score-pulse 開發專案（實作期 AI Agent 規範）
 
 > **專案定位：** On 體育網精簡版（導流版）的**後端 API 與兩套後台**。一套系統服務多位業主（一業主一域名、一品牌 App），四大球種即時比分、賠率、數據，資料全由 TheSports 供應。**H5 與 App 畫面由另一部門負責**，本 repo 對他們交付的是契約。
-> **執行環境：** Go 1.23 + sp-framework（gin／fx／gorm／go-redis／sarama／gorilla ws）｜MySQL 8 + Redis + Kafka｜後台前端 Vue 3 + Element Plus + Pinia（`web/admin`）
+> **執行環境：** Go 1.27.3 + go-framework（`gi88995.kxcodes.com/game_hub/go-framework`，含自 sp-framework 移植的模組、WebSocket、權限與快取機制；gin／fx／gorm／go-redis／sarama／gorilla ws）｜MySQL 8 + Redis + Kafka｜後台前端 Vue 3 + Element Plus + Pinia（`web/admin`）
 > **部署位置：** 隨整個 `.claude/` 部署到 score-pulse repo 根目錄（與 `plan/` 同一個 repo）。
 
 ---
@@ -62,9 +62,9 @@ repo 初始化、框架 tag、三份 profile、docker-compose、migrate、swag�
 | cx-sports-v2 體育投注主業務資安掃描（原始碼與設定靜態稽核，只產報告不改 code） | 資訊安全 | `prompt-setup 資訊安全 cx-sports-v2` |
 | 既有包網彩票平台維護 / 修 bug（lion-service，Java 8 / Boot 2.0） | 維護 | `prompt-setup 專案維護 lion-service` |
 
-| score-pulse 比分平台後端與後台開發（Go / sp-framework / MySQL / Kafka） | 開發 | `prompt-setup 專案開發 go score-pulse` |
+| score-pulse 比分平台後端與後台開發（Go / go-framework / MySQL / Kafka） | 開發 | `prompt-setup 專案開發 go score-pulse` |
 
-> **你在這裡：開發 · score-pulse（Go / sp-framework）**（表格第 14 列為本職，不適用切換）。
+> **你在這裡：開發 · score-pulse（Go / go-framework）**（表格第 14 列為本職，不適用切換）。
 > **跨部門邊界（極重要）：**
 > - **H5 與 App 畫面不在本 repo。** 本 repo 只保證「照契約提供正確的 API 與即時推送」。他們怎麼畫畫面、App 沿用 H5 還是另做（OQ-63）、媒體在 App 能不能播（OQ-62）、哪些瀏覽器支援推播（OQ-32a），是他們的事，**不得代答、不得在 API 裡預設答案**。
 > - 契約改動是雙邊變更 → `rules/api-contract.md` §3。
@@ -91,7 +91,7 @@ repo 初始化、框架 tag、三份 profile、docker-compose、migrate、swag�
 - **已鎖定決策（不得自行推翻）：** [`.claude/rules/locked-decisions.md`](.claude/rules/locked-decisions.md)（常駐索引；細節 `locked-decisions-detail.md` 按需）
 - **10 條不變量（最高紅線）：** [`.claude/rules/invariants.md`](.claude/rules/invariants.md)
 - **架構：單 binary 多角色 + 功能分包：** [`.claude/rules/architecture.md`](.claude/rules/architecture.md)（按需）
-- **sp-framework 慣例（最容易寫錯）：** [`.claude/rules/framework-conventions.md`](.claude/rules/framework-conventions.md)（按需）
+- **go-framework 慣例（最容易寫錯）：** [`.claude/rules/framework-conventions.md`](.claude/rules/framework-conventions.md)（按需）
 - **多業主隔離：** [`.claude/rules/tenant-isolation.md`](.claude/rules/tenant-isolation.md)（按需）
 - **對外 API 契約（跨部門）：** [`.claude/rules/api-contract.md`](.claude/rules/api-contract.md)（按需）
 - **即時資料契約（Kafka／WebSocket）：** [`.claude/rules/realtime-contract.md`](.claude/rules/realtime-contract.md)（按需）
@@ -113,7 +113,7 @@ repo 初始化、框架 tag、三份 profile、docker-compose、migrate、swag�
 3. **每一個 API 都必須有單元測試**（`rules/testing.md` §1）：REST handler、WebSocket 訂閱 action、Kafka consumer。沒有測試的 handler，`code-reviewer` 直接 block。
 4. **對外契約不可片面變更**（`rules/api-contract.md`、`rules/realtime-contract.md`）。H5／App 在另一部門，契約破了他們不會立刻報錯。
 5. **已鎖定的架構決策不得自行推翻**（`rules/locked-decisions.md`）：不拆服務、不依賴 sp-common、不用 Redis Pub/Sub 扇出、第一期不用 protobuf、不以「比分只能變大」過濾、framework 鎖 tag。要翻案 → 停手回報。
-6. **sp-framework 的慣例不是建議**（`rules/framework-conventions.md`）：panic 走錯誤流程、`fx.In` 顯式結構、YAML key 小寫、Name() 對上 YAML 鍵、`EmitWithKey(match_id)`。寫錯會跑不起來或靜默失序。
+6. **go-framework 的慣例不是建議**（`rules/framework-conventions.md`）：panic 走錯誤流程、`fx.In` 顯式結構、YAML key 小寫、Name() 對上 YAML 鍵、`EmitWithKey(match_id)`。寫錯會跑不起來或靜默失序。
 7. **範圍紀律**：只做 ticket 的 Scope「含」；不做「順便加的」功能；不為 H5／App 的畫面寫程式；不做結算。
 8. **分支紀律**：`main` 鎖定、`developing` 只收 MR、每張 ticket 從 `origin/developing` 切 `feature/<ticket-id>-<slug>`。違規 = hook 攔，不得繞過。
 9. **安全性第一（2026-11-03 使用者指定）**：任何寫法、設計與流程的選擇，**以安全性為第一考量**，優先於方便、效能、開發速度與既有慣例。兩種做法都可行時選較安全的；較安全的做法代價過大時，停手把取捨寫清楚交使用者決定，不得自行為了方便選較不安全的一方。審查時「這樣比較方便」不是降低安全性的理由。細則見 `rules/coding-style.md` §0。

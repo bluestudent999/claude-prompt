@@ -1,6 +1,6 @@
 ---
 name: bootstrap
-description: W1 開工骨架 B-01 ～ B-10——repo 初始化、sp-framework 鎖 tag、三份 profile、可啟動的三角色空殼、docker-compose、migrate、gorm/gen、lint 與 CI、swag、thesports-sim 最小版與框架反壓驗證。第一張 ticket 之前使用；進度寫 plan/dev-bootstrap.md。
+description: W1 開工骨架 B-01 ～ B-10——repo 初始化、go-framework 鎖 tag、三份 profile、可啟動的三角色空殼、docker-compose、migrate、gorm/gen、lint 與 CI、swag、thesports-sim 最小版與框架反壓驗證。第一張 ticket 之前使用；進度寫 plan/dev-bootstrap.md。
 ---
 
 # bootstrap — W1 開工骨架
@@ -32,7 +32,7 @@ EOG
 ## B-01 · module 與目錄骨架
 
 ```bash
-go mod init score-pulse && go mod edit -go=1.23
+go mod init score-pulse && go mod edit -go=1.27.3
 mkdir -p cmd/score-pulse cmd/thesports-sim cmd/gen configs migrations deploy docs/contract test/{integration,scenario,fixtures/thesports} web/admin
 mkdir -p internal/core/{conf,tenant,auth,apierr,envelope,i18n,rediskey,clock,job}   # P-19 前名為 internal/platform
 for p in platform match odds member notify manage collector realtime; do mkdir -p internal/$p/{controller,service,dao,model,dto}; done
@@ -41,18 +41,18 @@ mkdir -p internal/inject
 
 完成判準：目錄與 `rules/architecture.md` §2 一致；`go build ./...` 通過（空殼）。
 
-## B-02 · sp-framework 鎖 tag（D2a）
+## B-02 · go-framework 鎖 tag（D2a；2026-11-05 起取代 sp-framework）
 
 ```bash
-git -C ../sp-framework tag | tail -3                     # 確認維護者已打 tag；沒有 → tech-decisions §6 第 1 項，先回報
-go mod edit -require=sp-framework@v0.0.0 \
-  -replace=sp-framework=gi88995.kxcodes.com/go-backend/sp-framework.git@<tag>   # 或 GOPRIVATE + 私有模組路徑
+git ls-remote --tags https://gi88995.kxcodes.com/game_hub/go-framework.git | tail -3   # 確認含 sp 移植的 tag 已打；沒有 → tech-decisions §6 第 1 項，先回報
+go mod edit -require=framework@v0.0.0 \
+  -replace=framework=gi88995.kxcodes.com/game_hub/go-framework.git@<tag>   # 模組名是 framework
 go env -w GOPRIVATE='gi88995.kxcodes.com/*'
-go mod tidy && go list -m sp-framework
-test ! -f go.work || ! grep -q sp-framework go.work || echo "FAIL: go.work 指向同層 checkout"
+go mod tidy && go list -m framework
+test ! -f go.work || ! grep -q framework go.work || echo "FAIL: go.work 指向同層 checkout"
 ```
 
-完成判準：`go list -m sp-framework` 印出固定 tag；go.mod 的 replace 指向 tag 不是路徑；無 go.work。
+完成判準：`go list -m framework` 印出指向 go-framework 固定 tag 的 replace；go.mod 的 replace 指向 tag 不是路徑；無 go.work。
 
 ## B-03 · 三份 profile YAML
 

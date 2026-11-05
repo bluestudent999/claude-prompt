@@ -26,8 +26,8 @@
 
 | # | 一句話 |
 |---|------|
-| D1 | Go 1.23，不自行升 |
-| D2／D2a | sp-framework，`go.mod` 以 git tag 鎖版；升級是一張明確的 ticket |
+| D1 | Go 1.27.3（跟 go-framework 一致），不自行升 |
+| D2／D2a | go-framework（2026-11-05 取代 sp-framework；缺的機制只增不改移植進 go-framework），`go.mod` 以 replace 指向 go-framework 的 git tag；升級是一張明確的 ticket |
 | D3／D3a | 單 binary 三角色 `api`／`collector`／`realtime`；依功能分包 `internal/{platform,match,odds,member,notify,manage,collector,realtime}` + `internal/core` |
 | D4 | Kafka；業務 topic 以 `match_id` 當 key；`match.live` 24 分區 |
 | D5 | JSON、delta、每場 `seq` 單調；快照只讀 Redis；慢連線經 P-17 有界佇列斷線 |
@@ -52,7 +52,7 @@
 
 | 徵兆 | 它違反了 |
 |------|---------|
-| `go.work` 裡出現 `../sp-framework` | D2a |
+| `go.work` 裡出現 `../go-framework`，或 go.mod 的 `framework` replace 指向本機路徑、分支或 commit | D2a |
 | `import "sp-common/` | D2 |
 | 新的 `cmd/<service>` 目錄（`thesports-sim`、`gen` 除外） | D3 |
 | `redis.Subscribe(` 用在推送路徑 | D4 |

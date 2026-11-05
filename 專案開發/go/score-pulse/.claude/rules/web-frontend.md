@@ -26,7 +26,7 @@ paths:
 
 ### ⚠ 本專案最高的 agent 失誤風險：抄到 Vue 2 寫法
 
-**公司所有既有後台都是 Vue 2 + Element UI + Vuex**（cx-sports-v2、crypto-payment、lion-frontend、casino），網路教學也大量是 Vue 2。這是本專案最高頻的錯誤，與「憑印象寫 sp-framework」同級。
+**公司所有既有後台都是 Vue 2 + Element UI + Vuex**（cx-sports-v2、crypto-payment、lion-frontend、casino），網路教學也大量是 Vue 2。這是本專案最高頻的錯誤，與「憑印象寫 go-framework」同級。
 
 **開工前先驗，不要憑印象：**
 
