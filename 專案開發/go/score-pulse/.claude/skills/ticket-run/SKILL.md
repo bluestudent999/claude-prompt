@@ -140,12 +140,17 @@ grep -n "^| 狀態 |" plan/on-sports-lite/tickets/$T.md
 > 企劃的 `_generate.py` 重跑會覆蓋開發 ticket 的狀態欄；**plan 檔 §8 是進度真相**，狀態欄是副本。
 
 3. 確認 `plan/` 無「⏳ 待決」OQ；與程式碼**同一個 commit** 提交；範本（`.claude/`、`CLAUDE.md`）改動不夾帶進 ticket commit。
-4. 推分支、開 MR 到 `developing`（**不在本機 merge**）：
+4. 推分支，合併回 `developing`（`rules/git-workflow.md` §1.2；2026-11-05 使用者指定：審查通過即可自行在本機合併，不必再問）：
 
 ```bash
 git rebase origin/developing && go test ./internal/... && git push --force-with-lease
-# 之後在 GitLab 開 MR：來源 feature/<ticket-id>-<slug> → 目標 developing，描述照 rules/git-workflow.md §4
+git switch developing && git pull --ff-only origin developing
+git merge --no-ff feature/<ticket-id>-<slug> -m "Merge branch 'feature/<ticket-id>-<slug>' into 'developing'"
+git push origin developing
+# 或改在 GitLab 開 MR：來源 feature/<ticket-id>-<slug> → 目標 developing（確認不是 main），描述照 §4
 ```
+
+衝突 → `git merge --abort`，回 feature 分支 rebase 解完再合；push 被拒 → 停手回報。不在本機合併進 `main`。
 
 ---
 
@@ -162,4 +167,4 @@ API 測試：<逐一列出 Test 名> PASS
 Remaining Work：<或 Blocked By: S2-T5>
 ```
 
-最後一行固定：**下一步執行** <依 `rules/development-workflow.md` 的下一步>（<一句話為什麼>）。MR 已開 → 固定寫「**下一步執行** 清空上下文（`/clear`）後 `/ticket-run <下一張>`（一張 ticket 一個 session）」。
+最後一行固定：**下一步執行** <依 `rules/development-workflow.md` 的下一步>（<一句話為什麼>）。已合併回 `developing` 或 MR 已開 → 固定寫「**下一步執行** 清空上下文（`/clear`）後 `/ticket-run <下一張>`（一張 ticket 一個 session）」。

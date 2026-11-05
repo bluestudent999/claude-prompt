@@ -5,12 +5,12 @@
 
 ---
 
-## 1. 分支策略（2026-11-02 使用者指定：master 鎖定、每張 ticket 從 developing 切分支）
+## 1. 分支策略（2026-11-02 使用者指定：master 鎖定、每張 ticket 從 developing 切分支；2026-11-05 使用者指定：完成的 feature 可在本機合併回 developing）
 
 | 分支 | 用途 | 誰能動 | 規則 |
 |------|------|--------|------|
 | `main`（= master） | **鎖定**：正式版 | 只有 release 負責人經 MR | **不得 commit、不得 push、不得從它切 feature**。只收 `developing` 的 release MR |
-| `developing` | 集成主線 | 只收 MR | **不得直接 commit**；feature 與 planning 的 MR 目標；CI 綠才可合 |
+| `developing` | 集成主線 | MR，或開發者（含 AI agent）本機合併 | **不得直接 commit**；只收 feature／hotfix／planning 分支：開 MR，或照 §1.2 在本機 `--no-ff` 合併後 push |
 | `planning/<專案>` | 企劃文件（PM） | PM | `plan/` 的變更在這裡；要讓開發讀到新版 ticket → 開 MR 進 `developing` |
 | `feature/<ticket-id>-<slug>` | **一張 ticket 一條** | 開發者 | **只能從 `developing` 切出**；例 `feature/S2-T8-live-score`、`feature/B-03-profiles`（bootstrap）、`feature/P-17-ws-bounded-queue`（開發端前置） |
 | `developing_test` | 測試環境 | CI | **只收 merge、不回流**（下方紅線） |
@@ -30,10 +30,21 @@ git push -u origin feature/S2-T8-live-score                   # 早 push、早�
 
 ### 1.2 完成一張 ticket 的固定動作
 
-1. DoD 七條全過（`testing.md` §8）、plan §8 與 ticket 狀態已回填。
-2. `git rebase origin/developing` → 跑一次 `go test ./internal/...` → `git push --force-with-lease`。
-3. 開 MR：**目標 `developing`**，描述照 §4 格式；指派 reviewer；合併後刪除 feature 分支。
-4. **絕不** 在本機把 feature merge 進 `developing` 或 `main` 再 push。
+1. DoD 七條全過（`testing.md` §8）、Step 4 的 reviewer 沒有 block、plan §8 與 ticket 狀態已回填並 commit。
+2. `git rebase origin/developing` → 跑一次 `go test ./internal/...`（動到 `web/admin` 再跑 `npx vitest run`）→ `git push --force-with-lease`。
+3. 合併回 `developing`，二選一：
+   - **本機合併（2026-11-05 使用者指定；AI agent 完成 ticket 後可自行執行，不必再問）**：
+     ```bash
+     git switch developing && git pull --ff-only origin developing
+     git merge --no-ff feature/<ticket-id>-<slug> -m "Merge branch 'feature/<ticket-id>-<slug>' into 'developing'"
+     git push origin developing
+     ```
+     merge 有衝突 → `git merge --abort`，回 feature 分支 rebase 解衝突、重跑測試後再合；**不在 `developing` 上解衝突**。push 被遠端拒絕（分支保護、非 fast-forward）→ 停手回報，不換方式硬推。
+   - **開 MR**：目標 `developing`，描述照 §4 格式；指派 reviewer。**建 MR 時確認目標分支是 `developing`**（GitLab 預設目標常是 `main`；2026-11-05 曾因此把 S4-T3a／T3b 合進 `main`）。
+4. 合併後可刪除 feature 分支。
+5. **絕不** 在本機把任何分支合併進 `main` 再 push；`main` 只收 `developing` 的 release MR。
+
+**本機合併的邊界（hook 照此攔）**：`developing` 上只准 `git merge --no-ff` 合併 `(origin/)feature/…` 或 `hotfix/…`；不准直接 commit、cherry-pick、revert、squash 或 fast-forward 合併、合併 `main` 或測試分支、rebase、reset、不帶 `--ff-only` 的 pull、改寫歷史的推送。
 
 ### 1.3 hook 會擋的動作（`hooks/git-guard.sh` 的分支檢查）
 
@@ -41,7 +52,9 @@ git push -u origin feature/S2-T8-live-score                   # 早 push、早�
 |---|---|
 | 在 `main`／`master` 上 `git commit`、`git merge`、`git push` | 鎖定分支 |
 | `git push origin main`（任何形式把 main 推上去） | 同上 |
-| 在 `developing` 上 `git commit`／`merge`／`rebase main` | 集成分支只收 MR |
+| 在 `developing` 上 `git commit`／`cherry-pick`／`revert`／`rebase`／`reset` | 集成分支不直接改、不改寫歷史 |
+| 在 `developing` 上 `git merge`，但不是 `--no-ff` 合併 `feature/…`／`hotfix/…`（含 squash、合 `main`、合測試分支） | 只准 §1.2 的本機合併 |
+| 在 `developing` 上 `git pull` 不帶 `--ff-only`；強制推送 `developing`（`--force`、`-f`、`--force-with-lease`、`+developing`） | 不在本機產生同步用的合併 commit；不改寫共用歷史 |
 | `git switch -c X main`、`git checkout -b X main`、`git branch X main` | feature 必須從 `developing` 切 |
 
 被攔到時不要找繞法（`--no-verify`、先改名分支再推）。那是在規避規則，回報使用者。
@@ -114,7 +127,7 @@ git push -u origin feature/S2-T8-live-score                   # 早 push、早�
 | 檢查 | 擋什麼 |
 |------|--------|
 | check-oq | `plan/` 下仍有「⏳ 待決」OQ → 攔 commit；先決議並回寫 plan |
-| protected-branch | 在 `main`／`master`／`developing` 上 commit、push 到 main、從 main 切分支 → 攔；照 §1.1 從 `origin/developing` 切 feature 分支 |
+| protected-branch | 在 `main`／`master` 上 commit／merge、push 到 main、從 main 切分支；在 `developing` 上 commit 或做 §1.2 以外的 merge、rebase、reset、強制推送 → 攔；照 §1.1 從 `origin/developing` 切 feature 分支，照 §1.2 合併 |
 
 `.claude/` 與 `CLAUDE.md` 是版控中的開發範本：改動它們等於改專案規範，另開 `chore(deploy)` commit 走 MR。PM 在本機部署企劃範本造成的覆蓋**不得提交**。
 
@@ -175,7 +188,7 @@ reviewer（人）以此對照 `testing.md` §8 的 DoD 七條；缺任一段退�
 | 動作 | 為什麼 |
 |------|--------|
 | `git push --force` 到 `developing` / `main` | 改寫共用歷史 |
-| 在 `developing` 直接 commit | 一律走功能分支 + MR |
+| 在 `developing` 直接 commit | 一律走功能分支，再以 MR 或 §1.2 本機 `--no-ff` 合併 |
 | `git commit --no-verify` | 繞過 OQ 與分支攔截 |
 | 把兩張 ticket 放同一條分支 | 回填與驗收粒度對不上 |
 | commit 裡修改已套用的 migration | `db-migration.md` §1 |

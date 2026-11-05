@@ -32,8 +32,8 @@ repo 初始化、框架 tag、三份 profile、docker-compose、migrate、swag�
 ### 0.3 分支鐵律（2026-11-02 使用者指定）
 
 - **`main`（master）是鎖定分支**：不 commit、不 push、不從它切分支。只收 `developing` 的 release MR。
-- **`developing` 只收 MR**，不直接 commit。
-- **每張 ticket 一條分支，從 `origin/developing` 切出**：`git fetch origin && git switch -c feature/<ticket-id>-<slug> origin/developing`。完成後 push 分支、開 MR 到 `developing`。
+- **`developing` 不直接 commit**：只收 feature／hotfix 分支，經 MR 或本機 `git merge --no-ff` 合併（2026-11-05 使用者指定：ticket 完成且審查通過後，AI agent 可自行在本機合併回 `developing` 並 push，不必再問；步驟見 `rules/git-workflow.md` §1.2）。
+- **每張 ticket 一條分支，從 `origin/developing` 切出**：`git fetch origin && git switch -c feature/<ticket-id>-<slug> origin/developing`。完成後 push 分支，再合併回 `developing`（本機 `--no-ff` 或開 MR；開 MR 時確認目標是 `developing` 不是 `main`）。
 - `hooks/git-guard.sh` 會攔違規動作；被攔不要繞（`--no-verify`、改分支名），回報使用者。細則見 `rules/git-workflow.md` §1。
 
 ### 0.4 先做哪張
@@ -115,7 +115,7 @@ repo 初始化、框架 tag、三份 profile、docker-compose、migrate、swag�
 5. **已鎖定的架構決策不得自行推翻**（`rules/locked-decisions.md`）：不拆服務、不依賴 sp-common、不用 Redis Pub/Sub 扇出、第一期不用 protobuf、不以「比分只能變大」過濾、framework 鎖 tag。要翻案 → 停手回報。
 6. **go-framework 的慣例不是建議**（`rules/framework-conventions.md`）：panic 走錯誤流程、`fx.In` 顯式結構、YAML key 小寫、Name() 對上 YAML 鍵、`EmitWithKey(match_id)`。寫錯會跑不起來或靜默失序。
 7. **範圍紀律**：只做 ticket 的 Scope「含」；不做「順便加的」功能；不為 H5／App 的畫面寫程式；不做結算。
-8. **分支紀律**：`main` 鎖定、`developing` 只收 MR、每張 ticket 從 `origin/developing` 切 `feature/<ticket-id>-<slug>`。違規 = hook 攔，不得繞過。
+8. **分支紀律**：`main` 鎖定、`developing` 不直接 commit（只收 MR 或本機 `--no-ff` 合併 feature 分支）、每張 ticket 從 `origin/developing` 切 `feature/<ticket-id>-<slug>`。違規 = hook 攔，不得繞過。
 9. **安全性第一（2026-11-03 使用者指定）**：任何寫法、設計與流程的選擇，**以安全性為第一考量**，優先於方便、效能、開發速度與既有慣例。兩種做法都可行時選較安全的；較安全的做法代價過大時，停手把取捨寫清楚交使用者決定，不得自行為了方便選較不安全的一方。審查時「這樣比較方便」不是降低安全性的理由。細則見 `rules/coding-style.md` §0。
 
 ---
@@ -139,7 +139,7 @@ repo 初始化、框架 tag、三份 profile、docker-compose、migrate、swag�
 
 ## 4. 提交前固定動作
 
-照 `/ticket-run` Step 3（驗收）→ Step 4（審查）→ Step 5（回填與提交）。三條不可省：本地綠燈與 `/arch-check`、plan §8 與 ticket 狀態欄回填、`plan/` 無 `⏳ 待決`。範本（`.claude/`、`CLAUDE.md`）改動另開 `chore` commit。
+照 `/ticket-run` Step 3（驗收）→ Step 4（審查）→ Step 5（回填與提交）。三條不可省：本地綠燈與 `/arch-check`、plan §8 與 ticket 狀態欄回填、`plan/` 無 `⏳ 待決`。範本（`.claude/`、`CLAUDE.md`）改動另開 `chore` commit。完成後合併回 `developing`：本機 `git merge --no-ff` 後 push（2026-11-05 使用者指定，審查通過即可自行執行），或開 MR（`rules/git-workflow.md` §1.2）；不在本機合併進 `main`。
 
 ---
 

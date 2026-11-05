@@ -9,7 +9,7 @@
 
 ```bash
 cd ~/workspace/score-pulse         # 換成你本機 score-pulse 的 clone 路徑
-git switch developing && git pull  # 範本已在版控裡，拉下來就有
+git switch developing && git pull --ff-only  # 範本已在版控裡，拉下來就有
 claude
 ```
 
@@ -17,13 +17,13 @@ claude
 
 **必知：**
 
-1. 自 2026-11-02 起，`.claude/` 與根 `CLAUDE.md` **隨 score-pulse 進版控**：clone 專案、切到 `developing` 即取得本範本，**不需要再跑 `prompt-setup`**。只排除 `.claude/settings.local.json`（複製 `.example` 填本機值）與 `.claude/worktrees/`。`hooks/git-guard.sh` 會擋在 `main`／`developing` 上 commit、push 到 main、從 main 切分支。
+1. 自 2026-11-02 起，`.claude/` 與根 `CLAUDE.md` **隨 score-pulse 進版控**：clone 專案、切到 `developing` 即取得本範本，**不需要再跑 `prompt-setup`**。只排除 `.claude/settings.local.json`（複製 `.example` 填本機值）與 `.claude/worktrees/`。`hooks/git-guard.sh` 會擋在 `main`／`developing` 上 commit、push 到 main、從 main 切分支，以及在 `developing` 上做 `--no-ff` 合併 feature 分支以外的 merge 與改寫歷史的動作。
 2. **PM 部署企劃範本**（`prompt-setup 專案企劃`）會覆蓋版控中的 `.claude/` 與 `CLAUDE.md`：不得提交這些改動，建議 PM 另開一份 clone 專做企劃。不要再對開發者的工作目錄執行 `prompt-setup ... --force`，它會清掉版控中的範本（可用 `git checkout -- .claude CLAUDE.md` 復原）。
 3. 企劃產出全在 `plan/on-sports-lite/`，**是版控的一部分**。本範本只回填 `plan/task-*-plan.md` 與 ticket 的狀態欄，不改 spec。
 
 ---
 
-> **分支**：部署範本不影響分支。開工前先 `git fetch origin && git switch -c feature/<ticket-id>-<slug> origin/developing`；`main` 鎖定、`developing` 只收 MR（`rules/git-workflow.md` §1）。
+> **分支**：部署範本不影響分支。開工前先 `git fetch origin && git switch -c feature/<ticket-id>-<slug> origin/developing`；`main` 鎖定、`developing` 不直接 commit，只收 MR 或本機 `--no-ff` 合併 feature 分支（`rules/git-workflow.md` §1；2026-11-05 起 AI agent 審查通過後可自行合併）。
 
 ## 前置條件
 
@@ -137,9 +137,9 @@ claude
 > **2026-11-02 兩個變動**：① 部門分工 v4：總控與業主後台的全部畫面歸後端部門 = 本 repo（前端部門只做 H5 與 App），後端成為唯一瓶頸；② 分支規則：`main` 鎖定、`developing` 只收 MR、每張 ticket 從 `origin/developing` 切 `feature/<ticket-id>-<slug>`。
 > **2026-11-04 提速修改（planner 慢的 9 項）**：讀 ticket 與 spec 只由 planner 做一次（決策 A）；拿掉 Stop hook 的 arch-check（只在驗收跑）；五份只跟特定目錄有關的規則改成 `paths:` 按需載入；planner 查證合併成一段 bash、計畫範本分小／大尺寸；兩支 git hook 合成 `hooks/git-guard.sh`（`.claude` 已進版控，原本擋 `git add .claude` 的 hook 不再需要）；`head`、`sed -n`、`git ls-remote` 進免確認名單。**改完先拿一張實際 ticket 跑一次 `/ticket-run`，記 planner 耗時與改前比。**
 > **2026-11-05 token 瘦身（依 8 個 session 的實測）**：實測 planner 仍 10～11 分鐘，瓶頸是 plan 檔 43～98KB、每個子代理開工就背約 75K token、主 session 上下文中位數 35～60 萬。改了六項：① planner 加字數上限（小 12,000／大 30,000 字元），§1 不貼原始輸出，附錄拆檔；② 再六份規則改 `paths:`，locked-decisions 拆成常駐索引與按需細節，development-workflow 與 CLAUDE.md 去掉和 `/ticket-run` 重複的段落；③ 一張 ticket 一個 session、主流程只調度、長輸出只取尾巴；④ 新增 `implementer`、`web-implementer` 取代臨時的 general-purpose，修正輪用 SendMessage 接續；⑤ 修正輪只重派有 CRITICAL／HIGH 的 reviewer、只給增量 diff，最多三輪；⑥ arch-guard、contract-reviewer、build-error-resolver 改用 sonnet。**改完要再拿一張實際 ticket 量一次，與本次實測比較。**
-> **2026-11-05 框架改用 go-framework（tech-decisions v1.13，D1／D2／D2a）**：使用者決定以 `gi88995.kxcodes.com/game_hub/go-framework`（模組名 `framework`）取代 sp-framework。score-pulse 需要的模組系統、WebSocket、權限與路由登記、業務錯誤流程、快取登記、Redis 鎖排程、Prometheus 以「只增不改」移植進 go-framework 分支 `feature/score-pulse-port`，對照表在它的 `docs/sp-port/MAPPING.md`；Go 升為 1.27.3。`rules/framework-conventions.md` §0 列出改名的符號（`web.InjectGET`、`web.WebMiddleware`、`log.*Args`、`log.FieldErrorStack`…），go-framework 原有的 `web.Run`（CORS 全開）與不帶 `Args` 的 log API 不要用。**go-framework 打 tag 前，score-pulse 只能以本機路徑 replace 驗證，arch-check 第 2 項會擋，不得合進 developing。**
+> **2026-11-05 框架改用 go-framework（tech-decisions v1.13，D1／D2／D2a）**：使用者決定以 `gi88995.kxcodes.com/game_hub/go-framework`（模組名 `framework`）取代 sp-framework。score-pulse 需要的模組系統、WebSocket、權限與路由登記、業務錯誤流程、快取登記、Redis 鎖排程、Prometheus 以「只增不改」移植進 go-framework 分支 `feature/score-pulse-port`，對照表在它的 `docs/sp-port/MAPPING.md`；Go 升為 1.27.3。`rules/framework-conventions.md` §0 列出改名的符號（`web.InjectGET`、`web.WebMiddleware`、`log.*Args`、`log.FieldErrorStack`…），go-framework 原有的 `web.Run`（CORS 全開）與不帶 `Args` 的 log API 不要用。**go-framework 的移植 MR !8 尚未合併；score-pulse 先以該分支 commit 的 pseudo-version 鎖定（以 commit 代 tag，同 sp-framework 時代 B-02）。go-framework 模組路徑沒有 `/v2`，之後的 tag 必須是 v1.x。本機路徑 replace 會被 arch-check 第 2 項擋下。**
 
-1. **分支**：確認 `origin/developing` 存在（沒有 → 請 release 負責人建立並設保護）；每張 ticket、每個 bootstrap 步驟都開 feature 分支，完成後 MR 到 `developing`。hook 會擋在 `main`／`developing` 上 commit。
+1. **分支**：確認 `origin/developing` 存在（沒有 → 請 release 負責人建立並設保護）；每張 ticket、每個 bootstrap 步驟都開 feature 分支，完成後合併回 `developing`（本機 `--no-ff` 或 MR，`rules/git-workflow.md` §1.2）。hook 會擋在 `main`／`developing` 上 commit。
 2. **`/bootstrap` B-00 ～ B-10**。B-10 的反壓驗證已做完（結論：框架阻塞），後續是 **P-17**（`internal/realtime` 有界佇列），realtime 第一張 ticket 前要到位。
 3. **排序**：M1 的 9 張（S1-T1～T3、S4-T1～T4、S2-T1）**插隊優先**，其餘 W1～W3 後端 ticket 與 App 平台端排後面（總計畫 §9.4）。
 4. **W1 的 ticket**：

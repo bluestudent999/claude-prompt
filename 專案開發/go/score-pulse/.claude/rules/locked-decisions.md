@@ -65,5 +65,5 @@
 | `settle`、`settlement`、`bet`、`stake` 等字眼出現在程式碼 | D3 |
 | `internal/realtime` 之外對 client 寫 socket，或直接呼叫框架 `Client.SendData` 繞過有界佇列 | D5、P-17 |
 | 舊後台記錄表 `admin_audit`／`AdminAudit` 重新出現；登入（含失敗）寫進 `operate_log`；`login_log` 加密碼、MD5、驗證碼、token、User-Agent 欄 | D27、I10 |
-| 在 `main`／`developing` 上 commit，或從 `main` 切 feature | git-workflow §1（使用者 2026-11-02 指定） |
+| 在 `main`／`developing` 上 commit，在 `main` 上 merge，在 `developing` 上做 `--no-ff` 合併 feature／hotfix 以外的 merge、rebase、reset、強制推送，或從 `main` 切 feature | git-workflow §1（使用者 2026-11-02 指定；2026-11-05 開放本機 `--no-ff` 合併回 `developing`，§1.2） |
 | 租戶鍵寫法、後台路由註冊、IP 判定、P-19／P-30 舊命名 | 見 `locked-decisions-detail.md` §四 |

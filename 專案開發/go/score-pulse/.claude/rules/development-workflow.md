@@ -50,7 +50,7 @@ plan/on-sports-lite/master-plan.md         ← 波次、里程碑、外部等待
 | **實作** | `implementer`／`web-implementer` | **Golden Rule：依計畫實作**，範圍上限是 plan §2；不自行新增表、topic、destination、對外欄位、設定鍵；不順便重構；文件互相矛盾 → 停手回報（Stop Rule） |
 | **驗收** | 實作代理自跑，主流程看結果 | build／vet／lint／單元／（動 dao、consumer 時）整合、`/arch-check`；**DoD 七條**（`testing.md` §8） |
 | **審查** | reviewer 平行 | 第一輪依 `/ticket-run` Step 4 表派；第二輪起只重派有 CRITICAL／HIGH 的 reviewer，只給增量 diff |
-| **回填與提交** | 主流程 | plan §8 + ticket 狀態欄（DoD 第 7 條）；`plan/` 無 `⏳ 待決`；同一個 commit；push 分支、開 MR 到 `developing`，不在本機 merge |
+| **回填與提交** | 主流程 | plan §8 + ticket 狀態欄（DoD 第 7 條）；`plan/` 無 `⏳ 待決`；同一個 commit；push 分支後合併回 `developing`：本機 `git merge --no-ff` 後 push（2026-11-05 使用者指定，審查通過即可自行執行），或開 MR（目標確認是 `developing`）；步驟見 `git-workflow.md` §1.2；**不在本機合併進 `main`** |
 
 **實作時每次問：** 查詢經過 `tenant.Scope` 了嗎（I1）？套用更新用 `pv` 做 compare-and-set 了嗎（I3）？handler 的 `_test.go` 在哪（testing §1）？Emit 的 key 是 `match_id` 嗎（I2）？讀即時資料讀的是 Redis 快照嗎（I9）？
 
@@ -63,7 +63,7 @@ plan/on-sports-lite/master-plan.md         ← 波次、里程碑、外部等待
 
 > 實測：主 session 上下文中位數 35～60 萬 token、最高 96 萬；一個 session 連做十幾張 ticket，每一輪都重讀整段歷史。
 
-- **一張 ticket 一個 session。** MR 開好就收尾，「下一步執行」寫「清空上下文（`/clear`）後 `/ticket-run <下一張>`」；不在同一個 session 接著做下一張。
+- **一張 ticket 一個 session。** 合併回 `developing`（或 MR 開好）就收尾，「下一步執行」寫「清空上下文（`/clear`）後 `/ticket-run <下一張>`」；不在同一個 session 接著做下一張。
 - **主流程只調度，不親手寫功能碼。** 讀程式碼、改檔、跑測試交給 `implementer`／`web-implementer`；主流程看的是它們回傳的摘要。
 - **長輸出不進上下文。** 測試、lint、建置輸出一律只取結論：`go test ./internal/... 2>&1 | tail -40`；失敗才看完整的那一段。
 - **規則按需載入。** 只跟特定目錄有關的規則已改成 `paths:`；要引用某一節但上下文裡沒有 → `grep -n "^## " .claude/rules/<檔>` 後只 Read 那一節，不整份讀。

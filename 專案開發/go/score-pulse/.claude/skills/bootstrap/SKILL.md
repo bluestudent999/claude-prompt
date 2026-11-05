@@ -14,7 +14,7 @@ description: W1 開工骨架 B-01 ～ B-10——repo 初始化、go-framework �
 ## B-00 · 分支與 .gitignore（使用者 2026-11-02 指定）
 
 ```bash
-git ls-remote --heads origin developing | grep -q developing || echo "developing 不存在：請 release 負責人從 main 建立並在 GitLab 設保護（main 鎖定、developing 只收 MR）；開發端不自行建立"
+git ls-remote --heads origin developing | grep -q developing || echo "developing 不存在：請 release 負責人從 main 建立並在 GitLab 設保護（main 鎖定、MR 預設目標設為 developing；developing 允許開發者 push、禁止 force push）；開發端不自行建立"
 git fetch origin && git switch -c feature/B-01-skeleton origin/developing      # bootstrap 每一項也走 feature 分支 + MR
 cat >> .gitignore <<'EOG'
 # build / run artifacts
