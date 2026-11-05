@@ -126,7 +126,7 @@ axios client 的錯誤攔截器**不得回空集合**；它要 reject，由頁�
 
 ## 7. 行為契約去哪裡讀
 
-**不要通讀 spec。** 每張 ticket 都列了 `Required Spec Sections` 與對映的 AC，**照著讀**（`development-workflow.md` Step 0）。
+**不要通讀 spec。** 每張 ticket 都列了 `Required Spec Sections` 與對映的 AC，**照著讀**（由 planner 執行，見 `agents/planner.md`）。
 
 | 要知道什麼 | 讀哪裡 |
 |---|---|

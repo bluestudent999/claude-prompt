@@ -21,7 +21,7 @@ plan/on-sports-lite/tech-decisions.md      ← 技術 How 的已定案（本範�
 plan/on-sports-lite/master-plan.md         ← 波次、里程碑、外部等待；只決定「先做哪張」，不決定「怎麼做」
 ```
 
-**業務規則有疑問 → 回企劃（PM），不自行改 spec。** 技術決策要翻案 → 停手回報使用者。ticket 檔由 `_generate.py` 產生、**不手改內容**；只改「狀態」欄（§Step 5）。
+**業務規則有疑問 → 回企劃（PM），不自行改 spec。** 技術決策要翻案 → 停手回報使用者。ticket 檔由 `_generate.py` 產生、**不手改內容**；只改「狀態」欄（「回填與提交」步驟）。
 
 ---
 
@@ -41,105 +41,32 @@ plan/on-sports-lite/master-plan.md         ← 波次、里程碑、外部等待
 
 ---
 
-## Step -1：Preflight（每個 session 第一次動工前）
+## 六個步驟（可執行版在 `/ticket-run`，本節只放判準）
 
-```bash
-git rev-parse --abbrev-ref HEAD | grep -Eq '^(main|master|developing)$' && echo "[preflight] 在鎖定／集成分支上，先切 feature 分支（git-workflow §1.1）"
-git rev-parse --abbrev-ref HEAD | grep -Eq '^feature/(S[1-6]-T|B-|P-|hotfix)' || echo "[preflight] 分支名不符 feature/<ticket-id>-<slug>"
-# origin/developing 是否存在只在要切新分支時才查（git ls-remote 要連遠端）：
-#   git ls-remote --heads origin developing | grep -q developing || echo "[preflight] origin/developing 不存在 — 停手回報，不要用 main 代替"
-go version | grep -E "go1\.2[3-9]" || echo "[preflight] Go 版本不符"
-grep -n "sp-framework" go.mod | grep -E "v[0-9]+\.[0-9]+\.[0-9]+" || echo "[preflight] sp-framework 未鎖 tag（D2a）"
-test -f go.work && grep -q "sp-framework" go.work && echo "[preflight] go.work 指向同層 checkout（D2a 禁止）"
-go build ./... || echo "[preflight] HEAD 編譯失敗 — 必修"
-docker compose -f deploy/docker-compose.yml ps 2>/dev/null | grep -q mysql || echo "[preflight] 整合環境未起（整合測試會跳過）"
-```
+| 步驟 | 誰做 | 判準（細節與指令見 `skills/ticket-run/SKILL.md`） |
+|------|------|------|
+| **Preflight** | 主流程 | 分支、Go 版本、框架 tag、go.work、編譯；分支不對或環境不符 → 不動工 |
+| **規劃** | `planner` | 讀 ticket 與 Required Spec Sections 全專案只做一次（2026-11-04 決策 A）；產出 `plan/task-<ticket>-plan.md` 並回傳摘要；主流程不重讀 ticket |
+| **實作** | `implementer`／`web-implementer` | **Golden Rule：依計畫實作**，範圍上限是 plan §2；不自行新增表、topic、destination、對外欄位、設定鍵；不順便重構；文件互相矛盾 → 停手回報（Stop Rule） |
+| **驗收** | 實作代理自跑，主流程看結果 | build／vet／lint／單元／（動 dao、consumer 時）整合、`/arch-check`；**DoD 七條**（`testing.md` §8） |
+| **審查** | reviewer 平行 | 第一輪依 `/ticket-run` Step 4 表派；第二輪起只重派有 CRITICAL／HIGH 的 reviewer，只給增量 diff |
+| **回填與提交** | 主流程 | plan §8 + ticket 狀態欄（DoD 第 7 條）；`plan/` 無 `⏳ 待決`；同一個 commit；push 分支、開 MR 到 `developing`，不在本機 merge |
 
-| 失敗 | 處置 |
-|------|------|
-| 在 main／developing 上、分支名不符、developing 不存在 | **先處理分支，不動工**（`git-workflow.md` §1.1） |
-| Go 版本不符、框架未鎖 tag、go.work 違規 | **必修，不動工** |
-| 編譯失敗 | **必修** —— HEAD 本身壞掉，疊上去的改動無效 |
-| compose 未起 | 可做單元層；整合測試前要起 |
-
----
-
-## Step 0：讀 ticket 與研究（由 planner 執行，禁 full read）
-
-**由 planner 執行，見 `agents/planner.md` Workflow**（2026-11-04 決策 A：讀 ticket 與 Required Spec Sections、查前置狀態、對照 D／I／租戶表／契約影響，全專案只做一次）。主流程 Preflight 過了就直接呼叫 planner，**不自己先讀 ticket**；讀檔一律用 Read 工具，不經 Bash。spec 每份 300～560 行，**禁止通讀**。
-
----
-
-## Step 1：規劃（planner）
-
-主流程只給 planner ticket 編號；planner 產出 `plan/task-<ticket>-plan.md`（例：`plan/task-S2-T8-plan.md`），**必含** `agents/planner.md` 的 §0～§8，並**回傳含 §0 元資料的摘要**（尺寸、類別、畫面在哪、不變量、租戶表、契約影響、前置狀態、OQ 數）——主流程靠這段摘要認識 ticket，不重讀。重點：
-
-- **§0** 尺寸（小／大）、工作類別 A／B／C、涉及不變量、租戶表、契約影響、前置狀態。小 ticket（只碰一個功能包、不動契約、不碰租戶表）用精簡範本。
-- **§2 變更檔案清單**是單一事實來源；§4 **逐一列出每個新增或修改的 API 的測試函式名**（`testing.md` §1）。
-- **OQ 硬規則**：可用 grep／Read／跑測試驗證的 → planner 自答；需要判斷的 → 列 OQ，**未解答前禁止寫業務程式碼**；決議回寫 plan（原文加刪除線 + ✅）。業務疑問 → 回企劃。
-- **本專案典型必問**：停更門檻實際值（R62 要回填）、簡訊供應商介面（P-06 到位前只能 mock）、推播在中國大陸 Android 的處理（tech-decisions §6 第 2 項）、影片套餐是否可用（第 4 項）。
-
----
-
-## Step 2：實作
-
-**Golden Rule：依計畫實作。** 禁止自行重設計、優化架構、新增未經計畫的需求。唯一真理來源是 `plan/`。
-
-- **最小化讀取**：只讀本 ticket 需要的檔案。
-- **禁止越權決策**：不自行新增表、Kafka topic、destination、對外欄位、設定鍵。
-- **禁止順便重構**：不改與本 ticket 無關的檔案；既有 dead code 不刪，記進 Remaining Work。
-- **Stop Rule**：文件互相矛盾（ticket vs spec、tech-decisions vs 方案 A 圖）→ **立即停止並回報**，不要挑一個猜。
-
-**每次寫查詢問：** 「它經過 `tenant.Scope` 了嗎？」（I1）
-**每次套用更新問：** 「它用 `pv` 做 compare-and-set 了嗎？」（I3）
-**每次寫 handler 問：** 「它的 `_test.go` 在哪？」（testing §1）
-**每次 Emit 問：** 「key 是 `match_id` 嗎？」（I2）
-**每次讀即時資料問：** 「讀的是 Redis 快照嗎？」（I9）
-
----
-
-## Step 3：驗收
-
-```bash
-go build ./... && go vet ./... && golangci-lint run
-go test ./internal/...                                      # 單元（含每個 API 的測試）
-go test -tags=integration ./test/...                        # 動到 dao／consumer 時
-/arch-check                                                 # import 方向、禁用依賴、handler 有測試、租戶 dao 經 Scope
-/tenant-check                                               # 動到租戶表時
-/contract-export                                            # 動到契約時
-```
-
-**DoD 七條**（`testing.md` §8）全滿足才算完成。
-
----
-
-## Step 4：審查
-
-| 情境 | reviewer |
-|------|---------|
-| 一律 | `code-reviewer` |
-| 動到包結構、新增包、跨包 import、引入相依、角色組裝 | + `arch-guard` |
-| 動到租戶表查詢、認證、Host 解析、總控指定業主（`ManageTarget`）、業主後台業主注入（`MustPlatform`）、WebSocket 握手 | + `tenant-isolation-reviewer` |
-| 動到 `/api/front/**`、WebSocket destination 或訊息、Kafka 封包 | + `contract-reviewer` |
-| 動到 collector、`realtime-core`、`persist`、合流、快照、賠率歷史 | + `data-pipeline-reviewer` |
-| 動到 `web/admin` | + `web-reviewer` |
-
-領域 reviewer **可平行**（同一則訊息啟動）。
-
-**完成輸出格式：** `Completed Files`、`Modified Files`、`Tests (PASS)`（逐一列出 API 測試名）、`涉及不變量與其測試`、`架構檢查結果`、`契約變更`（無／相容／破壞性）、`Remaining Work`（阻塞註明 `Blocked By: <ticket>`）。
-
----
-
-## Step 5：回填與提交
-
-1. **回填 plan**：`plan/task-<ticket>-plan.md` §8 完成紀錄（日期、測試結果、契約變更、Remaining Work）。
-2. **回填 ticket 狀態**：把 `plan/on-sports-lite/tickets/<id>.md` 的 `| 狀態 | 待開工 |` 改為 `| 狀態 | 已完成（<日期>） |`；阻塞時改 `阻塞：<原因>`；進行中改 `實作中`。**只改這一格**，其他內容不動。
-   > ⚠ 企劃的 `_generate.py` 重跑會覆蓋開發 ticket 的狀態欄（它只保護 prep ticket）。已回報 PM 改腳本；在那之前，**plan 檔的 §8 是進度的真相**，ticket 狀態欄是副本。
-3. 確認 `plan/` 無「⏳ 待決」OQ（否則 git hook 攔截）。
-4. Commit（`git-workflow.md`）；指名檔案 `git add`，範本（`.claude/`、`CLAUDE.md`）改動另開 `chore` commit。
-5. `git rebase origin/developing` → 重跑單元測試 → `git push --force-with-lease` → 開 MR 到 `developing`（描述照 `git-workflow.md` §4）。**不在本機 merge 進 developing／main。**
+**實作時每次問：** 查詢經過 `tenant.Scope` 了嗎（I1）？套用更新用 `pv` 做 compare-and-set 了嗎（I3）？handler 的 `_test.go` 在哪（testing §1）？Emit 的 key 是 `match_id` 嗎（I2）？讀即時資料讀的是 Redis 快照嗎（I9）？
 
 > **回填是 DoD 第 7 條。** 沒回填 = 未完成，不要跳到下一張。
+> ⚠ 企劃的 `_generate.py` 重跑會覆蓋開發 ticket 的狀態欄；**plan 檔 §8 是進度的真相**，狀態欄是副本。
+
+---
+
+## Session 與 token 紀律（2026-11-05 實測後加入）
+
+> 實測：主 session 上下文中位數 35～60 萬 token、最高 96 萬；一個 session 連做十幾張 ticket，每一輪都重讀整段歷史。
+
+- **一張 ticket 一個 session。** MR 開好就收尾，「下一步執行」寫「清空上下文（`/clear`）後 `/ticket-run <下一張>`」；不在同一個 session 接著做下一張。
+- **主流程只調度，不親手寫功能碼。** 讀程式碼、改檔、跑測試交給 `implementer`／`web-implementer`；主流程看的是它們回傳的摘要。
+- **長輸出不進上下文。** 測試、lint、建置輸出一律只取結論：`go test ./internal/... 2>&1 | tail -40`；失敗才看完整的那一段。
+- **規則按需載入。** 只跟特定目錄有關的規則已改成 `paths:`；要引用某一節但上下文裡沒有 → `grep -n "^## " .claude/rules/<檔>` 後只 Read 那一節，不整份讀。
 
 ---
 

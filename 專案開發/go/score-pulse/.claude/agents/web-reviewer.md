@@ -14,6 +14,8 @@ tools: Read, Grep, Glob, Bash
 
 判定這次改動**是否滿足該 ticket 對映的 AC**，以及是否踩到 `rules/web-frontend.md` 與 `rules/tenant-isolation.md` 的紅線。**你不是 UI 品味的仲裁者，也不是規格的作者。**
 
+> **規則按需載入（2026-11-05）：** 上面這些規則檔多數已改成 `paths:`，不一定在你的上下文。開工先看上下文有沒有；沒有就 `grep -n "^## \|^### " .claude/rules/<檔>` 後只 Read 檢查項用到的節，不整份讀。
+
 # Input
 
 呼叫你時應提供（缺了就先問，不要猜）：

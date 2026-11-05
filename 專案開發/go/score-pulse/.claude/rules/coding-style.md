@@ -95,7 +95,7 @@ paths:
 | 情境 | 做法 |
 |------|------|
 | 檔案 > 300 行 | **禁止一次 full read**；先 `grep -n "^func \|^type " <檔>` 建索引，再 `Read(offset, limit)` 讀需要的函式 |
-| spec 與 plan | 只讀 ticket 的 Required Spec Sections（`development-workflow.md` Step 0） |
+| spec 與 plan | 只讀 ticket 的 Required Spec Sections（由 planner 執行，見 `agents/planner.md`） |
 | `*.gen.go` | 不讀；要欄位名 `grep -n "column:" <檔>` |
 | 框架原始碼 | `grep -rn "<符號>" $(go env GOMODCACHE)/sp-framework@*/pkg/` 定位後只讀該檔的該段 |
 | 測試輸出 | `go test ./... 2>&1 | tail -40`，不要整包餵進 context |

@@ -161,7 +161,7 @@ reviewer（人）以此對照 `testing.md` §8 的 DoD 七條；缺任一段退�
 
 ---
 
-## 5. 回填與提交順序（對齊 `development-workflow.md` Step 5）
+## 5. 回填與提交順序（對齊 `/ticket-run` Step 5）
 
 1. plan §8 完成紀錄 → ticket 狀態欄。
 2. `git add <指名檔案>`（含測試、migration、gen、docs/contract）。

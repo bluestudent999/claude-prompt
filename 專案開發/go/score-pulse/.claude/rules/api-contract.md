@@ -1,3 +1,11 @@
+---
+paths:
+  - "internal/**/controller/**"
+  - "internal/**/dto/**"
+  - "internal/core/apierr/**"
+  - "docs/contract/**"
+---
+
 # 對外 API 契約（跨部門，不可片面變更）
 
 > H5 與 App 由**另一部門**開發，他們只靠本 repo 交付的契約文件工作。契約破了，他們不會立刻報錯，會在整合測試或上線後才發現；而他們的修正排程不歸我們控制。

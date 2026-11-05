@@ -1,3 +1,15 @@
+---
+paths:
+  - "internal/realtime/**"
+  - "internal/collector/**"
+  - "internal/core/envelope/**"
+  - "internal/match/**"
+  - "internal/odds/**"
+  - "internal/notify/**"
+  - "docs/contract/**"
+  - "cmd/thesports-sim/**"
+---
+
 # 即時資料契約：Kafka topics 與 WebSocket（D4、D5、D17）
 
 > 兩個受眾：本 repo 的 `collector` → `api` → `realtime` 三個角色之間（內部契約），以及 H5／App 部門的 WebSocket client（對外契約）。

@@ -1,3 +1,15 @@
+---
+paths:
+  - "internal/**/dao/**"
+  - "internal/**/controller/**"
+  - "internal/**/service/**"
+  - "internal/core/tenant/**"
+  - "internal/core/auth/**"
+  - "internal/realtime/**"
+  - "migrations/**"
+  - "test/**"
+---
+
 # 多業主隔離（I1，D7）
 
 > 一位業主 = 一個站點 = 一個專屬域名。業主只看得到自己的會員、收藏、通知、導流記錄與設定；總控看全部業主（D24）。

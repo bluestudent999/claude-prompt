@@ -1,3 +1,11 @@
+---
+paths:
+  - "internal/**"
+  - "cmd/**"
+  - "configs/**"
+  - "go.mod"
+---
+
 # 架構：單 binary 多角色 + 功能分包（D3、D3a）
 
 > 本文管的是「程式碼放哪、誰能 import 誰、角色怎麼組裝」。決策的推導在 `plan/on-sports-lite/tech-decisions.md` §2；框架慣例在 `framework-conventions.md`。

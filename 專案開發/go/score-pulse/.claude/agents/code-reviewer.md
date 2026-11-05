@@ -16,6 +16,8 @@ tools: Read, Grep, Glob, Bash
 - 唯一事實來源：`rules/framework-conventions.md`、`rules/testing.md` §1、plan §2 檔案清單、`rules/coding-style.md`。
 - **不管**：I1～I10 的邏輯正確性（`data-pipeline-reviewer` / `tenant-isolation-reviewer`）、契約欄位（`contract-reviewer`）、import 方向（`arch-guard`）、Vue（`web-reviewer`）。
 
+> **規則按需載入（2026-11-05）：** 上面這些規則檔多數已改成 `paths:`，不一定在你的上下文。開工先看上下文有沒有；沒有就 `grep -n "^## \|^### " .claude/rules/<檔>` 後只 Read 檢查項用到的節，不整份讀。
+
 ## 檢查項
 
 ### A. 框架慣例（對照 framework-conventions.md §9，一律 CRITICAL）

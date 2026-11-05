@@ -1,3 +1,10 @@
+---
+paths:
+  - "**/*.go"
+  - "configs/**"
+  - "go.mod"
+---
+
 # sp-framework 慣例（AI 最容易寫錯的地方）
 
 > sp-framework 是公司內部 Go 框架：gin + uber fx + gorm + go-redis v9 + sarama + gorilla websocket + robfig/cron + go-i18n + viper + prometheus + zap。

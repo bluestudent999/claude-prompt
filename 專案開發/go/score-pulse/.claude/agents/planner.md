@@ -43,12 +43,15 @@ tools: Read, Write, Grep, Glob, Bash
    grep -n "R58\|R59\|R60\|AC-40\|AC-41\|AC-46" plan/on-sports-lite/spec/spec-2a-match-live.md
    ```
 3. **確認前置 ticket 狀態**：`grep -n "^| 狀態" plan/on-sports-lite/tickets/<前置>.md`。未完成且不是「（驗收）」前置 → 停手回報 `Blocked By: <ticket>`，plan 只寫到 §0 與 §1。
-4. **對照規則（這些檔已隨專案載入你的上下文，用節號引用，不要再 Read 整份）**：
-   - 碰到哪些 D（`locked-decisions.md`）、哪些 I（`invariants.md`）？
-   - 碰到的表在 `tenant-isolation.md` §2 哪一欄？擁有者包是誰（`architecture.md` §4）？
+4. **對照規則（只讀需要的節）**：常駐在你上下文的只有 `locked-decisions.md`（索引）、`invariants.md`、`development-workflow.md`、`git-workflow.md`。其餘規則改成按需載入（2026-11-05），**用 grep 定位後 `Read(offset, limit)` 只讀那一節，不整份讀**：
+   ```bash
+   grep -n "<表名>" .claude/rules/tenant-isolation.md .claude/rules/architecture.md   # 租戶表欄位、擁有者包（§2、§4）
+   grep -n "^## \|^### " .claude/rules/testing.md                                     # 要寫 §4 時讀 §1 與 §8
+   grep -n "D2[0-7]" .claude/rules/locked-decisions-detail.md                          # 碰到 D18～D27 的細節時
+   ```
+   - 碰到哪些 D、哪些 I？表在 `tenant-isolation.md` §2 哪一欄、擁有者包是誰（`architecture.md` §4）？
    - 會不會新增或改 `/api/front/**`、destination、Kafka 封包（`api-contract.md` §3、`realtime-contract.md` §3）？
-   - 若上下文裡確實沒有某份規則（例如被 session 壓縮掉了），才 `grep -n "^## "` 建索引後只 Read 需要的那一節。
-5. **一次性查證現況**：把所有要驗的假設放進**同一段 bash 一次跑完**，不要一條假設呼叫一次工具。整段輸出貼進 §1，表格只寫結論：
+5. **一次性查證現況**：把所有要驗的假設放進**同一段 bash 一次跑完**，不要一條假設呼叫一次工具。**原始輸出不貼進 plan**，§1 只寫結論表，證據欄寫段名或 `檔案:行`：
    ```bash
    echo "== pkg layout"; ls internal/match/controller/ internal/match/service/ internal/match/dao/ 2>/dev/null
    echo "== consumers";  grep -rn "func (.*) Name() string" internal/ | grep -i "match-live\|realtime-core"
@@ -58,7 +61,7 @@ tools: Read, Write, Grep, Glob, Bash
    echo "== P-17"; grep -n "^| 狀態" plan/on-sports-lite/tickets/prep/P-17.md 2>/dev/null
    ```
    依 ticket 增減行；不存在的目錄輸出為空就是結論（「尚未建立」）。
-6. **判尺寸**（見「計畫尺寸」）→ 寫檔 → 回傳摘要（見「回傳摘要」）。
+6. **判尺寸**（見「計畫尺寸」）→ 寫檔 → `wc -m plan/task-<ticket>-plan.md` 對照字數上限，超過就刪到上限內 → 回傳摘要（見「回傳摘要」）。
 
 ## 計畫尺寸（小 ticket 不付大 ticket 的範本成本）
 
@@ -68,6 +71,21 @@ tools: Read, Write, Grep, Glob, Bash
 | **大** | 其餘 | 完整範本 |
 
 尺寸寫進 §0。判錯（做到一半發現碰了第二個包或契約）→ 回頭把 plan 升級成大尺寸，不要硬塞。
+
+### 字數上限（2026-11-05 實測後加入，硬規則）
+
+> 實測：plan 檔 43～98KB，§0 元資料就寫到 2 萬多字元。planner 的 10 分鐘大多花在寫這份檔；下游實作代理與 4～5 個 reviewer 各讀一次。**plan 是給下游執行的規格，不是設計說明書。**
+
+| 段 | 上限 | 寫法 |
+|----|------|------|
+| **全檔** | 小尺寸 **12,000 字元**、大尺寸 **30,000 字元**（`wc -m`） | 超過 → 刪說明文字，不刪 §2 檔案與 §4 測試名 |
+| §0 | 1,500 字元 | 範本的固定欄位，**每欄一行**；不寫推導過程 |
+| §1 | 3,000 字元 | 只有結論表；不貼原始輸出、不寫 `<details>` |
+| §2 | 每檔一行 | 「一句話描述」不超過 40 字 |
+| §3 | 每步一行 | 步驟 + 完成判準 |
+| §4 | 不設上限 | 但只列 API／不變量／AC 與**測試函式名**，不寫測試內容 |
+| §5、§6 | 各 2,000 字元 | 小尺寸 §5 寫「無」 |
+| 附錄 | **不放在 plan 內** | 一次性腳本、改名對照表等長內容另寫 `plan/task-<ticket>-appendix.md`，plan 內一行連結；實作代理需要時才讀 |
 
 ## Output（寫入 `plan/task-<ticket>-plan.md`）
 
@@ -90,21 +108,10 @@ tools: Read, Write, Grep, Glob, Bash
 - **外部等待**：無 ／ E1 憑證（用 thesports-sim）
 
 ## §1 Investigation
-<details><summary>一次性查證輸出（Workflow 第 5 步，原樣貼）</summary>
-
-```
-== pkg layout
-apply.go  detail.go
-== consumers
-internal/realtime/core.go:41: func (h *CoreHandler) Name() string { return "realtime-core" }
-...
-```
-</details>
-
-| 假設 | 結論（對應上方哪一段） |
-|------|------|
-| match 包已有 ApplyService | 存在 `service/apply.go`（pkg layout） |
-| 雙租戶 fixture 已建 | 存在 `test/fixtures/tenants.go`（fixtures） |
+| 假設 | 結論 | 證據（查證段名或 `檔案:行`） |
+|------|------|------|
+| match 包已有 ApplyService | 存在 | `internal/match/service/apply.go:12` |
+| 雙租戶 fixture 已建 | 存在 | fixtures 段 |
 
 ## §2 變更檔案清單（單一事實來源）
 | 類型 | 路徑 | 一句話描述 |
@@ -187,7 +194,7 @@ ticket：S2-T8 <標題>（W7 ／ M2）
 前置 ticket：S2-T5 ✅（或 Blocked By: S2-T5）
 Required Spec Sections：<照抄> ／ 對映 AC：AC-40、AC-41、AC-46
 API 數 3 ／ 測試函式數 11 ／ OQ 數 1（⏳ OQ-1 一句話）
-plan：plan/task-S2-T8-plan.md
+plan：plan/task-S2-T8-plan.md（9,800 字元，上限 小 12,000／大 30,000）
 ```
 
 ## OQ 規則
@@ -207,12 +214,13 @@ plan：plan/task-S2-T8-plan.md
 ## Quality Gates（對你自己）
 
 - [ ] §0 尺寸、工作類別、畫面在哪、涉及不變量、租戶表、契約影響都填了，沒有留「待定」
-- [ ] §1 附了一次性查證的原始輸出，每條結論都指得到輸出的哪一段；沒有「應該是」
+- [ ] §1 每條結論都有證據欄（查證段名或 `檔案:行`）；沒有「應該是」；沒有貼原始輸出
+- [ ] `wc -m` 在字數上限內（小 12,000／大 30,000）；長附錄已拆到 `plan/task-<ticket>-appendix.md`
 - [ ] §4 **每個新增／修改的 API 都列出了具體測試函式名**，含 400／401／403／他租戶 404 的案例
 - [ ] §4 的不變量測試寫到檔案與函式名，不是「補測試」
 - [ ] §4 每條 AC 都對到測試；量測類 AC 對到指標
 - [ ] 小尺寸的三條判定都成立才用合併表；任一不成立就是大尺寸
-- [ ] 沒有通讀 spec（只讀了 Required Spec Sections）；沒有重讀已在上下文的規則檔
+- [ ] 沒有通讀 spec（只讀了 Required Spec Sections）；按需規則只讀了需要的節
 - [ ] 沒有把 H5／App 的畫面排進 §2
 - [ ] 回傳摘要欄位齊全
 

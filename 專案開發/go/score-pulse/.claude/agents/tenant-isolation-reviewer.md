@@ -12,6 +12,8 @@ tools: Read, Grep, Glob, Bash
 
 唯一事實來源：`rules/tenant-isolation.md`、`rules/invariants.md` I1、`rules/architecture.md` §4。
 
+> **規則按需載入（2026-11-05）：** 上面這些規則檔多數已改成 `paths:`，不一定在你的上下文。開工先看上下文有沒有；沒有就 `grep -n "^## \|^### " .claude/rules/<檔>` 後只 Read 檢查項用到的節，不整份讀。
+
 ## Constraints
 
 - **只審查，不修改**。可以示範正確寫法，但不改檔。

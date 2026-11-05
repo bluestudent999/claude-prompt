@@ -9,6 +9,8 @@ description: 執行 plan/on-sports-lite/tickets/ 的某一張 ticket——Prefli
 
 一次一張。ticket 的粒度就是驗收與回填的粒度。開工前的骨架（B-01 ～ B-10）不是 ticket，走 `/bootstrap`。
 
+> **一張 ticket 一個 session，主流程只調度**（2026-11-05 實測後加入）：主流程不親手寫功能碼、不把長輸出讀進上下文；MR 開好就收尾，下一張先 `/clear`。細則見 `rules/development-workflow.md`「Session 與 token 紀律」。
+
 > **讀 ticket 與 spec 只做一次，由 planner 做**（2026-11-04 決策 A）。主流程 Preflight 過了就呼叫 planner，**不先自己讀 ticket**；主流程對這張 ticket 的認識來自 planner 回傳的摘要與 plan §0。
 
 ---
@@ -56,18 +58,23 @@ Preflight 全過 → **直接調用 `planner`**，只給它 ticket 編號（例 
 
 ---
 
-## Step 2 · 實作
+## Step 2 · 實作（派給實作代理）
 
-**Golden Rule：依計畫實作。** 範圍上限是 plan §2 的檔案清單。
+主流程**不自己寫功能碼**。依 planner 摘要的工作類別派工，派工訊息照代理的 Input Schema，**不轉述 plan 內容**：
 
-| 情境 | 必問 |
-|------|------|
-| 寫任何查詢 | 「它經過 `tenant.Scope` 了嗎？」（I1） |
-| 套用供應商更新 | 「它用 `pv` 做 compare-and-set 了嗎？比分變小有被接受嗎？」（I3） |
-| 寫 handler／訂閱 action／consumer | 「它的 `_test.go` 在哪？」（testing §1） |
-| `Emit` 到 Kafka | 「key 是 `match_id` 嗎？」（I2） |
-| REST 讀即時比分、狀態、事件 | 「讀的是 Redis 快照嗎？」（I9） |
-| 寫框架相關程式碼 | 「這是 sp-framework 的寫法，還是網路教學的寫法？」（`rules/framework-conventions.md` §9） |
+| 工作類別 | 派給 | 順序 |
+|------|------|------|
+| A、C | `implementer` | — |
+| B | `web-implementer` | 依賴的後端 API 已存在 → 可與 `implementer` 同一則訊息平行；否則等 `implementer` 回傳後再派，並附它的 API 清單 |
+
+```
+ticket：S2-T8
+plan：plan/task-S2-T8-plan.md
+範圍：plan §3 第 1～7 步
+分支：feature/S2-T8-live-score（已切好）
+```
+
+實作代理自跑驗收並回傳固定格式摘要；「超出 plan §2」不是「無」→ 先判斷要不要擴 §2（擴了要回寫 plan），再讓它繼續。**Golden Rule 與每次必問**見 `rules/development-workflow.md`「六個步驟」。
 
 **Stop Rule：** ticket vs spec、tech-decisions vs 外部方案圖互相矛盾 → 立即停止回報，不要挑一個猜。
 
@@ -75,14 +82,14 @@ Preflight 全過 → **直接調用 `planner`**，只給它 ticket 編號（例 
 
 ## Step 3 · 驗收
 
+實作代理已跑完整套驗收（build／vet／lint／單元／整合／arch-check／tenant-check）並在摘要列出結果。主流程只做一次快速複核，輸出只看尾巴：
+
 ```bash
-go build ./... && go vet ./... && golangci-lint run
-go test ./internal/...                                  # 單元（含每個 API 的測試）
-go test -tags=integration ./test/...                    # 動到 dao／consumer 時
-bash scripts/arch-check.sh                               # 或 /arch-check、make arch-check（只在這裡跑，不掛 Stop hook）
+go build ./... && go test ./internal/... 2>&1 | tail -5
+bash scripts/arch-check.sh 2>&1 | tail -5     # 或 /arch-check、make arch-check（只在這裡跑，不掛 Stop hook）
 ```
 
-動到租戶表 → `/tenant-check`；動到契約 → `/contract-export`。**DoD 七條**（`rules/testing.md` §8）全滿足才算完成。
+動到契約 → 確認 `docs/contract/` 有更新（`/contract-export`）。**DoD 七條**（`rules/testing.md` §8）全滿足才算完成。
 
 ---
 
@@ -97,7 +104,24 @@ bash scripts/arch-check.sh                               # 或 /arch-check、mak
 | collector、`realtime-core`、`persist`、合流、快照、賠率歷史 | + `data-pipeline-reviewer` |
 | `web/admin` | + `web-reviewer` |
 
-領域 reviewer 平行啟動（同一則訊息）。
+「動到什麼」看實作代理摘要的「碰到的面向」欄，不自己讀 diff 判斷。`arch-guard` 只在「包結構或跨包 import 新增：是」或 arch-check 有 FAIL 時派；只在既有包內加檔、arch-check PASS → 不派。
+
+領域 reviewer 平行啟動（同一則訊息）。派工時給：ticket 編號、plan 路徑、本輪範圍（第一輪：整個工作樹相對 `origin/developing`）。
+
+### 修正輪（第二輪起）
+
+1. **派修正前先記快照**（含未追蹤的新檔，不動工作樹與索引）：
+   ```bash
+   snap() { local i; i=$(mktemp); cp "$(git rev-parse --git-dir)/index" "$i"; GIT_INDEX_FILE=$i git add -A; GIT_INDEX_FILE=$i git write-tree; rm -f "$i"; }
+   R1=$(snap); echo "$R1"
+   ```
+2. **修正交給原實作代理**：用 SendMessage 接續同一個 `implementer`／`web-implementer`，訊息只貼發現清單（`<reviewer> <級別> <檔案:行> <一句話>`），不貼 plan。它回報「建議改開新實例」或已無法接續時，才新開一個並附 plan 路徑與發現清單。
+3. **只重派有 CRITICAL／HIGH 的 reviewer**，只給增量：
+   ```bash
+   R2=$(snap); git diff --stat "$R1" "$R2"; git diff "$R1" "$R2" > "$TMPDIR/<ticket>-r2.diff"
+   ```
+   派工訊息附 diff 檔路徑與「上一輪你提的發現」，請它只驗這些發現是否修好、增量有沒有新問題。只有 MEDIUM／LOW 的 reviewer 不重派，由主流程對照實作代理的「修正輪」欄確認。
+4. **最多三輪。** 第三輪後仍有 CRITICAL → 停手回報使用者，附未解發現。
 
 ---
 
@@ -138,4 +162,4 @@ API 測試：<逐一列出 Test 名> PASS
 Remaining Work：<或 Blocked By: S2-T5>
 ```
 
-最後一行固定：**下一步執行** <依 `rules/development-workflow.md` 的下一步>（<一句話為什麼>）。
+最後一行固定：**下一步執行** <依 `rules/development-workflow.md` 的下一步>（<一句話為什麼>）。MR 已開 → 固定寫「**下一步執行** 清空上下文（`/clear`）後 `/ticket-run <下一張>`（一張 ticket 一個 session）」。

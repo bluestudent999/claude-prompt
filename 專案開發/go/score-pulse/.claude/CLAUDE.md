@@ -14,7 +14,8 @@
 
 1. **Preflight**（分支、Go 版本、框架 tag、編譯）過了就**直接呼叫 planner**。主流程**不自己讀 ticket 與 spec**（2026-11-04 決策 A：讀 ticket 這件事只做一次，由 planner 做）。
 2. **planner 拆解**：讀整張 ticket、只讀 Required Spec Sections（spec 每份 300～560 行，**不通讀**）、判定工作類別（A 後端 API／B 後台前端／C 契約交付）、列出每個 API 的測試名、管理 `⏳ 待決` OQ，產出 `plan/task-<ticket>-plan.md`，並回傳含 §0 元資料的摘要。
-3. **實作 → 驗收 → 審查 → 回填**（`rules/development-workflow.md`）。主流程對 ticket 的認識來自 planner 的摘要與 plan §0，不重讀。
+3. **實作 → 驗收 → 審查 → 回填**（`/ticket-run`）。實作交給 `implementer`／`web-implementer`，主流程只調度；主流程對 ticket 的認識來自 planner 的摘要與 plan §0，不重讀。
+4. **一張 ticket 一個 session**：MR 開好就收尾，下一張先 `/clear`（`rules/development-workflow.md`「Session 與 token 紀律」）。
 
 > **回填不是可選的。** plan §8 完成紀錄 + ticket 狀態欄；沒回填 = 未完成。
 
@@ -22,12 +23,7 @@
 
 > **部門分工 v4（2026-11-02）：總控與業主後台的全部畫面歸後端部門，也就是本 repo。** 前端部門只做 H5 與 App。ticket 的「部門分工」段若在**後端**條目寫了畫面（頁、表單、列表、匯出按鈕…），那些畫面就是本 repo 要做的（`web/admin`）。
 
-| 類 | 認法 | 驗收 |
-|----|------|------|
-| **A · 後端 API** | ticket「部門分工」的後端條目：資料、API、推送、排程、環境 | AC + 每個 API 的單元測試 + 不變量測試 |
-| **B · 後台前端** | ticket「部門分工」的後端條目含**總控或業主後台畫面**（S4 全部、S5 的後台部分、S1 的總控／業主頁；混合 ticket S1-T3、S1-T5、S1-T6、S5-T15、S5-T16、S5-T19 只做後台那一欄） | AC + 畫面三態 + 後端 API 測試 |
-| **C · 契約交付** | 動到 `/api/front/**`、WebSocket、Kafka 封包 | `/contract-export` + `contract-reviewer` |
-| **另一部門** | ticket「部門分工」的**前端**條目（H5 前台頁、App） | 本 repo 只交 API 與契約 |
+A 後端 API／B 後台前端（`web/admin`）／C 契約交付的認法與驗收依據見 `rules/development-workflow.md`「三類工作」；ticket「部門分工」的**前端**條目（H5、App）一律是另一部門。
 
 ### 0.2 開工前的骨架不是 ticket
 
@@ -79,16 +75,9 @@ repo 初始化、框架 tag、三份 profile、docker-compose、migrate、swag�
 
 ## 1. 指路（每次開工先看）
 
-### 文件優先序（衝突時的裁決順序）
+### 文件與規範
 
-```
-tickets/<id>.md（範圍、Required Spec Sections、AC）  ← 以此為準
-        ↑ 衍生自
-backlog-spec-N.md → spec/spec-*.md → brief.md         ← 業務行為以 spec 的 R# / E# / AC# 為準
-────────────────────────────────────────────────────
-tech-decisions.md（D1～D17、不做清單、拓樸、topic）    ← 技術決策以此為準；rules/ 是它的執行版
-master-plan.md（波次、里程碑、外部等待）              ← 只決定先做哪張
-```
+文件優先序（衝突時的裁決）見 `rules/development-workflow.md` 開頭：ticket → backlog → spec → brief；技術 How 以 `tech-decisions.md` 為準。
 
 - **工單：** `plan/on-sports-lite/tickets/README.md`（129 張總表）、`tickets/<id>.md`
 - **技術決策：** `plan/on-sports-lite/tech-decisions.md`（**衝突時以此為準**）
@@ -97,22 +86,22 @@ master-plan.md（波次、里程碑、外部等待）              ← 只決定
 - **部門分工：** `plan/on-sports-lite/dept-assignment.md`（v4：規則 13 後台畫面歸後端；附錄 B 每張 ticket 的部門欄）
 - **開發端前置：** `plan/on-sports-lite/tickets/prep/P-17.md`（realtime 有界佇列）、`plan/dev-bootstrap.md`（B-00～B-10 進度）
 
-### 規範
+### 規範（標「按需」的只在碰到對應目錄時自動載入；要引用而上下文沒有 → grep 節標題後只 Read 那一節）
 
-- **已鎖定決策（不得自行推翻）：** [`.claude/rules/locked-decisions.md`](.claude/rules/locked-decisions.md)
+- **已鎖定決策（不得自行推翻）：** [`.claude/rules/locked-decisions.md`](.claude/rules/locked-decisions.md)（常駐索引；細節 `locked-decisions-detail.md` 按需）
 - **10 條不變量（最高紅線）：** [`.claude/rules/invariants.md`](.claude/rules/invariants.md)
-- **架構：單 binary 多角色 + 功能分包：** [`.claude/rules/architecture.md`](.claude/rules/architecture.md)
-- **sp-framework 慣例（最容易寫錯）：** [`.claude/rules/framework-conventions.md`](.claude/rules/framework-conventions.md)
-- **多業主隔離：** [`.claude/rules/tenant-isolation.md`](.claude/rules/tenant-isolation.md)
-- **對外 API 契約（跨部門）：** [`.claude/rules/api-contract.md`](.claude/rules/api-contract.md)
-- **即時資料契約（Kafka／WebSocket）：** [`.claude/rules/realtime-contract.md`](.claude/rules/realtime-contract.md)
-- **TheSports 接入：** [`.claude/rules/thesports-ingest.md`](.claude/rules/thesports-ingest.md)
-- **多語系：** [`.claude/rules/i18n.md`](.claude/rules/i18n.md)
+- **架構：單 binary 多角色 + 功能分包：** [`.claude/rules/architecture.md`](.claude/rules/architecture.md)（按需）
+- **sp-framework 慣例（最容易寫錯）：** [`.claude/rules/framework-conventions.md`](.claude/rules/framework-conventions.md)（按需）
+- **多業主隔離：** [`.claude/rules/tenant-isolation.md`](.claude/rules/tenant-isolation.md)（按需）
+- **對外 API 契約（跨部門）：** [`.claude/rules/api-contract.md`](.claude/rules/api-contract.md)（按需）
+- **即時資料契約（Kafka／WebSocket）：** [`.claude/rules/realtime-contract.md`](.claude/rules/realtime-contract.md)（按需）
+- **TheSports 接入：** [`.claude/rules/thesports-ingest.md`](.claude/rules/thesports-ingest.md)（按需）
+- **多語系：** [`.claude/rules/i18n.md`](.claude/rules/i18n.md)（按需）
 - **開發流程與回填：** [`.claude/rules/development-workflow.md`](.claude/rules/development-workflow.md)
-- **測試政策（每個 API 必有單元測試、雙租戶）：** [`.claude/rules/testing.md`](.claude/rules/testing.md)
-- **DB migration：** [`.claude/rules/db-migration.md`](.claude/rules/db-migration.md)
-- **Go 風格：** [`.claude/rules/coding-style.md`](.claude/rules/coding-style.md)
-- **後台前端（Vue 3）：** [`.claude/rules/web-frontend.md`](.claude/rules/web-frontend.md)
+- **測試政策（每個 API 必有單元測試、雙租戶）：** [`.claude/rules/testing.md`](.claude/rules/testing.md)（按需）
+- **DB migration：** [`.claude/rules/db-migration.md`](.claude/rules/db-migration.md)（按需）
+- **Go 風格：** [`.claude/rules/coding-style.md`](.claude/rules/coding-style.md)（按需）
+- **後台前端（Vue 3）：** [`.claude/rules/web-frontend.md`](.claude/rules/web-frontend.md)（按需）
 - **分支與提交：** [`.claude/rules/git-workflow.md`](.claude/rules/git-workflow.md)（**測試分支的程式碼禁止回流開發分支**）
 
 ---
@@ -134,7 +123,9 @@ master-plan.md（波次、里程碑、外部等待）              ← 只決定
 ## 3. 可用工具與 Sub-agents
 
 - **自訂 Skills**：`/ticket-run <id>`、`/bootstrap`、`/arch-check`、`/tenant-check`、`/contract-export`、`/sim-scenario`、`/db-migrate`、`/vue3-console`、`/strategic-compact`
-- **Sub-agents**（依 `rules/development-workflow.md` Step 4 派工）：
+- **Sub-agents**（依 `/ticket-run` Step 2、Step 4 派工）：
+  - `implementer`：依 plan 實作 Go 後端並自跑驗收；修正輪由主流程用 SendMessage 接續同一個實例。
+  - `web-implementer`：依 plan 實作 `web/admin`（Vue 3）並自跑 Vitest；修正輪同上。
   - `planner`：ticket → `plan/task-<ticket>-plan.md`；**讀 ticket 與 Required Spec Sections 由它做（主流程不先讀）**；判尺寸與類別、標不變量與租戶表、列每個 API 的測試名、管 OQ，回傳含 §0 的摘要。
   - `code-reviewer`：Go 通用品質 + framework-conventions 掃描 + **API 無測試即 block**。
   - `arch-guard`：包依賴方向、角色組裝、禁用相依。
@@ -148,13 +139,7 @@ master-plan.md（波次、里程碑、外部等待）              ← 只決定
 
 ## 4. 提交前固定動作
 
-1. 本地綠燈：`go build ./... && go vet ./... && golangci-lint run && go test ./internal/...`；動到 dao／consumer 再跑 `go test -tags=integration ./test/...`。
-2. `/arch-check`；動到租戶表 `/tenant-check`；動到契約 `/contract-export`。
-3. 派 reviewer：`code-reviewer` 一律；其餘依 Step 4 表。
-4. 回填：plan §8 + ticket 狀態欄。
-5. 檢查 OQ：`plan/` 無「⏳ 待決」（否則 git hook 攔截）。
-6. Commit（Conventional Commits，scope = 功能包名）；指名檔案 `git add`。範本（`.claude/`、`CLAUDE.md`）的改動另開 `chore` commit，不與 ticket 混在一起。
-7. 確認在 `feature/<ticket-id>-<slug>` 分支上；`git rebase origin/developing` 後 `git push --force-with-lease`，開 MR 到 `developing`（`rules/git-workflow.md` §1.2）。
+照 `/ticket-run` Step 3（驗收）→ Step 4（審查）→ Step 5（回填與提交）。三條不可省：本地綠燈與 `/arch-check`、plan §8 與 ticket 狀態欄回填、`plan/` 無 `⏳ 待決`。範本（`.claude/`、`CLAUDE.md`）改動另開 `chore` commit。
 
 ---
 

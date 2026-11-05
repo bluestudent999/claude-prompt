@@ -106,23 +106,25 @@ claude
 ├── settings.json              權限、SessionStart 提醒、git-guard hook、autoMode（arch-check 只在 /ticket-run Step 3 驗收跑，不掛 Stop）
 ├── settings.local.json.example 本機環境變數範本
 ├── rules/
-│   ├── development-workflow.md  Preflight → planner（含讀 ticket）→ 實作 → 驗收 → 審查 → 回填
-│   ├── locked-decisions.md      D1~D27 執行版 + 不做清單 + P-20/24/26/27 規則 + 「看到這些就停手」
+│   ├── development-workflow.md  文件優先序、三類工作、六步判準（可執行版在 /ticket-run）、Session 與 token 紀律
+│   ├── locked-decisions.md      常駐索引：不做清單 + D1~D27 一行版 + 短條停手徵兆
+│   ├── locked-decisions-detail.md D 完整規格 + P-20/24/26/27 規則 + 長條停手徵兆（paths: internal、cmd、migrations、configs、deploy、scripts、web/admin）
 │   ├── invariants.md            10 條不變量與驗證方式
-│   ├── architecture.md          單 binary 多角色、功能分包、依賴方向、表歸屬、fx 組裝
-│   ├── framework-conventions.md sp-framework 慣例（panic 錯誤流程、fx.In、YAML 小寫、Name() 對 YAML、EmitWithKey）
-│   ├── tenant-isolation.md      Host → 業主代碼、gorm Scope/callback、租戶表清單、雙租戶測試
-│   ├── api-contract.md          OpenAPI、錯誤格式、相容規則、交付另一部門的流程
-│   ├── realtime-contract.md     Kafka topics、封包短名、WebSocket frame/destination、合流、SLO
+│   ├── architecture.md          單 binary 多角色、功能分包、依賴方向、表歸屬、fx 組裝（paths: internal、cmd、configs、go.mod）
+│   ├── framework-conventions.md sp-framework 慣例（panic 錯誤流程、fx.In、YAML 小寫、Name() 對 YAML、EmitWithKey）（paths: **/*.go、configs）
+│   ├── tenant-isolation.md      Host → 業主代碼、gorm Scope/callback、租戶表清單、雙租戶測試（paths: dao、controller、service、core/tenant、core/auth、realtime、migrations、test）
+│   ├── api-contract.md          OpenAPI、錯誤格式、相容規則、交付另一部門的流程（paths: controller、dto、core/apierr、docs/contract）
+│   ├── realtime-contract.md     Kafka topics、封包短名、WebSocket frame/destination、合流、SLO（paths: realtime、collector、core/envelope、match、odds、notify、docs/contract）
 │   ├── thesports-ingest.md      MQTT/HTTP 接入、補齊、停更與中斷偵測、主備（paths: internal/collector、cmd/thesports-sim）
 │   ├── i18n.md                  資料名稱回退、分類名稱自譯、通知與簡訊 5 語系、後台只中文（paths: platform/i18n、notify、member、match/service）
 │   ├── db-migration.md          golang-migrate、時間戳、分區、gen 重產（paths: migrations、cmd/gen）
 │   ├── coding-style.md          Go 風格、error wrapping、context、decimal、UTC、log（paths: **/*.go）
-│   ├── testing.md               每個 API 必有單元測試、雙租戶 fixture、模擬器、AC 對映、DoD 七條
+│   ├── testing.md               每個 API 必有單元測試、雙租戶 fixture、模擬器、AC 對映、DoD 七條（paths: *_test.go、test、web/admin 測試）
 │   ├── web-frontend.md          Vue 3 + Element Plus + Pinia、防 Vue 2、三態、權限（paths: web/admin）
 │   └── git-workflow.md          分支、Conventional Commits、測試分支單向流動
-├── agents/                    planner、code-reviewer、arch-guard、tenant-isolation-reviewer、
-│                              contract-reviewer、data-pipeline-reviewer、web-reviewer、build-error-resolver
+├── agents/                    planner、implementer、web-implementer、code-reviewer、arch-guard（sonnet）、
+│                              tenant-isolation-reviewer、contract-reviewer（sonnet）、data-pipeline-reviewer、
+│                              web-reviewer、build-error-resolver（sonnet）
 ├── skills/                    ticket-run、bootstrap、arch-check、tenant-check、contract-export、
 │                              sim-scenario、db-migrate、vue3-console、strategic-compact
 └── hooks/                     git-guard（OQ 未決、分支規則二合一，指令沒有 git 字樣直接放行）、check-oq-pending-session
@@ -134,6 +136,7 @@ claude
 
 > **2026-11-02 兩個變動**：① 部門分工 v4：總控與業主後台的全部畫面歸後端部門 = 本 repo（前端部門只做 H5 與 App），後端成為唯一瓶頸；② 分支規則：`main` 鎖定、`developing` 只收 MR、每張 ticket 從 `origin/developing` 切 `feature/<ticket-id>-<slug>`。
 > **2026-11-04 提速修改（planner 慢的 9 項）**：讀 ticket 與 spec 只由 planner 做一次（決策 A）；拿掉 Stop hook 的 arch-check（只在驗收跑）；五份只跟特定目錄有關的規則改成 `paths:` 按需載入；planner 查證合併成一段 bash、計畫範本分小／大尺寸；兩支 git hook 合成 `hooks/git-guard.sh`（`.claude` 已進版控，原本擋 `git add .claude` 的 hook 不再需要）；`head`、`sed -n`、`git ls-remote` 進免確認名單。**改完先拿一張實際 ticket 跑一次 `/ticket-run`，記 planner 耗時與改前比。**
+> **2026-11-05 token 瘦身（依 8 個 session 的實測）**：實測 planner 仍 10～11 分鐘，瓶頸是 plan 檔 43～98KB、每個子代理開工就背約 75K token、主 session 上下文中位數 35～60 萬。改了六項：① planner 加字數上限（小 12,000／大 30,000 字元），§1 不貼原始輸出，附錄拆檔；② 再六份規則改 `paths:`，locked-decisions 拆成常駐索引與按需細節，development-workflow 與 CLAUDE.md 去掉和 `/ticket-run` 重複的段落；③ 一張 ticket 一個 session、主流程只調度、長輸出只取尾巴；④ 新增 `implementer`、`web-implementer` 取代臨時的 general-purpose，修正輪用 SendMessage 接續；⑤ 修正輪只重派有 CRITICAL／HIGH 的 reviewer、只給增量 diff，最多三輪；⑥ arch-guard、contract-reviewer、build-error-resolver 改用 sonnet。**改完要再拿一張實際 ticket 量一次，與本次實測比較。**
 
 1. **分支**：確認 `origin/developing` 存在（沒有 → 請 release 負責人建立並設保護）；每張 ticket、每個 bootstrap 步驟都開 feature 分支，完成後 MR 到 `developing`。hook 會擋在 `main`／`developing` 上 commit。
 2. **`/bootstrap` B-00 ～ B-10**。B-10 的反壓驗證已做完（結論：框架阻塞），後續是 **P-17**（`internal/realtime` 有界佇列），realtime 第一張 ticket 前要到位。
