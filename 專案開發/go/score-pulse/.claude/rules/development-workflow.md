@@ -45,7 +45,7 @@ plan/on-sports-lite/master-plan.md         ← 波次、里程碑、外部等待
 
 | 步驟 | 誰做 | 判準（細節與指令見 `skills/ticket-run/SKILL.md`） |
 |------|------|------|
-| **Preflight** | 主流程 | 分支、Go 版本、框架 tag、go.work、編譯；分支不對或環境不符 → 不動工 |
+| **Preflight** | 主流程 | 分支、Go 版本、go.work 與框架版本（`setup-go-work.sh --check`）、編譯；分支不對或環境不符 → 不動工 |
 | **規劃** | `planner` | 讀 ticket 與 Required Spec Sections 全專案只做一次（2026-11-04 決策 A）；產出 `plan/task-<ticket>-plan.md` 並回傳摘要；主流程不重讀 ticket |
 | **實作** | `implementer`／`web-implementer` | **Golden Rule：依計畫實作**，範圍上限是 plan §2；不自行新增表、topic、destination、對外欄位、設定鍵；不順便重構；文件互相矛盾 → 停手回報（Stop Rule） |
 | **驗收** | 實作代理自跑，主流程看結果 | build／vet／lint／單元／（動 dao、consumer 時）整合、`/arch-check`；**DoD 七條**（`testing.md` §8） |

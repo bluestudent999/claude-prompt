@@ -35,7 +35,7 @@ claude
 | golang-migrate（mysql tag） | `go install -tags 'mysql' github.com/golang-migrate/migrate/v4/cmd/migrate@latest` |
 | swag | `go install github.com/swaggo/swag/cmd/swag@latest` |
 | Node 20（web/admin） | `node -v` |
-| go-framework tag 可解析 | `go env -w GOPRIVATE='gi88995.kxcodes.com/*'`；`go list -m framework` 印出指向 go-framework 固定 tag 的 replace |
+| go-framework 接入 | 能讀 `game_hub/go-framework`；`make go-work`（沒有 `../go-framework` 就 clone，寫不進版控的 go.work）；`bash scripts/setup-go-work.sh --check` 通過 |
 | 本機設定 | `cp .claude/settings.local.json.example .claude/settings.local.json` 並填值；`THESPORTS_*` 只給 collector |
 
 ---
@@ -138,6 +138,7 @@ claude
 > **2026-11-04 提速修改（planner 慢的 9 項）**：讀 ticket 與 spec 只由 planner 做一次（決策 A）；拿掉 Stop hook 的 arch-check（只在驗收跑）；五份只跟特定目錄有關的規則改成 `paths:` 按需載入；planner 查證合併成一段 bash、計畫範本分小／大尺寸；兩支 git hook 合成 `hooks/git-guard.sh`（`.claude` 已進版控，原本擋 `git add .claude` 的 hook 不再需要）；`head`、`sed -n`、`git ls-remote` 進免確認名單。**改完先拿一張實際 ticket 跑一次 `/ticket-run`，記 planner 耗時與改前比。**
 > **2026-11-05 token 瘦身（依 8 個 session 的實測）**：實測 planner 仍 10～11 分鐘，瓶頸是 plan 檔 43～98KB、每個子代理開工就背約 75K token、主 session 上下文中位數 35～60 萬。改了六項：① planner 加字數上限（小 12,000／大 30,000 字元），§1 不貼原始輸出，附錄拆檔；② 再六份規則改 `paths:`，locked-decisions 拆成常駐索引與按需細節，development-workflow 與 CLAUDE.md 去掉和 `/ticket-run` 重複的段落；③ 一張 ticket 一個 session、主流程只調度、長輸出只取尾巴；④ 新增 `implementer`、`web-implementer` 取代臨時的 general-purpose，修正輪用 SendMessage 接續；⑤ 修正輪只重派有 CRITICAL／HIGH 的 reviewer、只給增量 diff，最多三輪；⑥ arch-guard、contract-reviewer、build-error-resolver 改用 sonnet。**改完要再拿一張實際 ticket 量一次，與本次實測比較。**
 > **2026-11-05 框架改用 go-framework（tech-decisions v1.13，D1／D2／D2a）**：使用者決定以 `gi88995.kxcodes.com/game_hub/go-framework`（模組名 `framework`）取代 sp-framework。score-pulse 需要的模組系統、WebSocket、權限與路由登記、業務錯誤流程、快取登記、Redis 鎖排程、Prometheus 以「只增不改」移植進 go-framework 分支 `feature/score-pulse-port`，對照表在它的 `docs/sp-port/MAPPING.md`；Go 升為 1.27.3。`rules/framework-conventions.md` §0 列出改名的符號（`web.InjectGET`、`web.WebMiddleware`、`log.*Args`、`log.FieldErrorStack`…），go-framework 原有的 `web.Run`（CORS 全開）與不帶 `Args` 的 log API 不要用。**go-framework 的移植 MR !8 尚未合併；score-pulse 先以該分支 commit 的 pseudo-version 鎖定（以 commit 代 tag，同 sp-framework 時代 B-02）。go-framework 模組路徑沒有 `/v2`，之後的 tag 必須是 v1.x。本機路徑 replace 會被 arch-check 第 2 項擋下。**
+> **2026-11-06 改用 go.work（做法同 lion-quest，tech-decisions v1.14）**：go.mod 不再寫 framework；本機、CI、Linux 建置主機都以不進版控的 go.work 接入同層 checkout 的 go-framework，版本記在 `deploy/go-framework.ref`，`make go-work` 準備、`setup-go-work.sh --check` 檢查；映像改為主機編執行檔後 `docker build`（`make image`）。
 
 1. **分支**：確認 `origin/developing` 存在（沒有 → 請 release 負責人建立並設保護）；每張 ticket、每個 bootstrap 步驟都開 feature 分支，完成後合併回 `developing`（本機 `--no-ff` 或 MR，`rules/git-workflow.md` §1.2）。hook 會擋在 `main`／`developing` 上 commit。
 2. **`/bootstrap` B-00 ～ B-10**。B-10 的反壓驗證已做完（結論：框架阻塞），後續是 **P-17**（`internal/realtime` 有界佇列），realtime 第一張 ticket 前要到位。
@@ -150,7 +151,7 @@ claude
    | S4-T2 帳號與驗證器 | A + B |
    | S3-T5 設定項（語言、賠率格式、時區、日夜） | **只做後端**（偏好儲存 API）；畫面在另一部門 |
    | S6-T1 App 殼、S6-T7 H5 下載提示條 | **不在本 repo** |
-5. **外部等待**：E1 TheSports 憑證（用模擬器先做）、第二台 collector IP 進白名單、go-framework 移植分支合併並打 tag（切換 MR 合併前要有）。
+5. **外部等待**：E1 TheSports 憑證（用模擬器先做）、第二台 collector IP 進白名單、go-framework 移植分支合進 developing（MR 待開）；合併後把 `deploy/go-framework.ref` 改指向 developing 上的 commit。
 
 ---
 
@@ -172,7 +173,8 @@ claude
 | ticket 的「前端」分工要不要做？ | 看畫面在哪：總控／業主後台 → 做（B 類）；H5／App → 不做，plan §0 標「畫面：另一部門」 |
 | spec 有錯或 AC 不合理 | 列 OQ 標明屬企劃職責，提示使用者切 `prompt-setup 專案企劃`；本 repo 不改 spec |
 | `_generate.py` 重跑把我回填的 ticket 狀態洗掉了 | 已知，PM 要改腳本；**plan 檔 §8 是進度真相** |
-| 框架有 bug | 先繞過（在 `core` 包一層），開一張補充任務記錄；不自行升級框架版本（D2a） |
+| 框架有 bug | 先繞過（在 `core` 包一層），開一張補充任務記錄；不自行改 `deploy/go-framework.ref`（D2a） |
+| 編譯說 `framework/pkg/... is not in std` | 沒有 go.work：`make go-work` |
 | 想用 Redis Pub/Sub、protobuf、動態訂閱 | 第一期不做，各有量測觸發點（`rules/locked-decisions.md` D4、D5） |
 | 想拆 persist 成獨立部署 | 加一份 `application_persist.yaml` 即可，零程式碼改動（`rules/architecture.md` §1） |
 | TheSports 憑證還沒來 | `cmd/thesports-sim` 重放 fixture；plan §8 標 `待外部：E1` |

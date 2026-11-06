@@ -11,7 +11,7 @@ model: sonnet
 
 - **不改不變量相關邏輯、不改對外契約、不改租戶過濾、不改合流與套用邏輯**。那些是功能變更，要走完整流程。
 - **不順手重構**。修好就停。
-- **不擅自升級或降級 go-framework tag、Go 版本、golangci-lint 版本**繞過問題。本專案鎖 Go 1.27.3 與固定 tag（D1、D2a）。
+- **不擅自升級或降級 go-framework 版本（`deploy/go-framework.ref`）、Go 版本、golangci-lint 版本**繞過問題。本專案鎖 Go 1.27.3 與 ref 檔的 commit（D1、D2a）。
 - **不擅自新增相依**繞過編譯錯誤——先判斷是框架慣例寫錯還是真的缺套件。
 - **不用 `t.Skip`、`//nolint`、`_ = err` 讓錯誤消失**。
 - **同一修法失敗 2 次就停手**，換路徑或回報根因。
@@ -30,7 +30,9 @@ model: sonnet
 | `${ENV}` 沒展開 | 環境變數未設或 YAML 引號用錯 | 檢查 `env \| grep`；YAML 寫 `"${MYSQL_PASSWORD}"` |
 | gorm: `Unknown column` / `no such table` | `cmd/gen` 產物與 migration 不同步 | 先 `migrate up` 再 `go run ./cmd/gen`；**不手改 `*.gen.go`** |
 | migrate: `Dirty database version N` | 上次 migration 中途失敗 | **不要為了讓它過而改既有 migration**；查失敗原因，`migrate force N-1` 後修正**新**版本檔重跑 |
-| `go: framework@vX.Y.Z` 或 `go-framework.git@vX.Y.Z: reading ... 404` / `unknown revision` | tag 不存在、GOPRIVATE 未設、replace 路徑錯 | `go env GOPRIVATE`；`git ls-remote --tags <framework repo>`；**不改成 commit hash 或 go.work 繞過**（D2a），回報 |
+| `package framework/pkg/... is not in std`、`cannot find module providing package framework/...` | 沒有 go.work，或 go.work 指錯目錄 | `make go-work`（`bash scripts/setup-go-work.sh`）；`--check` 看 go-framework 是否在 ref 的 commit。**不要**在 go.mod 加 framework 的 require／replace |
+| `-mod may only be set to readonly or vendor when in workspace mode` | 環境變數 `GOFLAGS=-mod=mod`（go.work 模式不接受） | 移除該設定 |
+| `go: framework@vX.Y.Z` 或 `go-framework.git@vX.Y.Z: reading ... 404` / `unknown revision`（舊寫法殘留） | go.mod 又寫了 framework | `go env GOPRIVATE`；`git ls-remote --tags <framework repo>`；**不改成 commit hash 或 go.work 繞過**（D2a），回報 |
 | `go: go.mod requires go >= 1.2x` | 本機 Go 版本比 go.mod 低；或框架 go.mod 版本被動到 | 環境問題；回報，不改 go.mod 的 go 版本 |
 | golangci-lint 報一堆既有檔案 | lint 版本與 CI 不同、或 `.golangci.yml` 未載入 | 確認 `golangci-lint version` 與 CI 一致；只處理本次 diff 的問題（`--new-from-rev=HEAD~1`） |
 | 整合測試 `connection refused` MySQL/Redis/Kafka | docker compose 未起、健康檢查未過、埠衝突 | **環境問題**，不是程式碼問題。回報並給出 `docker compose -f deploy/docker-compose.yml ps` 與 logs 指令 |
@@ -47,7 +49,7 @@ model: sonnet
 2. **先確認環境**（省下大量猜測）：
    ```bash
    go version; go env GOPRIVATE GOFLAGS
-   grep -n "framework\|^go " go.mod; test -f go.work && cat go.work
+   grep -n "framework\|^go " go.mod; cat go.work; bash scripts/setup-go-work.sh --check
    golangci-lint version 2>/dev/null | head -1
    docker compose -f deploy/docker-compose.yml ps 2>/dev/null
    ```

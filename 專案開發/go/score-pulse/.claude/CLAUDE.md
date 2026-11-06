@@ -112,7 +112,7 @@ repo 初始化、框架 tag、三份 profile、docker-compose、migrate、swag�
 2. **租戶隔離（I1）是正確性問題，不是功能問題。** 違反即業主資料互看，且**在單租戶測試環境下 100% 測不出來**。所有整合測試一律以 `op-a` / `op-b` 雙租戶為基準（`rules/testing.md` §3）。
 3. **每一個 API 都必須有單元測試**（`rules/testing.md` §1）：REST handler、WebSocket 訂閱 action、Kafka consumer。沒有測試的 handler，`code-reviewer` 直接 block。
 4. **對外契約不可片面變更**（`rules/api-contract.md`、`rules/realtime-contract.md`）。H5／App 在另一部門，契約破了他們不會立刻報錯。
-5. **已鎖定的架構決策不得自行推翻**（`rules/locked-decisions.md`）：不拆服務、不依賴 sp-common、不用 Redis Pub/Sub 扇出、第一期不用 protobuf、不以「比分只能變大」過濾、framework 鎖 tag。要翻案 → 停手回報。
+5. **已鎖定的架構決策不得自行推翻**（`rules/locked-decisions.md`）：不拆服務、不依賴 sp-common、不用 Redis Pub/Sub 扇出、第一期不用 protobuf、不以「比分只能變大」過濾、go-framework 只經不進版控的 go.work 接入、版本記在 `deploy/go-framework.ref`。要翻案 → 停手回報。
 6. **go-framework 的慣例不是建議**（`rules/framework-conventions.md`）：panic 走錯誤流程、`fx.In` 顯式結構、YAML key 小寫、Name() 對上 YAML 鍵、`EmitWithKey(match_id)`。寫錯會跑不起來或靜默失序。
 7. **範圍紀律**：只做 ticket 的 Scope「含」；不做「順便加的」功能；不為 H5／App 的畫面寫程式；不做結算。
 8. **分支紀律**：`main` 鎖定、`developing` 不直接 commit（只收 MR 或本機 `--no-ff` 合併 feature 分支）、每張 ticket 從 `origin/developing` 切 `feature/<ticket-id>-<slug>`。違規 = hook 攔，不得繞過。

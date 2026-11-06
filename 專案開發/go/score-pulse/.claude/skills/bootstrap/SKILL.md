@@ -1,6 +1,6 @@
 ---
 name: bootstrap
-description: W1 開工骨架 B-01 ～ B-10——repo 初始化、go-framework 鎖 tag、三份 profile、可啟動的三角色空殼、docker-compose、migrate、gorm/gen、lint 與 CI、swag、thesports-sim 最小版與框架反壓驗證。第一張 ticket 之前使用；進度寫 plan/dev-bootstrap.md。
+description: W1 開工骨架 B-01 ～ B-10——repo 初始化、go-framework 以 go.work 接入、三份 profile、可啟動的三角色空殼、docker-compose、migrate、gorm/gen、lint 與 CI、swag、thesports-sim 最小版與框架反壓驗證。第一張 ticket 之前使用；進度寫 plan/dev-bootstrap.md。
 ---
 
 # bootstrap — W1 開工骨架
@@ -41,18 +41,19 @@ mkdir -p internal/inject
 
 完成判準：目錄與 `rules/architecture.md` §2 一致；`go build ./...` 通過（空殼）。
 
-## B-02 · go-framework 鎖 tag（D2a；2026-11-05 起取代 sp-framework）
+## B-02 · go-framework 接入（D2a；2026-11-06 起以 go.work，做法同 lion-quest）
+
+go.mod **不寫** framework；版本記在 `deploy/go-framework.ref`（40 字元 commit）。
 
 ```bash
-git ls-remote --tags https://gi88995.kxcodes.com/game_hub/go-framework.git | tail -3   # 確認含 sp 移植的 tag 已打；沒有 → tech-decisions §6 第 1 項，先回報
-go mod edit -require=framework@v0.0.0 \
-  -replace=framework=gi88995.kxcodes.com/game_hub/go-framework.git@<tag>   # 模組名是 framework
-go env -w GOPRIVATE='gi88995.kxcodes.com/*'
-go mod tidy && go list -m framework
-test ! -f go.work || ! grep -q framework go.work || echo "FAIL: go.work 指向同層 checkout"
+make go-work                                   # = bash scripts/setup-go-work.sh：沒有 ../go-framework 就 clone，寫 go.work
+bash scripts/setup-go-work.sh --check          # go.work 存在、go-framework 在 ref 的 commit
+grep -c framework go.mod                       # 0
+git check-ignore -q go.work go.work.sum && echo "go.work 不進版控"
+go build ./...
 ```
 
-完成判準：`go list -m framework` 印出指向 go-framework 固定 tag 的 replace；go.mod 的 replace 指向 tag 不是路徑；無 go.work。
+完成判準：`--check` 通過；go.mod 沒有 framework；go.work 被 .gitignore 排除；`go build ./...` 通過。CI 與 Linux 建置主機用 `FRAMEWORK_DIR=<目錄> bash scripts/setup-go-work.sh --checkout`。
 
 ## B-03 · 三份 profile YAML
 

@@ -23,7 +23,7 @@ paths:
 |---|------|------|
 | **D1** | 語言 | **Go**，版本與 go-framework 一致（`go 1.27.3`，2026-11-05 隨 D2 升），不自行升；Dockerfile 與 CI 映像為 golang:1.27.3 |
 | **D2** | 框架 | **go-framework**（模組名 `framework`；2026-11-05 取代 sp-framework，缺的機制以只增不改移植進 go-framework，對照表在 go-framework 的 `docs/sp-port/MAPPING.md`）：gin + fx + gorm + go-redis v9 + sarama + gorilla websocket + cron + go-i18n + viper + prometheus + otp。慣例見 `framework-conventions.md` |
-| **D2a** | 框架依賴 | **git tag 鎖版本**，`go.mod` 以 `replace` 或私有模組指向固定 tag；升級是一顆明確的 ticket |
+| **D2a** | 框架依賴 | （2026-11-06 改，做法同 lion-quest）**go.mod 不寫 framework**；本機、CI、Linux 建置主機都以不進版控的 `go.work`（`use ( . <go-framework 目錄> )`）接入同層 checkout 的 go-framework；**版本記在 `deploy/go-framework.ref`**（40 字元 commit），`scripts/setup-go-work.sh` 依它 clone／checkout 並產生 go.work，`--check` 檢查一致。映像在主機編好執行檔再 `docker build`（`make image`）。升級框架是一顆明確的 ticket：改 ref 檔、跑完整驗收、與程式碼同一個 commit |
 | **D3** | 單 binary 多角色 | `cmd/score-pulse` 一個 binary，`--active=<profile>` 選角色：`api`、`collector`、`realtime`。`api` 內兩個 consumer group：`realtime-core`、`persist`；流量上來時 `persist` 可成第四個 profile，零程式碼改動 |
 | **D3a** | 包結構 | **依業務功能分包**：`internal/{platform,match,odds,member,notify,manage,collector,realtime}`，包內 `controller/ service/ dao/ model/ dto/ inject.go`；共用放 `internal/core`（P-19／D20：業主功能包為 `internal/platform`；P-30／D26：總控功能包為 `internal/manage`）。規則見 `architecture.md` |
 | **D4** | 訊息 | **Kafka**。業務 topic 以 **`match_id` 當 partition key**；`match.live` **24 個分區**（建立後不改）；業務 topic 保留 **7 天**；`websocket` topic 保留 **10 分鐘**、consumer **`latest-offset: true`**。topic 表見 `realtime-contract.md` |

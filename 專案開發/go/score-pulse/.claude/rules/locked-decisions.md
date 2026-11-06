@@ -16,7 +16,7 @@
 | **D4** | 不用 Redis Pub/Sub 當廣播總線 | 扇出走框架的 Kafka `websocket` topic；Redis 只做快照、熱狀態、鎖 |
 | **D5** | 第一期不用 protobuf、不做按場動態訂閱 | 訊息一律 JSON；看到 `.proto`、`protobuf.js`、「gateway 依本機訂閱數向 Redis 訂閱／退訂」= 越界。升級觸發點：單連線平均下行 > 20 KB/s；realtime 單實例每秒收訊 > 5000 或 CPU > 60% |
 | **D7** | 不用 JWT 擋匿名的比賽訂閱 | 規格允許未登入看比分；只有會員通知 destination 驗 token |
-| **D12** | 不接 sp-config、不用 go.work 指向同層 checkout | 設定走 YAML + 環境變數；框架依賴走 tag |
+| **D12** | 不接 sp-config | 設定走 YAML + 環境變數（框架依賴方式見 D2a） |
 | **D16** | 不以「比分只能變大」過濾更新 | 比分回退是合法事件（VAR 取消），套用規則是 compare-and-set（`invariants.md` I3） |
 | Brief Out | 不做與業主站點帳號互通、不做域名自動部署 | 導流只做跳轉加記錄；域名第一期人工部署，但憑證自動化（Nginx + ACME）要做 |
 
@@ -27,7 +27,7 @@
 | # | 一句話 |
 |---|------|
 | D1 | Go 1.27.3（跟 go-framework 一致），不自行升 |
-| D2／D2a | go-framework（2026-11-05 取代 sp-framework；缺的機制只增不改移植進 go-framework），`go.mod` 以 replace 指向 go-framework 的 git tag；升級是一張明確的 ticket |
+| D2／D2a | go-framework（2026-11-05 取代 sp-framework；缺的機制只增不改移植進 go-framework）。2026-11-06 起go-framework 由不進版控的 go.work 接入（`bash scripts/setup-go-work.sh`；做法同 lion-quest），go.mod 不寫 framework，版本記在 `deploy/go-framework.ref`；升級框架是一張明確的 ticket（改 ref 檔） |
 | D3／D3a | 單 binary 三角色 `api`／`collector`／`realtime`；依功能分包 `internal/{platform,match,odds,member,notify,manage,collector,realtime}` + `internal/core` |
 | D4 | Kafka；業務 topic 以 `match_id` 當 key；`match.live` 24 分區 |
 | D5 | JSON、delta、每場 `seq` 單調；快照只讀 Redis；慢連線經 P-17 有界佇列斷線 |
@@ -52,7 +52,7 @@
 
 | 徵兆 | 它違反了 |
 |------|---------|
-| `go.work` 裡出現 `../go-framework`，或 go.mod 的 `framework` replace 指向本機路徑、分支或 commit | D2a |
+| `go.work`／`go.work.sum` 進了版控；go.mod 出現 `framework` 的 require 或 replace；改了 `deploy/go-framework.ref` 卻沒跑完整驗收 | D2a |
 | `import "sp-common/` | D2 |
 | 新的 `cmd/<service>` 目錄（`thesports-sim`、`gen` 除外） | D3 |
 | `redis.Subscribe(` 用在推送路徑 | D4 |

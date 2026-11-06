@@ -195,7 +195,7 @@ func API() []fx.Option {
 |------|------|
 | import 方向（§3 全部規則） | `go list -deps` + 腳本比對白名單（`scripts/arch-check.sh`） |
 | `internal/` 的頂層目錄只有功能包（§2 的八個）、`core`、`inject`（不在清單的目錄不受 import 方向檢查；P-30 後重建舊總控包目錄即 FAIL） | `find internal -maxdepth 1`（第 1a 項，fail-closed） |
-| 禁用依賴：`sp-common`、Ignite、ES、protobuf 對前端、`go.work` 指向同層 | grep |
+| 禁用依賴：`sp-common`、Ignite、ES、protobuf 對前端、`go.work` 進版控、go.mod 寫 framework | grep |
 | 租戶表 dao 都經 `tenant.Scope` | grep `db.Model(&model.<租戶表>` 對照 §4 清單 |
 | append-only 表（`odds_history`、`login_log`、`operate_log`、`redirect_click`、`redirect_impression`、`visit_log`）無 UPDATE／DELETE | Go 跨行比對 `model.<M>`／`Table("<t>")` 之後的 `Update(s)`／`UpdateColumn(s)`／`Delete`／`Save`；SQL 去 `--` 註解後以 `;` 切語句比對（含 `ALTER … DROP／TRUNCATE／EXCHANGE PARTITION`）；沒有放行清單 |
 | `internal/` 的 `.Raw(`／`.Exec(` 不碰租戶表（保險絲不涵蓋手寫 SQL） | perl 比對字串引數 × `internal/core/tenant/tables.go` 的租戶表清單 |

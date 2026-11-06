@@ -55,7 +55,7 @@ model: sonnet
 | 15 | `import "sp-common/` | CRITICAL |
 | 16 | `ignite`、`olivere/elastic`、`elasticsearch` 出現在 go.mod 或 import | CRITICAL |
 | 17 | `.proto` 檔或 `proto.Marshal` 用在對前端訊息 | CRITICAL |
-| 18 | `go.work` 含 `../go-framework`；go.mod 的 `framework` replace 不是指向 go-framework 的固定 tag | CRITICAL |
+| 18 | `go.work`／`go.work.sum` 進了版控；go.mod 出現 `framework` 的 require 或 replace；`deploy/go-framework.ref` 被改卻不是升級框架的 ticket | CRITICAL |
 | 19 | `redis.Subscribe(` / `PSubscribe(` 用在推送路徑 | CRITICAL |
 | 20 | 引入第二個 MQ、第二個 ORM、第二個 web 框架 | CRITICAL |
 | 21 | `mqtt` 相依不是 `eclipse/paho.mqtt.golang` | HIGH |
@@ -92,7 +92,7 @@ model: sonnet
    ```bash
    grep -rn "sp-common/\|ignite\|olivere/elastic\|elasticsearch" --include=*.go --include=go.mod . | grep -v "^./plan"
    find . -name "*.proto" -not -path "./.git/*"; grep -rn "proto\.Marshal" internal/ | grep -v collector
-   test -f go.work && cat go.work; go list -m framework
+   git ls-files go.work go.work.sum; grep -n "framework" go.mod; cat deploy/go-framework.ref; bash scripts/setup-go-work.sh --check
    grep -rn "\.Subscribe(\|\.PSubscribe(" internal/ | grep -v _test
    ls cmd/
    ```
@@ -139,5 +139,5 @@ Status 判定：CRITICAL > 0 → `block`；HIGH > 0 → `warning`；其餘 `appr
 - **跨包循環依賴**：`block`。修法固定：把介面抽到**呼叫方**那一側，不要抽到 `core`。寫出具體介面名與放置路徑。
 - **為了繞過依賴方向把業務邏輯搬進 core**：`block`。core 不含業務規則（§2）。
 - **新增表但未登記**：`warning`，Next actions 要求同時更新 `architecture.md` §4 與 `tenant-isolation.md` §2。
-- **go.mod 的 framework 指向 commit hash 而非 tag**：`warning`（可重現但不符 D2a），要求 go-framework 維護者補 tag；**指向本機路徑**：CRITICAL。
+- **本機 go-framework 不在 `deploy/go-framework.ref` 的 commit**（`setup-go-work.sh --check` 不過）：`warning`，請作者確認是有意同時改框架，否則 `--checkout`；**go.work 進版控或 go.mod 寫 framework**：CRITICAL。
 - **發現既有違規但非本次引入**：列入 `Artifacts` 標 `[既有]`，判 `warning` 建議另開 ticket；**若既有違規是 core 依賴功能包或 collector 被 import，仍 `block`**，它會隨每張 ticket擴散。

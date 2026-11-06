@@ -24,8 +24,8 @@ echo "$B" | grep -Eq '^(main|master|developing)$' && echo "[preflight] 在 $B �
 echo "$B" | grep -Eq '^feature/' || echo "[preflight] 分支名不是 feature/<ticket-id>-<slug>"
 # 環境
 go version | grep -Eq "go1\.(2[7-9]|[3-9][0-9])" || echo "[preflight] Go 版本不符（需 1.27.3+）"
-go list -m framework | grep -Eq " v[0-9]+\.[0-9]+\.[0-9]+$" || echo "[preflight] go-framework 未鎖 tag（D2a）"
-test -f go.work && grep -q "framework" go.work && echo "[preflight] go.work 指向同層 checkout（D2a 禁止）"
+bash scripts/setup-go-work.sh --check || echo "[preflight] go.work 或 go-framework 版本不符（D2a）：make go-work，或 setup-go-work.sh --checkout"
+grep -q "framework" go.mod && echo "[preflight] go.mod 寫了 framework（D2a：只經 go.work 接入）"
 go build ./... || echo "[preflight] HEAD 編譯失敗 — 必修"
 docker compose -f deploy/docker-compose.yml ps 2>/dev/null | grep -q mysql || echo "[preflight] 整合環境未起（整合測試會跳過）"
 ```
@@ -38,7 +38,7 @@ git ls-remote --heads origin developing | grep -q developing || echo "[preflight
 git fetch origin && git switch -c feature/$T-$SLUG origin/developing && git push -u origin feature/$T-$SLUG
 ```
 
-Go 版本、框架 tag、go.work、編譯失敗 → **必修，不動工**。compose 未起 → 單元層可做。`internal/realtime` 的 ticket → 先確認 `plan/on-sports-lite/tickets/prep/P-17.md` 狀態為「已到位」。
+Go 版本、go.work 與框架版本、編譯失敗 → **必修，不動工**（本機若是有意同時改 go-framework，版本不符可以繼續，但要在 plan §8 註明）。compose 未起 → 單元層可做。`internal/realtime` 的 ticket → 先確認 `plan/on-sports-lite/tickets/prep/P-17.md` 狀態為「已到位」。
 
 ---
 
