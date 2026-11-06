@@ -82,6 +82,8 @@ plan：plan/task-S2-T8-plan.md
 
 ## Step 3 · 驗收
 
+> **2026-11-06 起 GitLab CI 暫停 Go job**（runner 連不到 GitLab，tech-decisions §6 #10），這一步的本機驗收是合併前**唯一**的 Go 檢查，不可略過、不可只看實作代理的自我回報。
+
 實作代理已跑完整套驗收（build／vet／lint／單元／整合／arch-check／tenant-check）並在摘要列出結果。主流程只做一次快速複核，輸出只看尾巴：
 
 ```bash
