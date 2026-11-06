@@ -1,6 +1,6 @@
 # 已鎖定的架構決策（不得自行推翻）
 
-> 來源：`plan/on-sports-lite/tech-decisions.md`（v1.12，2026-11-01 使用者逐條拍板，2026-11-02～04 修訂至 D27）。本檔是常駐的**索引**；每條 D 的完整規格、P-20／24／26／27 規則與長條停手徵兆在 `locked-decisions-detail.md`（碰到程式碼時自動載入）。
+> 來源：`plan/on-sports-lite/tech-decisions.md`（v1.16，2026-11-01 使用者逐條拍板，2026-11-02～06 修訂至 D28）。本檔是常駐的**索引**；每條 D 的完整規格、P-20／24／26／27 規則與長條停手徵兆在 `locked-decisions-detail.md`（碰到程式碼時自動載入）。
 > **AI 不得在實作中「順手改回原案」、引入被排除的東西，或因為「這樣比較完整」而加料。** 要翻案 → 停手，回報使用者走決策流程，並在 `tech-decisions.md` 留紀錄。
 > **常見誤觸來源：** 外部提出的「方案 A」四服務圖、sp-config 的分層分包、sp-common 的現成程式碼、網路上的 Go 微服務教學、投注平台的概念（結算、盤口）。
 
@@ -45,6 +45,7 @@
 | D25 | 後台所有 API 先過 IP 白名單，沒設定 = 全拒；IP 只信可信代理的 `X-Real-IP` |
 | D26 | 總控命名 `admin` → `manage`（`internal/manage`、`/api/manage/**`、`admin_info`） |
 | D27 | 後台記錄拆 `login_log`／`operate_log`，皆 append-only 租戶表 |
+| D28 | 總控可替任何業主填寫、更換、撤回專屬域名，與業主後台共用同一 service 與規則；指定業主只經 `auth.ManageTarget` |
 
 ---
 
