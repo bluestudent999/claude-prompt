@@ -38,7 +38,7 @@ git ls-remote --heads origin developing | grep -q developing || echo "[preflight
 git fetch origin && git switch -c feature/$T-$SLUG origin/developing && git push -u origin feature/$T-$SLUG
 ```
 
-Go 版本、go.work 與框架版本、編譯失敗 → **必修，不動工**（本機若是有意同時改 go-framework，版本不符可以繼續，但要在 plan §8 註明）。compose 未起 → 單元層可做。`internal/realtime` 的 ticket → 先確認 `plan/on-sports-lite/tickets/prep/P-17.md` 狀態為「已到位」。
+Go 版本、go.work 與框架版本、編譯失敗 → **必修，不動工**（本機若是有意同時改 go-framework，版本不符可以繼續，但要在 plan §8 註明）。compose 未起 → 單元層可做。`internal/realtime` 的 ticket → 先確認 `plan/on-sports-lite/tickets/prep/P-17.md` 狀態為「已到位」。會讀寫 Elasticsearch 的 ticket（S1-T8、S1-T10、S1-T12、S2-T7、S2-T20～T23、S4-T13、S5-T12，或 plan 會碰到導流記錄、賠率歷史、歷史賽事）→ 先確認 `plan/on-sports-lite/tickets/prep/P-32.md` 狀態為「已到位」（D29，`rules/es-store.md` §7）。
 
 ---
 

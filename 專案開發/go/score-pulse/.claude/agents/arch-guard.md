@@ -53,7 +53,7 @@ model: sonnet
 | # | 檢查 | 級別 |
 |---|------|------|
 | 15 | `import "sp-common/` | CRITICAL |
-| 16 | `ignite`、`olivere/elastic`、`elasticsearch` 出現在 go.mod 或 import | CRITICAL |
+| 16 | `ignite` 出現在 go.mod 或 import；`olivere/elastic` 在 `internal/core/es`、`internal/*/esdao` 以外被 import（D29；P-32 前任何位置都是 CRITICAL）；api 的 controller／service 直接寫 ES；出現 `redirect_click`／`redirect_impression`／`visit_log`／`odds_history` 的 MySQL 表或 model | CRITICAL |
 | 17 | `.proto` 檔或 `proto.Marshal` 用在對前端訊息 | CRITICAL |
 | 18 | `go.work`／`go.work.sum` 進了版控；go.mod 出現 `framework` 的 require 或 replace；`deploy/go-framework.ref` 被改卻不是升級框架的 ticket | CRITICAL |
 | 19 | `redis.Subscribe(` / `PSubscribe(` 用在推送路徑 | CRITICAL |
@@ -82,15 +82,17 @@ model: sonnet
    ```
 4. **資料歸屬**：
    ```bash
-   for t in odds_history redirect_click login_log operate_log member; do
+   for t in login_log operate_log member; do
      m=$(python3 -c "import sys; print(''.join(w.capitalize() for w in sys.argv[1].split('_')))" "$t")
      grep -rln "model\.${m}\b" internal/*/dao/ | awk -F/ '{print $2}' | sort -u
    done   # 每張表應只出現一個包
-   grep -rn "UPDATE odds_history\|DELETE FROM odds_history\|\.Delete(&model\.OddsHistory\|\.Updates(.*OddsHistory" internal/
+   grep -rn "odds_history\|redirect_click\|redirect_impression\|visit_log" migrations/ internal/*/model/ 2>/dev/null   # D29：應為空（改存 ES）
+   grep -rn "\.Update(\|UpdateByQuery\|\.Delete(\|DeleteByQuery\|DeleteIndex" internal/*/esdao/ 2>/dev/null | grep -v match   # 只有 match 的 sp_match_history 可覆寫
    ```
 5. **禁用相依**：
    ```bash
-   grep -rn "sp-common/\|ignite\|olivere/elastic\|elasticsearch" --include=*.go --include=go.mod . | grep -v "^./plan"
+   grep -rn "sp-common/\|ignite" --include=*.go --include=go.mod . | grep -v "^./plan"
+   grep -rln "olivere/elastic" --include=*.go internal/ cmd/ | grep -v "^internal/core/es/\|/esdao/"   # D29：應為空
    find . -name "*.proto" -not -path "./.git/*"; grep -rn "proto\.Marshal" internal/ | grep -v collector
    git ls-files go.work go.work.sum; grep -n "framework" go.mod; cat deploy/go-framework.ref; bash scripts/setup-go-work.sh --check
    grep -rn "\.Subscribe(\|\.PSubscribe(" internal/ | grep -v _test

@@ -28,6 +28,7 @@ tools: Read, Grep, Glob, Bash
 | # | 檢查 | 級別 |
 |---|------|------|
 | 1 | 每一個對租戶表（`tenant-isolation.md` §2 左欄）的查詢都經 `db.Scopes(tenant.Scope(ctx))`，或全部業主時明寫 `tenant.AllPlatforms`（只在白名單），或總控單一業主經 `auth.ManageTarget` 後 `tenant.Scope` | CRITICAL |
+| 1a | 導流 ES index（`sp_redirect_click`／`sp_redirect_impression`／`sp_visit_log`）的每一個查詢與聚合都帶 `tenant.ESScope(ctx)`，或全部業主時明寫 `tenant.ESAllPlatforms`（只在白名單）；ES 沒有保險絲，逐一看 `internal/platform/esdao`；記錄 API 寫入的 `platform_code` 只來自 Host（D29、`es-store.md` §5） | CRITICAL |
 | 2 | 租戶範圍由 Host（前台）或 session（業主後台）推導；**不存在** `?platform_code=`、body `platformCode`、header `x-session-platform-code` 任何可控入口 | CRITICAL |
 | 3 | 取他租戶資源回 **404 或空**，不回 403（403 洩漏存在性） | HIGH |
 | 4 | 計數、分頁 `total`、匯出的分母是租戶範圍內的 | HIGH |

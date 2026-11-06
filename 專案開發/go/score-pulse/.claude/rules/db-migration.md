@@ -6,7 +6,7 @@ paths:
 
 # DB migration（golang-migrate，D6a）
 
-> MySQL 8 是唯一主庫。schema 的唯一真相是 `migrations/`；gorm model 由 schema 反向產生（`cmd/gen`），**不是**反過來。
+> MySQL 8 是業務實體的主庫；導流事件、賠率歷史、歷史賽事存 Elasticsearch，**不建 MySQL 表**（D29，`es-store.md`）。schema 的唯一真相是 `migrations/`；gorm model 由 schema 反向產生（`cmd/gen`），**不是**反過來。
 > 版本號用時間戳，對齊公司 Java 範本的 Flyway 慣例：永遠遞增、不會撞號、不需協調。
 
 ---
@@ -65,38 +65,19 @@ migrations/
 
 ---
 
-## 4. `odds_history` 分區（I5、D6）
+## 4. 月分區（`login_log`、`operate_log`）
 
-```sql
-CREATE TABLE odds_history (
-  id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
-  match_id BIGINT NOT NULL,
-  company_id INT NOT NULL,
-  market VARCHAR(8) NOT NULL,
-  stage VARCHAR(4) NOT NULL,
-  v1 DECIMAL(12,4) NOT NULL, v2 DECIMAL(12,4) NOT NULL, v3 DECIMAL(12,4) NOT NULL,
-  score_h TINYINT NULL, score_a TINYINT NULL,
-  provider_ts DATETIME(3) NOT NULL,
-  created_at DATETIME(3) NOT NULL,
-  PRIMARY KEY (id, provider_ts),
-  KEY idx_oh_match (match_id, company_id, market, provider_ts)
-) PARTITION BY RANGE COLUMNS (provider_ts) (
-  PARTITION p202611 VALUES LESS THAN ('2026-12-01'),
-  PARTITION p202612 VALUES LESS THAN ('2027-01-01'),
-  PARTITION pmax    VALUES LESS THAN (MAXVALUE)
-);
-```
+> 原本本節以 `odds_history` 為範例；**2026-11-06 D29 起賠率歷史改存 ES `sp_odds_history`，不建 MySQL 表**（規則見 `es-store.md`）。分區寫法照下表。
 
 | 規則 | 說明 |
 |------|------|
-| 分區鍵 | `provider_ts` 按月 RANGE；主鍵必須含分區鍵 |
+| 分區鍵 | `created_at` 按月 `RANGE COLUMNS`；主鍵必須含分區鍵 |
 | 新增分區 | `manage` 包的排程 job（每月 20 日）執行 `ALTER TABLE ... REORGANIZE PARTITION pmax INTO (p<下月>, pmax)`；job 有 Redis 鎖（`framework-conventions.md` §7） |
 | 只 INSERT | 無 UPDATE／DELETE 語句；`/arch-check` 掃 |
-| 只存變動 | `persist` consumer 比對同鍵上一筆值，無變動不寫（`realtime-contract.md` §1.2） |
 | 容量 | 總控監控頁顯示各分區列數與大小（`information_schema.PARTITIONS`）；第一期不刪 |
-| 查詢 | 走勢查詢一律帶 `provider_ts` 範圍讓分區裁剪生效 |
+| 查詢 | 一律帶 `created_at` 範圍讓分區裁剪生效 |
 
-其他大量寫入表（`redirect_click`、`redirect_impression`、`visit_log`、`login_log`、`operate_log`）同樣按月分區，鍵是 `created_at`。
+其他大量寫入表（`login_log`、`operate_log`）同樣按月分區，鍵是 `created_at`。（`redirect_click`、`redirect_impression`、`visit_log` 依 D29 改存 ES，不建表。）
 
 ---
 

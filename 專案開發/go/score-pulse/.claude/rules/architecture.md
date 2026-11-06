@@ -34,16 +34,18 @@ paths:
     │       │                      │ ws（框架協定）
     ▼       ▼                      ▼
  MySQL 8   Redis            H5 / App / 兩套後台（web/admin）
+ Elasticsearch（D29：導流事件、賠率歷史、歷史賽事；api consumer 寫、Kibana 只給內部）
                      ▲
               Nginx + ACME（業主域名 → Host → 業主代碼）
 ```
 
-`api` 內兩個 Kafka consumer group：
+`api` 內三個 Kafka consumer group：
 
 | group | 消費 | 做什麼 | 不做什麼 |
 |---|---|---|---|
 | `realtime-core` | `match.live`、`odds.change` | compare-and-set 套用（I3）、寫 Redis 快照、合流、發 `websocket` topic、發 `notify.trigger` | 不寫 MySQL |
-| `persist` | `match.live`、`odds.change` | 批次落庫、賠率歷史 INSERT（I5）；flush 成功才 commit offset（I9） | 不推送 |
+| `persist` | `match.live`、`odds.change` | 批次落庫（MySQL 實體）、賠率歷史寫 ES `sp_odds_history`（I5）、終局比賽寫 ES `sp_match_history`（D29）；flush 成功才 commit offset（I9） | 不推送 |
+| `redirect-sink` | `redirect.event` | 導流點擊、曝光、訪問批次寫 ES（D29，`es-store.md` §3）；bulk 成功才 commit | 不寫 MySQL、不推送 |
 
 > 兩個 group 消費同一批訊息、各自 commit。`persist` 慢不影響推送。要獨立部署時加一份 `application_persist.yaml`，把 `realtime-core` 從 `api` 拿掉即可。
 >
@@ -138,15 +140,15 @@ controller ──► service ──► dao ──► model
 
 | 包 | 擁有的表（寫入權） | 租戶表？ |
 |---|---|---|
-| platform | `platform`、`platform_domain`、`platform_brand`、`redirect_setting`、`ad_slot`、`ad_material`、`redirect_click`、`redirect_impression`、`visit_log` | 全部是（`platform_code`；`platform` 表本身以 `code` 為租戶鍵） |
-| match | `sport`、`league`、`team`、`player`、`season`、`match`、`match_event`、`match_stat`、`match_lineup`、`match_override`、`match_media` | 否（全平台共用） |
-| odds | `odds_company`、`odds_live`、`odds_history`（分區）、`honor_map`、`ranking_*` | 否 |
+| platform | `platform`、`platform_domain`、`platform_brand`、`redirect_setting`、`ad_slot`、`ad_material`；**ES**：`sp_redirect_click`、`sp_redirect_impression`、`sp_visit_log`（D29） | 全部是（`platform_code`；`platform` 表本身以 `code` 為租戶鍵；ES index 每筆帶 `platform_code`） |
+| match | `sport`、`league`、`team`、`player`、`season`、`match`、`match_event`、`match_stat`、`match_lineup`、`match_override`、`match_media`；**ES**：`sp_match_history`（D29，`match_stat` 的完賽自存併入） | 否（全平台共用） |
+| odds | `odds_company`、`odds_live`、`honor_map`、`ranking_*`；**ES**：`sp_odds_history`（D29） | 否 |
 | member | `member`、`member_device`、`member_login`、`sms_record`、`favorite`、`member_setting`、`search_log` | 是 |
 | notify | `notice_setting`、`notice`、`push_token`、`push_record` | 是 |
 | manage | `admin_info`、`admin_role`、`admin_menu`、`login_log`（後台登入記錄）、`operate_log`（後台操作記錄）、`admin_ip_allow`、`hot_content`、`featured_match`、`source_monitor`、`app_version`（總控與業主後台各自的角色／帳號表以 `scope` 欄區分） | 業主後台帳號是；總控不是 |
 | collector | 無（只寫 Redis 與 Kafka） | — |
 
-**一張表只有一個擁有者包能寫。** 其他包要改它 → 呼叫擁有者的 service。
+**一張表（含 ES index）只有一個擁有者包能寫。** 其他包要改它 → 呼叫擁有者的 service。ES 的 client 在 `internal/core/es`，查詢與寫入只在 `internal/<擁有者包>/esdao/`（`es-store.md`）。
 
 ---
 
@@ -195,9 +197,9 @@ func API() []fx.Option {
 |------|------|
 | import 方向（§3 全部規則） | `go list -deps` + 腳本比對白名單（`scripts/arch-check.sh`） |
 | `internal/` 的頂層目錄只有功能包（§2 的八個）、`core`、`inject`（不在清單的目錄不受 import 方向檢查；P-30 後重建舊總控包目錄即 FAIL） | `find internal -maxdepth 1`（第 1a 項，fail-closed） |
-| 禁用依賴：`sp-common`、Ignite、ES、protobuf 對前端、`go.work` 進版控、go.mod 寫 framework | grep |
+| 禁用依賴：`sp-common`、Ignite、protobuf 對前端、`go.work` 進版控、go.mod 寫 framework；`olivere/elastic` 只准在 `internal/core/es` 與 `internal/*/esdao`（D29；**P-32 改腳本前仍整個禁用**） | grep |
 | 租戶表 dao 都經 `tenant.Scope` | grep `db.Model(&model.<租戶表>` 對照 §4 清單 |
-| append-only 表（`odds_history`、`login_log`、`operate_log`、`redirect_click`、`redirect_impression`、`visit_log`）無 UPDATE／DELETE | Go 跨行比對 `model.<M>`／`Table("<t>")` 之後的 `Update(s)`／`UpdateColumn(s)`／`Delete`／`Save`；SQL 去 `--` 註解後以 `;` 切語句比對（含 `ALTER … DROP／TRUNCATE／EXCHANGE PARTITION`）；沒有放行清單 |
+| append-only 表（`login_log`、`operate_log`）無 UPDATE／DELETE；append-only ES index（導流三個、`sp_odds_history`）在 esdao 無 `Update`／`UpdateByQuery`／`Delete`／`DeleteByQuery`（D29，P-32 起） | Go 跨行比對 `model.<M>`／`Table("<t>")` 之後的 `Update(s)`／`UpdateColumn(s)`／`Delete`／`Save`；SQL 去 `--` 註解後以 `;` 切語句比對（含 `ALTER … DROP／TRUNCATE／EXCHANGE PARTITION`）；沒有放行清單 |
 | `internal/` 的 `.Raw(`／`.Exec(` 不碰租戶表（保險絲不涵蓋手寫 SQL） | perl 比對字串引數 × `internal/core/tenant/tables.go` 的租戶表清單 |
 | `tenant.AllPlatforms`／`ManageRows`／`SelfScope`／`WithPlatform`、`auth.WithPrincipal`／`WithSession` 只在白名單位置（第 15 項為檔案層級、只准直接呼叫，含 `cmd`；`ctxKey`／`ctxSession` 不得別名或轉手；15e：不得宣告任何 `Value` 方法） | grep（第 8～10、15 項） |
 | `collector` 包未被 import | `go list -deps ./internal/... \| grep collector` |

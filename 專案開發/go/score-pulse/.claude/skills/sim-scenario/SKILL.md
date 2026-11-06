@@ -57,7 +57,7 @@ description: cmd/thesports-sim 的設計要求與必備情境腳本——同場�
 
 | 腳本 | 驗證 |
 |------|------|
-| `odds_burst_30_per_sec` 同公司同玩法 1 秒 30 筆 | `odds_history` 30 列（只要值有變）；推送合流為 1 筆 |
+| `odds_burst_30_per_sec` 同公司同玩法 1 秒 30 筆 | ES `sp_odds_history` 30 筆（只要值有變）；推送合流為 1 筆 |
 | `odds_no_change` 30 筆中 10 筆值相同 | 只寫 20 列 |
 | `odds_backfill_30d` 首次接到比賽時補 30 天歷史 | 初盤 = 補齊後最早一筆；走勢連續 |
 | `odds_backfill_incomplete` 開盤早於 30 天 | 初盤標「不完整」；更早區間標「無資料」 |

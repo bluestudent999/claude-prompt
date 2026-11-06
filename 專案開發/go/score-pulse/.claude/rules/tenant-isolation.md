@@ -47,11 +47,13 @@ func ManageRows() func(*gorm.DB) *gorm.DB  // 總控自身的列：WHERE platfor
 
 | 租戶表（必帶） | 全平台共用（不帶） |
 |---|---|
-| `platform`（租戶鍵是自己的 `code`）、`platform_domain`、`platform_brand`、`redirect_setting`、`ad_slot`、`ad_material`、`redirect_click`、`redirect_impression`、`visit_log` | `sport`、`league`、`team`、`player`、`season`、`match`、`match_event`、`match_stat`、`match_lineup`、`match_override`、`match_media` |
-| `member`、`member_device`、`member_login`、`sms_record`、`favorite`、`member_setting`、`search_log` | `odds_company`、`odds_live`、`odds_history`、`honor_map`、`ranking_*` |
+| `platform`（租戶鍵是自己的 `code`）、`platform_domain`、`platform_brand`、`redirect_setting`、`ad_slot`、`ad_material`；ES index `sp_redirect_click`、`sp_redirect_impression`、`sp_visit_log`（D29，每筆帶 `platform_code`） | `sport`、`league`、`team`、`player`、`season`、`match`、`match_event`、`match_stat`、`match_lineup`、`match_override`、`match_media`；ES `sp_match_history` |
+| `member`、`member_device`、`member_login`、`sms_record`、`favorite`、`member_setting`、`search_log` | `odds_company`、`odds_live`、`honor_map`、`ranking_*`；ES `sp_odds_history` |
 | `notice_setting`、`notice`、`push_token`、`push_record` | `hot_content`（平台預設份）、`featured_match`、`source_monitor`、`app_version`、`category_i18n` |
 | `admin_info`／`admin_role`／`admin_ip_allow`／`login_log`／`operate_log` 的 **業主後台** 列（`scope = platform`，`platform_code` = 業主代碼） | `admin_info`／`admin_role`／`admin_ip_allow`／`login_log`／`operate_log` 的 **總控** 列（`scope = manage`，`platform_code = '0'`） |
 | `hot_content_override`（業主自加與排序） | |
+
+**ES 導流 index 的過濾**：每個查詢經 `tenant.ESScope(ctx)`（ctx 無業主 → panic），總控全部業主明寫 `tenant.ESAllPlatforms(ctx)`（白名單位置同 `AllPlatforms`），總控單一業主經 `auth.ManageTarget` 後照常 `ESScope`；ES 沒有 gorm 保險絲，**review 與雙租戶測試是唯一防線**（`es-store.md` §5、§6）。
 
 新增表時**先決定它屬哪一欄**，寫進 `architecture.md` §4 與本表。判不出來 → 問「同一列資料會不會屬於不同業主」，會就是租戶表。
 

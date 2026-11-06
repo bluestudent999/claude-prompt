@@ -47,7 +47,8 @@ tools: Read, Write, Grep, Glob, Bash
    ```bash
    grep -n "<表名>" .claude/rules/tenant-isolation.md .claude/rules/architecture.md   # 租戶表欄位、擁有者包（§2、§4）
    grep -n "^## \|^### " .claude/rules/testing.md                                     # 要寫 §4 時讀 §1 與 §8
-   grep -n "D2[0-7]" .claude/rules/locked-decisions-detail.md                          # 碰到 D18～D27 的細節時
+   grep -n "D2[0-9]" .claude/rules/locked-decisions-detail.md                          # 碰到 D18～D29 的細節時
+   grep -n "^## " .claude/rules/es-store.md                                            # 碰到導流記錄、賠率歷史、歷史賽事（D29）時
    ```
    - 碰到哪些 D、哪些 I？表在 `tenant-isolation.md` §2 哪一欄、擁有者包是誰（`architecture.md` §4）？
    - 會不會新增或改 `/api/front/**`、destination、Kafka 封包（`api-contract.md` §3、`realtime-contract.md` §3）？

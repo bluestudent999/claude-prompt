@@ -86,7 +86,7 @@
       "以 protobuf 或 .proto 定義對前端訊息；或在 gateway 做按場動態 Redis 訂閱（D5，第一期不做）",
       "用 JWT 擋匿名的比賽訂閱，或要求未登入使用者登入才能看比分（D7）",
       "以「比分只能變大」或分數大小過濾供應商更新（D16、I3）",
-      "對 odds_history、login_log、operate_log、redirect_click、redirect_impression、visit_log 做 UPDATE 或 DELETE（I5、I10）",
+      "對 login_log、operate_log 做 UPDATE 或 DELETE；對 ES 的導流與賠率歷史 index 做 Update／Delete（By Query）；建 MySQL 表 odds_history、redirect_click、redirect_impression、visit_log；在 request handler 直接寫 ES（I5、I10、D29）",
       "刪除 match_event 的列而不是標 cancelled（I6）",
       "讓 api 或 realtime 角色載入 TheSports 憑證，或把憑證寫進 log、錯誤訊息、Kafka 訊息（I7）",
       "REST 首屏或重連快照從 MySQL 讀即時比分、狀態、事件而不是 Redis（I9）",

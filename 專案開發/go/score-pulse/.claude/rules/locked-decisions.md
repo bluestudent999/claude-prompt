@@ -1,6 +1,6 @@
 # 已鎖定的架構決策（不得自行推翻）
 
-> 來源：`plan/on-sports-lite/tech-decisions.md`（v1.16，2026-11-01 使用者逐條拍板，2026-11-02～06 修訂至 D28）。本檔是常駐的**索引**；每條 D 的完整規格、P-20／24／26／27 規則與長條停手徵兆在 `locked-decisions-detail.md`（碰到程式碼時自動載入）。
+> 來源：`plan/on-sports-lite/tech-decisions.md`（v1.17，2026-11-01 使用者逐條拍板，2026-11-02～06 修訂至 D29）。本檔是常駐的**索引**；每條 D 的完整規格、P-20／24／26／27 規則與長條停手徵兆在 `locked-decisions-detail.md`（碰到程式碼時自動載入）。
 > **AI 不得在實作中「順手改回原案」、引入被排除的東西，或因為「這樣比較完整」而加料。** 要翻案 → 停手，回報使用者走決策流程，並在 `tech-decisions.md` 留紀錄。
 > **常見誤觸來源：** 外部提出的「方案 A」四服務圖、sp-config 的分層分包、sp-common 的現成程式碼、網路上的 Go 微服務教學、投注平台的概念（結算、盤口）。
 
@@ -12,7 +12,7 @@
 |---|------|-----------|
 | **D9** | H5 與 App 畫面由另一部門負責 | 不寫 H5 頁面、不寫 App；不替他們回答 OQ-63／OQ-62／OQ-32a；API 設計對「App 沿用 H5 或另做」保持中立 |
 | **D3** | 單一部署單元 | 不拆微服務、不拆多個 binary、不拆多個後端 repo；**不做「結算」**（投注概念，比分網沒有） |
-| **D2** | 不依賴 sp-common | 不 `import "sp-common/..."`；不引入 Ignite、不引入 Elasticsearch；可以**抄概念**（platform、domain_config、international、sms_message_record、push_message、app_device 的表設計），不能抄 import |
+| **D2** | 不依賴 sp-common | 不 `import "sp-common/..."`；不引入 Ignite（Elasticsearch 只准 D29 的用途，`es-store.md`）；可以**抄概念**（platform、domain_config、international、sms_message_record、push_message、app_device 的表設計），不能抄 import |
 | **D4** | 不用 Redis Pub/Sub 當廣播總線 | 扇出走框架的 Kafka `websocket` topic；Redis 只做快照、熱狀態、鎖 |
 | **D5** | 第一期不用 protobuf、不做按場動態訂閱 | 訊息一律 JSON；看到 `.proto`、`protobuf.js`、「gateway 依本機訂閱數向 Redis 訂閱／退訂」= 越界。升級觸發點：單連線平均下行 > 20 KB/s；realtime 單實例每秒收訊 > 5000 或 CPU > 60% |
 | **D7** | 不用 JWT 擋匿名的比賽訂閱 | 規格允許未登入看比分；只有會員通知 destination 驗 token |
@@ -31,7 +31,7 @@
 | D3／D3a | 單 binary 三角色 `api`／`collector`／`realtime`；依功能分包 `internal/{platform,match,odds,member,notify,manage,collector,realtime}` + `internal/core` |
 | D4 | Kafka；業務 topic 以 `match_id` 當 key；`match.live` 24 分區 |
 | D5 | JSON、delta、每場 `seq` 單調；快照只讀 Redis；慢連線經 P-17 有界佇列斷線 |
-| D6／D6a | MySQL 8 唯一主庫 + Redis；賠率歷史 append-only；golang-migrate 時間戳 SQL |
+| D6／D6a | MySQL 8 業務實體主庫 + Redis；事件與歷史改存 ES（D29）；golang-migrate 時間戳 SQL |
 | D7／D20 | 單庫多業主；租戶鍵是字串 `platform_code`，建立後不可改；gorm 強制過濾；測試一律雙租戶 |
 | D8 | 後台 Vue 3 + Element Plus + Pinia + Vite（`web/admin`） |
 | D10～D15 | Firebase 推播、簡訊 mock、TOTP、SMTP；媒體回 iframe URL；YAML + 環境變數、docker compose、不用 k8s；`cmd/thesports-sim`；新第三方相依要在 plan §2 說明理由；TheSports MQTT over WS + HTTP |
@@ -46,6 +46,7 @@
 | D26 | 總控命名 `admin` → `manage`（`internal/manage`、`/api/manage/**`、`admin_info`） |
 | D27 | 後台記錄拆 `login_log`／`operate_log`，皆 append-only 租戶表 |
 | D28 | 總控可替任何業主填寫、更換、撤回專屬域名，與業主後台共用同一 service 與規則；指定業主只經 `auth.ManageTarget` |
+| D29 | 導流事件、賠率歷史、歷史賽事只存 ES（不建 MySQL 表）；寫入只經 Kafka consumer；導流查詢經 `tenant.ESScope`；Kibana 只給內部（`es-store.md`） |
 
 ---
 
@@ -60,7 +61,7 @@
 | `.proto` 檔、`proto.Marshal` 用在對前端訊息 | D5 |
 | 查詢租戶表卻沒經過 `tenant.Scope` | D7、I1 |
 | `if newScore < oldScore { return }` | D16、I3 |
-| `DELETE FROM odds_history`、`UPDATE odds_history` | D6、I5 |
+| 建 MySQL 表 `redirect_click`／`redirect_impression`／`visit_log`／`odds_history`；request handler 直接寫 ES；對導流或賠率 index `Update`／`Delete`（By Query） | D29、I5、I10 |
 | 首屏 REST 讀 MySQL 取即時比分 | D5、I9 |
 | `websocket.allow-cross-origin: true` 留在 prod profile | D7 |
 | `settle`、`settlement`、`bet`、`stake` 等字眼出現在程式碼 | D3 |

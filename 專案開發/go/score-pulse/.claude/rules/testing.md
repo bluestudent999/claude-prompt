@@ -9,7 +9,7 @@ paths:
 # 測試政策
 
 > 本專案的測試不是覆蓋率遊戲，它是三件事的驗證機制：**每個 API 的行為**、**10 條不變量**、**ticket 對映的 AC**。
-> 工具：Go 內建 `testing` + `testify`（assert/require/mock）、`httptest`、docker-compose（MySQL／Redis／Kafka）、`cmd/thesports-sim`。
+> 工具：Go 內建 `testing` + `testify`（assert/require/mock）、`httptest`、docker-compose（MySQL／Redis／Kafka／Elasticsearch）、`cmd/thesports-sim`。ES 的測試細則見 `es-store.md` §6。
 
 ---
 
@@ -48,7 +48,7 @@ paths:
 | 層 | 位置 | 用途 | 需要什麼 | 進 CI |
 |----|------|------|---------|------|
 | 單元 | `internal/**/ *_test.go` | §1 的 API 測試；service 規則；envelope 編解碼；合流；compare-and-set | 無外部依賴 | ✅ `go test ./internal/...` |
-| 整合 | `test/integration/*_test.go` | dao 對真實 MySQL；Kafka 兩 group 消費；Redis 快照；雙租戶越權 | `docker compose -f deploy/docker-compose.yml up -d mysql redis kafka` | ✅ `go test -tags=integration ./test/...` |
+| 整合 | `test/integration/*_test.go` | dao 對真實 MySQL；esdao 對真實 ES（先 `make es-init`）；Kafka 各 group 消費；Redis 快照；雙租戶越權（含 ES 導流查詢） | `docker compose -f deploy/docker-compose.yml up -d mysql redis kafka elasticsearch` | ✅ `go test -tags=integration ./test/...` |
 | 情境 | `test/scenario/*_test.go` | 模擬器腳本：同時進球、回退、跨日、停更、中斷補齊、p95 量測 | 上述 + `cmd/thesports-sim` | ✅（夜間或 PR label） |
 | 架構 | `scripts/arch-check.sh` | import 方向、禁用依賴、handler 有測試、租戶 dao 經 Scope | 無 | ✅ |
 

@@ -1,7 +1,7 @@
 # score-pulse 開發範本 — 使用指南
 
 > 一句話定位：**讓 Claude 在 score-pulse 上做 On 體育網精簡版的後端 API 與兩套後台，守住四條線**——租戶隔離、單場順序與冪等、賠率歷史只增不刪、對另一部門的契約不片面改。
-> 技術棧：Go 1.27.3 + go-framework｜MySQL 8 + Redis + Kafka｜後台前端 Vue 3 + Element Plus + Pinia。**H5 與 App 畫面不在本 repo。**
+> 技術棧：Go 1.27.3 + go-framework｜MySQL 8 + Redis + Kafka + Elasticsearch／Kibana（D29）｜後台前端 Vue 3 + Element Plus + Pinia。**H5 與 App 畫面不在本 repo。**
 
 ---
 
@@ -30,7 +30,7 @@ claude
 | 項目 | 檢查 |
 |------|------|
 | Go 1.27.3+ | `go version`（go.mod 的 go 指令會自動下載 1.27.3 工具鏈） |
-| Docker（MySQL 8 / Redis 7 / Kafka 3.8 KRaft） | `docker compose version` |
+| Docker（MySQL 8 / Redis 7 / Kafka 3.8 KRaft / Elasticsearch 7.17 + Kibana，P-32 起） | `docker compose version` |
 | golangci-lint | `go install github.com/golangci/golangci-lint/cmd/golangci-lint@latest` |
 | golang-migrate（mysql tag） | `go install -tags 'mysql' github.com/golang-migrate/migrate/v4/cmd/migrate@latest` |
 | swag | `go install github.com/swaggo/swag/cmd/swag@latest` |
@@ -89,6 +89,7 @@ claude
     |       |                      | ws（框架協定）
     v       v                      v
  MySQL 8   Redis            H5 / App / 兩套後台（web/admin）
+ Elasticsearch（D29：導流事件、賠率歷史、歷史賽事；Kibana 只給內部）
                      ^
               Nginx + ACME（業主域名 -> Host -> 業主代碼）
 ```
@@ -107,7 +108,7 @@ claude
 ├── settings.local.json.example 本機環境變數範本
 ├── rules/
 │   ├── development-workflow.md  文件優先序、三類工作、六步判準（可執行版在 /ticket-run）、Session 與 token 紀律
-│   ├── locked-decisions.md      常駐索引：不做清單 + D1~D27 一行版 + 短條停手徵兆
+│   ├── locked-decisions.md      常駐索引：不做清單 + D1~D29 一行版 + 短條停手徵兆
 │   ├── locked-decisions-detail.md D 完整規格 + P-20/24/26/27 規則 + 長條停手徵兆（paths: internal、cmd、migrations、configs、deploy、scripts、web/admin）
 │   ├── invariants.md            10 條不變量與驗證方式
 │   ├── architecture.md          單 binary 多角色、功能分包、依賴方向、表歸屬、fx 組裝（paths: internal、cmd、configs、go.mod）
@@ -118,6 +119,7 @@ claude
 │   ├── thesports-ingest.md      MQTT/HTTP 接入、補齊、停更與中斷偵測、主備（paths: internal/collector、cmd/thesports-sim）
 │   ├── i18n.md                  資料名稱回退、分類名稱自譯、通知與簡訊 5 語系、後台只中文（paths: platform/i18n、notify、member、match/service）
 │   ├── db-migration.md          golang-migrate、時間戳、分區、gen 重產（paths: migrations、cmd/gen）
+│   ├── es-store.md              D29：哪些資料進 ES、Kafka consumer 寫入、strict mapping、ESScope 租戶過濾、Kibana 只給內部（paths: esdao、core/es、platform、odds、match、deploy、configs、docs/contract、test）
 │   ├── coding-style.md          Go 風格、error wrapping、context、decimal、UTC、log（paths: **/*.go）
 │   ├── testing.md               每個 API 必有單元測試、雙租戶 fixture、模擬器、AC 對映、DoD 七條（paths: *_test.go、test、web/admin 測試）
 │   ├── web-frontend.md          Vue 3 + Element Plus + Pinia、防 Vue 2、三態、權限（paths: web/admin）

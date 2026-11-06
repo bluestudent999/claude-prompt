@@ -22,11 +22,12 @@ paths:
 | Topic | Key | 分區 | 保留 | 生產者 | 消費者（group） | 內容 |
 |---|---|---|---|---|---|---|
 | `match.live` | `match_id` | **24** | 7 天 | collector | api `realtime-core`、api `persist` | 一個 topic 承載 `score`、`status`、`event`、`stat`、`lineup` 五種 kind；同場同分區，順序有保證（I2） |
-| `odds.change` | `match_id` | 24 | 7 天 | collector | api `realtime-core`、api `persist` | 每一筆變盤；`persist` 是 `odds_history` 的唯一寫入者（I5） |
+| `odds.change` | `match_id` | 24 | 7 天 | collector | api `realtime-core`、api `persist` | 每一筆變盤；`persist` 是賠率歷史（ES `sp_odds_history`，D29）的唯一寫入者（I5） |
 | `source.health` | 資料項名 | 3 | 1 天 | collector | api `monitor` | 各資料項狀態、延遲、每場最後收到時間（Spec-4 R49–R52） |
 | `notify.trigger` | `platform_code` | 6 | 1 天 | api `realtime-core` | api `notify` | 「比分變動／狀態變動／事件新增取消」三種觸發（Spec-2a R64） |
 | `websocket` | destination | 12 | **10 分鐘** | api `realtime-core` | realtime（每實例獨立 group，`latest-offset: true`） | 框架 `WebsocketMessage{destinations, data}`；data 已合流 |
 | `cache-refresh` | — | 1 | 10 分鐘 | api | api | 框架本地快取失效廣播 |
+| `redirect.event` | `platform_code` | 6 | 7 天 | api（記錄 API） | api `redirect-sink` | 導流點擊、曝光、訪問事件（事件 id、業主代碼、類型、入口位置、落地網址、來源頁、會員或未登入、來源端、`occurred_at`）；consumer 批次寫 ES（D29） |
 
 **分區數建立後不改**（改了會破壞單場順序）。topic 由框架依 YAML 自動建立；YAML 裡要寫 `partitions` 與 `retention-ms`。
 
@@ -53,7 +54,7 @@ paths:
 | group | 規則 |
 |-------|------|
 | `realtime-core` | 依 `pv` compare-and-set 套用到 Redis 快照（I3）；覆寫中的場次只存不套用（I4）；套用成功才產生推送；每場 `seq` 從 Redis `INCR`（I2）；資料錯誤 log + metric + 回 nil，不卡分區 |
-| `persist` | 緩衝 500 筆或 1 秒 flush；`odds.change` 比對上一筆相同鍵（`m`,`co`,`mk`,`st`）的值，**無變動不寫**（I5）；flush 成功才回 nil（I9） |
+| `persist` | 緩衝 500 筆或 1 秒 flush；`odds.change` 比對上一筆相同鍵（`m`,`co`,`mk`,`st`）的值，**無變動不寫**（I5）；flush 成功才回 nil（I9）；賠率寫 ES `sp_odds_history`（`_id` 固定、`op_type=create`）；`match.live` 的終局狀態與終局後的修正／覆寫寫 ES `sp_match_history`（`_id = match_id`、external version = `pv`）（D29） |
 | 兩者共同 | 不得假設同一場的 `score` 一定在 `event` 之前；以收到順序為準 |
 
 ### 1.3 `d` 的欄位短名（對外推送也用同一套）

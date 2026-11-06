@@ -1,6 +1,6 @@
 ---
 name: db-migrate
-description: 建立與驗證 golang-migrate migration——時間戳版本、up/down 成對、租戶表判定並回寫 rules、odds_history 月分區範例、對 compose 環境套用、gorm/gen 重產、驗證器。要新增或改資料表時使用。
+description: 建立與驗證 golang-migrate migration——時間戳版本、up/down 成對、租戶表判定並回寫 rules、月分區範例（賠率歷史與導流記錄改存 ES，不建表）、對 compose 環境套用、gorm/gen 重產、驗證器。要新增或改資料表時使用。
 ---
 
 # db-migrate — 建立 migration
@@ -47,22 +47,18 @@ CREATE TABLE favorite (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_bin;
 ```
 
-append-only 月分區（`odds_history`，D6）：
+append-only 月分區（範例沿用既有的 `operate_log`；賠率歷史與導流記錄依 D29 改存 ES，**不建表**，見 `rules/es-store.md`）：
 
 ```sql
-CREATE TABLE odds_history (
-  id         BIGINT NOT NULL AUTO_INCREMENT,
-  match_id   BIGINT NOT NULL,
-  company_id INT NOT NULL,
-  market     VARCHAR(8) NOT NULL,
-  stage      VARCHAR(4) NOT NULL,
-  o1 DECIMAL(10,4) NOT NULL, o2 DECIMAL(10,4) NOT NULL, o3 DECIMAL(10,4) NOT NULL,
-  score_h TINYINT NULL, score_a TINYINT NULL,
-  changed_at DATETIME(3) NOT NULL,
-  PRIMARY KEY (id, changed_at),
-  KEY idx_oh_lookup (match_id, company_id, market, stage, changed_at)
+CREATE TABLE operate_log (
+  id            BIGINT NOT NULL AUTO_INCREMENT,
+  platform_code VARCHAR(20) NOT NULL,
+  scope         VARCHAR(16) NOT NULL,
+  -- …其餘欄位見 migrations/20261104081233_create_operate_log.up.sql
+  created_at    DATETIME(3) NOT NULL,
+  PRIMARY KEY (id, created_at)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_bin
-PARTITION BY RANGE COLUMNS (changed_at) (
+PARTITION BY RANGE COLUMNS (created_at) (
   PARTITION p202611 VALUES LESS THAN ('2026-12-01'),
   PARTITION p202612 VALUES LESS THAN ('2027-01-01'),
   PARTITION pmax    VALUES LESS THAN (MAXVALUE)
@@ -89,7 +85,8 @@ for up in migrations/*.up.sql; do
   v="$(basename "$up" | cut -d_ -f1)"; echo "$v" | grep -qE '^[0-9]{14}$' || { echo "FAIL 版本格式：$up"; rc=1; }
   [ -f "${up%.up.sql}.down.sql" ] || { echo "FAIL 缺 down：$up"; rc=1; }
   grep -qiE '^\s*DROP TABLE' "$up" && { echo "FAIL up 內 DROP 既有表：$up（要刪表先開 OQ）"; rc=1; }
-  for t in odds_history login_log operate_log redirect_click redirect_impression visit_log; do
+  grep -qiE "CREATE TABLE\s+\`?(odds_history|redirect_click|redirect_impression|visit_log)\b" "$up" && { echo "FAIL D29：這張表改存 ES，不建 MySQL 表：$up"; rc=1; }
+  for t in login_log operate_log; do
     grep -qiE "^\s*(UPDATE|DELETE FROM)\s+$t\b" "$up" && { echo "FAIL append-only 表被改：$t in $up"; rc=1; }
   done
 done

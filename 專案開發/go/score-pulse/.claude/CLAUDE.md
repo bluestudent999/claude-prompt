@@ -1,7 +1,7 @@
 # CLAUDE.md — score-pulse 開發專案（實作期 AI Agent 規範）
 
 > **專案定位：** On 體育網精簡版（導流版）的**後端 API 與兩套後台**。一套系統服務多位業主（一業主一域名、一品牌 App），四大球種即時比分、賠率、數據，資料全由 TheSports 供應。**H5 與 App 畫面由另一部門負責**，本 repo 對他們交付的是契約。
-> **執行環境：** Go 1.27.3 + go-framework（`gi88995.kxcodes.com/game_hub/go-framework`，含自 sp-framework 移植的模組、WebSocket、權限與快取機制；gin／fx／gorm／go-redis／sarama／gorilla ws）｜MySQL 8 + Redis + Kafka｜後台前端 Vue 3 + Element Plus + Pinia（`web/admin`）
+> **執行環境：** Go 1.27.3 + go-framework（`gi88995.kxcodes.com/game_hub/go-framework`，含自 sp-framework 移植的模組、WebSocket、權限與快取機制；gin／fx／gorm／go-redis／sarama／gorilla ws）｜MySQL 8 + Redis + Kafka + Elasticsearch（D29：導流事件、賠率歷史、歷史賽事）｜後台前端 Vue 3 + Element Plus + Pinia（`web/admin`）
 > **部署位置：** 隨整個 `.claude/` 部署到 score-pulse repo 根目錄（與 `plan/` 同一個 repo）。
 
 ---
@@ -100,6 +100,7 @@ repo 初始化、框架 tag、三份 profile、docker-compose、migrate、swag�
 - **開發流程與回填：** [`.claude/rules/development-workflow.md`](.claude/rules/development-workflow.md)
 - **測試政策（每個 API 必有單元測試、雙租戶）：** [`.claude/rules/testing.md`](.claude/rules/testing.md)（按需）
 - **DB migration：** [`.claude/rules/db-migration.md`](.claude/rules/db-migration.md)（按需）
+- **Elasticsearch 事件與歷史庫（D29）：** [`.claude/rules/es-store.md`](.claude/rules/es-store.md)（按需）
 - **Go 風格：** [`.claude/rules/coding-style.md`](.claude/rules/coding-style.md)（按需）
 - **後台前端（Vue 3）：** [`.claude/rules/web-frontend.md`](.claude/rules/web-frontend.md)（按需）
 - **分支與提交：** [`.claude/rules/git-workflow.md`](.claude/rules/git-workflow.md)（**測試分支的程式碼禁止回流開發分支**）
